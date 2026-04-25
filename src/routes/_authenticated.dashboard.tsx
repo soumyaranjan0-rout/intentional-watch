@@ -242,11 +242,11 @@ function Dashboard() {
                     <stop offset="100%" stopColor={CHART_COLORS.accent} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid stroke="hsl(var(--border))" vertical={false} />
-                <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
-                <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, color: "hsl(var(--popover-foreground))" }} />
-                <Legend wrapperStyle={{ fontSize: 12, color: "hsl(var(--muted-foreground))" }} />
+                <CartesianGrid stroke="var(--border)" vertical={false} />
+                <XAxis dataKey="day" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
+                <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, color: "var(--popover-foreground)" }} />
+                <Legend wrapperStyle={{ fontSize: 12, color: "var(--muted-foreground)" }} />
                 <Area type="monotone" name="Learning" dataKey="learn" stackId="1" stroke={CHART_COLORS.primary} fill="url(#grad-learn)" />
                 <Area type="monotone" name="Entertainment" dataKey="relax" stackId="1" stroke={CHART_COLORS.accent} fill="url(#grad-relax)" />
                 <Area type="monotone" name="Other" dataKey="other" stackId="1" stroke={CHART_COLORS.muted} fill={CHART_COLORS.muted} fillOpacity={0.15} />
@@ -260,10 +260,10 @@ function Dashboard() {
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={stats.modeData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={85} stroke="hsl(var(--background))" strokeWidth={2}>
+                <Pie data={stats.modeData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={85} stroke="var(--background)" strokeWidth={2}>
                   {stats.modeData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                 </Pie>
-                <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, color: "hsl(var(--popover-foreground))" }} formatter={(v: number) => `${v} min`} />
+                <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, color: "var(--popover-foreground)" }} formatter={(v: number) => `${v} min`} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -291,10 +291,10 @@ function Dashboard() {
             <div className="h-56">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={stats.topCategories} layout="vertical" margin={{ top: 5, right: 12, left: 8, bottom: 0 }}>
-                  <CartesianGrid stroke="hsl(var(--border))" horizontal={false} />
-                  <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
-                  <YAxis type="category" dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} width={90} />
-                  <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, color: "hsl(var(--popover-foreground))" }} formatter={(v: number) => `${v} min`} />
+                  <CartesianGrid stroke="var(--border)" horizontal={false} />
+                  <XAxis type="number" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
+                  <YAxis type="category" dataKey="name" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} width={90} />
+                  <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, color: "var(--popover-foreground)" }} formatter={(v: number) => `${v} min`} />
                   <Bar dataKey="min" fill={CHART_COLORS.primary} radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
