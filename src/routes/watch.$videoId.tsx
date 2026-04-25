@@ -16,11 +16,12 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/watch/$videoId")({
-  validateSearch: (s) => ({
+  validateSearch: (s: Record<string, unknown>) => ({
     title: typeof s.title === "string" ? s.title : "",
     channel: typeof s.channel === "string" ? s.channel : "",
     duration: typeof s.duration === "number" ? (s.duration as number) : 0,
     thumbnail: typeof s.thumbnail === "string" ? s.thumbnail : "",
+    t: typeof s.t === "number" ? (s.t as number) : 0,
   }),
   head: () => ({ meta: [{ title: "Watching — ZenTube" }] }),
   component: WatchPage,
@@ -41,6 +42,7 @@ function WatchPage() {
   const [sessionMinutes, setSessionMinutes] = useState(0);
 
   const playerRef = useRef<PlayerHandle | null>(null);
+  const initialSeekRef = useRef(false);
   const watchSecondsRef = useRef(0); // current playback position
   const effectiveSecondsRef = useRef(0); // sum of actual played segments
   const seekCountRef = useRef(0);
@@ -252,6 +254,12 @@ function WatchPage() {
             onEnded={handleEnded}
             onSegmentPlayed={handleSegment}
             onSeek={handleSeek}
+            onReady={() => {
+              if (!initialSeekRef.current && search.t && search.t > 0) {
+                initialSeekRef.current = true;
+                playerRef.current?.seekTo(search.t);
+              }
+            }}
           />
 
           {/* Title */}
