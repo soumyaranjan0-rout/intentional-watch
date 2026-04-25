@@ -85,10 +85,12 @@ type Props = {
   onSegmentPlayed?: (start: number, end: number) => void;
   /** Called when user seeks (skip forward/back/scrub). */
   onSeek?: () => void;
+  /** Called once the YouTube player has loaded and is ready. */
+  onReady?: () => void;
 };
 
 export const Player = forwardRef<PlayerHandle, Props>(function Player(
-  { videoId, onProgress, onEnded, onSegmentPlayed, onSeek },
+  { videoId, onProgress, onEnded, onSegmentPlayed, onSeek, onReady },
   ref,
 ) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -172,6 +174,7 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
               const qs = p.getAvailableQualityLevels?.() || [];
               setQualities(qs);
             } catch {}
+            onReady?.();
           },
           onStateChange: (e) => {
             const st = e.data;

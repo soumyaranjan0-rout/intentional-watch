@@ -45,7 +45,7 @@ function LibraryPage() {
               <Link
                 to="/watch/$videoId"
                 params={{ videoId: it.video_id }}
-                search={{ title: it.title || "", channel: it.channel || "", duration: it.duration_seconds || 0, thumbnail: it.thumbnail || "" }}
+                search={{ title: it.title || "", channel: it.channel || "", duration: it.duration_seconds || 0, thumbnail: it.thumbnail || "", t: 0 }}
                 className="flex flex-1 items-center gap-4"
               >
                 <div className="aspect-video w-32 shrink-0 overflow-hidden rounded bg-muted sm:w-44">
