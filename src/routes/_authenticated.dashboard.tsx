@@ -186,7 +186,7 @@ function Dashboard() {
     stats.focusScore > 0.4 ? "Distracted" : "Scattered";
   const focusTone =
     stats.focusScore > 0.7 ? "text-primary" :
-    stats.focusScore > 0.4 ? "text-amber-500 dark:text-amber-400" : "text-destructive";
+    stats.focusScore > 0.4 ? "text-muted-foreground" : "text-destructive";
 
   const skippedPct = stats.totalRaw ? Math.round((stats.skippedSec / stats.totalRaw) * 100) : 0;
 
@@ -207,9 +207,9 @@ function Dashboard() {
 
       {/* Attention awareness card */}
       {(stats.focusScore < 0.5 || stats.seeksPerVideo > 5) && (
-        <div className="mt-4 zen-card border-amber-500/40 bg-amber-500/5 p-4 sm:p-5">
+        <div className="mt-4 zen-card border-destructive/40 bg-destructive/5 p-4 sm:p-5">
           <div className="flex items-start gap-3">
-            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500 dark:text-amber-400" />
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
             <div className="flex-1 text-sm">
               <div className="font-medium text-foreground">Your attention has been scattered.</div>
               <p className="mt-1 text-muted-foreground">
