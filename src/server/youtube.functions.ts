@@ -8,36 +8,47 @@ const SearchInput = z.object({
   freeform: z.string().max(300).optional(),
   chips: z.array(z.string()).max(20).optional(),
   maxResults: z.number().int().min(3).max(15).optional(),
+  variation: z.number().int().min(0).max(20).optional(),
 });
 
 type Input = z.infer<typeof SearchInput>;
 
 const YT_BASE = "https://www.googleapis.com/youtube/v3";
 
+// Variation tweaks let the "Refresh" button surface different relevant videos
+const VARIATION_SUFFIX = [
+  "",
+  "best",
+  "explained",
+  "complete",
+  "popular",
+  "recommended",
+  "in depth",
+  "top",
+];
+
 function buildSearchQuery(input: Input): {
   q: string;
   videoDuration?: "short" | "medium" | "long" | "any";
+  order: "relevance" | "viewCount" | "date";
 } {
-  const { query, mode, freeform, chips = [] } = input;
+  const { query, mode, freeform, chips = [], variation = 0 } = input;
   const parts: string[] = [query.trim()];
   let videoDuration: "short" | "medium" | "long" | "any" = "any";
+  let order: "relevance" | "viewCount" | "date" = "relevance";
 
-  // Add chip-derived keywords directly (they're already natural-language)
   const chipText = chips.join(" ").toLowerCase();
 
-  // Duration inference from chips
   if (/under 15|\bshort\b|5 min/.test(chipText)) videoDuration = "short";
   else if (/around 1 hour|\bmedium\b/.test(chipText)) videoDuration = "medium";
   else if (/full course|\blong\b/.test(chipText)) videoDuration = "long";
 
-  // Mode-specific phrasing on top of chips
   if (mode === "learn") {
     if (/beginner/.test(chipText)) parts.push("for beginners");
     if (/advanced/.test(chipText)) parts.push("advanced");
     if (/step-by-step|crash course/.test(chipText)) parts.push("tutorial");
     if (/deep dive/.test(chipText)) parts.push("in depth");
     if (/overview/.test(chipText)) parts.push("explained");
-    // pass through other chips (topic angle)
     for (const c of chips) {
       if (!/beginner|intermediate|advanced|step-by-step|overview|deep dive|crash course|under 15|around 1 hour|full course|short|medium|long/i.test(c)) {
         parts.push(c);
@@ -57,13 +68,23 @@ function buildSearchQuery(input: Input): {
     }
   } else if (mode === "find") {
     if (/official/.test(chipText)) parts.push("official");
-    if (/latest/.test(chipText)) parts.push("latest");
+    if (/latest/.test(chipText)) {
+      parts.push("latest");
+      order = "date";
+    }
   }
 
-  // Freeform user note — append last; YouTube handles natural language fine
   if (freeform && freeform.trim()) parts.push(freeform.trim());
 
-  return { q: parts.join(" "), videoDuration };
+  // Variation: rotate through helper suffixes & shift order on later refreshes
+  const v = variation % VARIATION_SUFFIX.length;
+  if (v > 0) {
+    parts.push(VARIATION_SUFFIX[v]);
+    if (v % 3 === 0) order = "viewCount";
+    else if (v % 3 === 2) order = "date";
+  }
+
+  return { q: parts.join(" "), videoDuration, order };
 }
 
 function reasonFor(
@@ -109,29 +130,36 @@ export const searchVideos = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const apiKey = process.env.YOUTUBE_API_KEY;
     if (!apiKey) {
-      return { error: "YouTube API key is not configured.", results: [] as ResultVideo[] };
+      return {
+        error: "YouTube API key is not configured.",
+        results: [] as ResultVideo[],
+        effectiveQuery: "",
+      };
     }
 
-    const { q, videoDuration } = buildSearchQuery(data);
+    const { q, videoDuration, order } = buildSearchQuery(data);
     const limit = data.maxResults ?? (data.mode === "find" ? 5 : data.mode === "explore" ? 5 : 7);
 
+    // Fetch more than we need so we can filter out shorts and still have enough
     const searchParams = new URLSearchParams({
       part: "snippet",
       q,
-      maxResults: String(Math.min(limit + 5, 15)),
+      maxResults: "20",
       type: "video",
       safeSearch: "moderate",
-      order: "relevance",
+      order,
       key: apiKey,
     });
     if (videoDuration && videoDuration !== "any") searchParams.set("videoDuration", videoDuration);
+    // Always exclude shorts via API filter where possible — "short" duration is <4 min
+    // We additionally filter <65s (Shorts are ≤60s) below.
 
     try {
       const sRes = await fetch(`${YT_BASE}/search?${searchParams.toString()}`);
       if (!sRes.ok) {
         const body = await sRes.text();
         console.error("YouTube search failed", sRes.status, body);
-        return { error: `Search failed (${sRes.status})`, results: [] as ResultVideo[] };
+        return { error: `Search failed (${sRes.status})`, results: [] as ResultVideo[], effectiveQuery: q };
       }
       const sJson = (await sRes.json()) as {
         items: Array<{
@@ -148,7 +176,7 @@ export const searchVideos = createServerFn({ method: "POST" })
       };
 
       const ids = sJson.items.map((i) => i.id.videoId).filter(Boolean);
-      if (ids.length === 0) return { error: null, results: [] as ResultVideo[] };
+      if (ids.length === 0) return { error: null, results: [] as ResultVideo[], effectiveQuery: q };
 
       const dParams = new URLSearchParams({
         part: "contentDetails,statistics",
@@ -159,7 +187,7 @@ export const searchVideos = createServerFn({ method: "POST" })
       if (!dRes.ok) {
         const body = await dRes.text();
         console.error("YouTube videos failed", dRes.status, body);
-        return { error: `Details failed (${dRes.status})`, results: [] as ResultVideo[] };
+        return { error: `Details failed (${dRes.status})`, results: [] as ResultVideo[], effectiveQuery: q };
       }
       const dJson = (await dRes.json()) as {
         items: Array<{
@@ -192,7 +220,10 @@ export const searchVideos = createServerFn({ method: "POST" })
           return v;
         })
         .filter((v) => {
-          if (data.mode === "learn" && v.durationSeconds < 60) return false;
+          // Always exclude Shorts (<= 65s) and #shorts in title
+          if (v.durationSeconds <= 65) return false;
+          if (/#shorts?\b/i.test(v.title)) return false;
+          if (data.mode === "learn" && v.durationSeconds < 90) return false;
           return v.durationSeconds > 0;
         });
 
@@ -206,9 +237,96 @@ export const searchVideos = createServerFn({ method: "POST" })
       const trimmed = results.slice(0, limit);
       if (trimmed[0]) trimmed[0].primary = true;
 
-      return { error: null, results: trimmed };
+      return { error: null, results: trimmed, effectiveQuery: q };
     } catch (err) {
       console.error("YouTube search error", err);
-      return { error: "Could not reach YouTube right now.", results: [] as ResultVideo[] };
+      return { error: "Could not reach YouTube right now.", results: [] as ResultVideo[], effectiveQuery: q };
+    }
+  });
+
+// --- Video metadata: stats + channel info -----------------------------------
+
+const MetaInput = z.object({ videoId: z.string().min(5).max(20) });
+
+export type VideoMeta = {
+  videoId: string;
+  title: string;
+  channel: string;
+  channelId: string;
+  channelThumbnail: string;
+  subscriberCount: number;
+  viewCount: number;
+  likeCount: number;
+  publishedAt: string;
+  description: string;
+  durationSeconds: number;
+};
+
+export const getVideoMeta = createServerFn({ method: "POST" })
+  .inputValidator((input: { videoId: string }) => MetaInput.parse(input))
+  .handler(async ({ data }) => {
+    const apiKey = process.env.YOUTUBE_API_KEY;
+    if (!apiKey) return { meta: null as VideoMeta | null, error: "API key missing" };
+
+    try {
+      const vParams = new URLSearchParams({
+        part: "snippet,contentDetails,statistics",
+        id: data.videoId,
+        key: apiKey,
+      });
+      const vRes = await fetch(`${YT_BASE}/videos?${vParams.toString()}`);
+      if (!vRes.ok) return { meta: null, error: `videos ${vRes.status}` };
+      const vJson = (await vRes.json()) as {
+        items: Array<{
+          id: string;
+          snippet: {
+            title: string;
+            channelTitle: string;
+            channelId: string;
+            description: string;
+            publishedAt: string;
+          };
+          contentDetails: { duration: string };
+          statistics: { viewCount?: string; likeCount?: string };
+        }>;
+      };
+      const v = vJson.items[0];
+      if (!v) return { meta: null, error: "Not found" };
+
+      // Channel: subscribers + thumbnail
+      const cParams = new URLSearchParams({
+        part: "snippet,statistics",
+        id: v.snippet.channelId,
+        key: apiKey,
+      });
+      const cRes = await fetch(`${YT_BASE}/channels?${cParams.toString()}`);
+      const cJson = cRes.ok
+        ? ((await cRes.json()) as {
+            items: Array<{
+              snippet: { thumbnails: { default?: { url: string }; medium?: { url: string } } };
+              statistics: { subscriberCount?: string };
+            }>;
+          })
+        : { items: [] };
+      const ch = cJson.items[0];
+
+      const meta: VideoMeta = {
+        videoId: v.id,
+        title: v.snippet.title,
+        channel: v.snippet.channelTitle,
+        channelId: v.snippet.channelId,
+        channelThumbnail:
+          ch?.snippet.thumbnails.medium?.url || ch?.snippet.thumbnails.default?.url || "",
+        subscriberCount: parseInt(ch?.statistics.subscriberCount || "0", 10),
+        viewCount: parseInt(v.statistics.viewCount || "0", 10),
+        likeCount: parseInt(v.statistics.likeCount || "0", 10),
+        publishedAt: v.snippet.publishedAt,
+        description: v.snippet.description,
+        durationSeconds: parseISODuration(v.contentDetails.duration),
+      };
+      return { meta, error: null as string | null };
+    } catch (err) {
+      console.error("getVideoMeta error", err);
+      return { meta: null as VideoMeta | null, error: "Failed to fetch" };
     }
   });

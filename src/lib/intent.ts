@@ -9,12 +9,10 @@ export const MODES: Record<Mode, { label: string; emoji: string; tagline: string
   explore: { label: "Explore / Discover", emoji: "🌱", tagline: "A few high-quality picks, nothing more" },
 };
 
-// Refinement is now adaptive — a free-form note + optional chips picked
-// dynamically based on the query.
 export type Refinement = {
   mode: Mode;
   freeform: string;
-  chips: string[]; // selected chip labels, e.g. ["beginner", "short"]
+  chips: string[];
 };
 
 export type ResultVideo = {
@@ -42,7 +40,7 @@ export function parseISODuration(iso: string): number {
 }
 
 export function formatDuration(seconds: number): string {
-  if (!seconds) return "—";
+  if (!seconds || !Number.isFinite(seconds)) return "0:00";
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   const s = Math.floor(seconds % 60);
@@ -50,9 +48,15 @@ export function formatDuration(seconds: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-// --- Smart suggestion engine -----------------------------------------------
-// Generates contextual chips for refinement based on the query + mode.
-// Pure function — runs on client, no API call.
+export function formatCount(n: number): string {
+  if (!n || !Number.isFinite(n)) return "0";
+  if (n >= 1_000_000_000) return (n / 1_000_000_000).toFixed(1).replace(/\.0$/, "") + "B";
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
+  if (n >= 1_000) return (n / 1_000).toFixed(1).replace(/\.0$/, "") + "K";
+  return String(n);
+}
+
+// --- Smart suggestion engine ---
 
 type ChipGroup = { label: string; chips: string[] };
 
@@ -111,17 +115,54 @@ export function getSmartChips(mode: Mode, query: string): ChipGroup[] {
     ];
   }
 
-  // find — keep it lean
   return [
     { label: "Filter", chips: ["official", "latest", "high quality", "exact match"] },
   ];
 }
 
-// Estimate a duration bucket from chip selections — used by server search.
 export function inferDurationFromChips(chips: string[]): "short" | "medium" | "long" | undefined {
   const c = chips.join(" ").toLowerCase();
   if (/under 15|short|5 min/.test(c)) return "short";
   if (/around 1 hour|medium/.test(c)) return "medium";
   if (/full course|long/.test(c)) return "long";
   return undefined;
+}
+
+// --- Context awareness: detect category mismatch ---
+
+const LEARN_PATTERNS = /\b(learn|tutorial|how to|course|guide|explain|build|create|introduction|intro|basics|beginner|advanced|programming|code|coding|algorithm|math|science|data|analysis|kafka|react|python|sql|java|javascript|typescript|aws|kubernetes|docker|devops|ml|ai|machine learning|deep learning|nlp)\b/i;
+const RELAX_PATTERNS = /\b(song|music|playlist|relax|chill|lofi|lo-fi|comedy|funny|standup|stand-up|movie|trailer|gaming|gameplay|asmr|meditation|bollywood|hollywood|odia|tamil|telugu|bhojpuri|hindi|punjabi|romantic|sad|dance|party|vlog)\b/i;
+
+export type CategoryGuess = "learn" | "relax" | "neutral";
+
+export function guessCategory(query: string): CategoryGuess {
+  const q = query.toLowerCase();
+  const learn = LEARN_PATTERNS.test(q);
+  const relax = RELAX_PATTERNS.test(q);
+  if (learn && !relax) return "learn";
+  if (relax && !learn) return "relax";
+  return "neutral";
+}
+
+export function detectMismatch(
+  mode: Mode,
+  query: string,
+): { mismatched: boolean; suggested: Mode | null; reason: string } {
+  const guess = guessCategory(query);
+  if (guess === "neutral") return { mismatched: false, suggested: null, reason: "" };
+  if (mode === "learn" && guess === "relax") {
+    return {
+      mismatched: true,
+      suggested: "relax",
+      reason: "This looks like an entertainment query — switch to Relax mode for better picks?",
+    };
+  }
+  if (mode === "relax" && guess === "learn") {
+    return {
+      mismatched: true,
+      suggested: "learn",
+      reason: "This looks like a learning query — switch to Learn mode for tutorials and notes?",
+    };
+  }
+  return { mismatched: false, suggested: null, reason: "" };
 }
