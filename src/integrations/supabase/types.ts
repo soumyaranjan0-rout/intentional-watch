@@ -20,6 +20,7 @@ export type Database = {
           created_at: string
           id: string
           timestamp_seconds: number
+          topic: string | null
           updated_at: string
           user_id: string
           video_id: string
@@ -30,6 +31,7 @@ export type Database = {
           created_at?: string
           id?: string
           timestamp_seconds?: number
+          topic?: string | null
           updated_at?: string
           user_id: string
           video_id: string
@@ -40,6 +42,7 @@ export type Database = {
           created_at?: string
           id?: string
           timestamp_seconds?: number
+          topic?: string | null
           updated_at?: string
           user_id?: string
           video_id?: string
@@ -218,8 +221,11 @@ export type Database = {
         Row: {
           category: string | null
           channel: string | null
+          duration_seconds: number | null
+          effective_seconds: number
           id: string
           mode: string
+          seek_count: number
           thumbnail: string | null
           title: string | null
           user_id: string
@@ -230,8 +236,11 @@ export type Database = {
         Insert: {
           category?: string | null
           channel?: string | null
+          duration_seconds?: number | null
+          effective_seconds?: number
           id?: string
           mode: string
+          seek_count?: number
           thumbnail?: string | null
           title?: string | null
           user_id: string
@@ -242,8 +251,11 @@ export type Database = {
         Update: {
           category?: string | null
           channel?: string | null
+          duration_seconds?: number | null
+          effective_seconds?: number
           id?: string
           mode?: string
+          seek_count?: number
           thumbnail?: string | null
           title?: string | null
           user_id?: string
