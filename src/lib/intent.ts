@@ -9,25 +9,13 @@ export const MODES: Record<Mode, { label: string; emoji: string; tagline: string
   explore: { label: "Explore / Discover", emoji: "🌱", tagline: "A few high-quality picks, nothing more" },
 };
 
-export type LearnRefine = {
-  level: "beginner" | "intermediate" | "advanced";
-  depth: "overview" | "stepbystep" | "deep";
-  duration: "short" | "medium" | "long";
+// Refinement is now adaptive — a free-form note + optional chips picked
+// dynamically based on the query.
+export type Refinement = {
+  mode: Mode;
+  freeform: string;
+  chips: string[]; // selected chip labels, e.g. ["beginner", "short"]
 };
-export type RelaxRefine = {
-  mood: "chill" | "emotional" | "energetic";
-  length: "short" | "medium" | "long";
-  type: "official" | "remix" | "clips";
-};
-export type ExploreRefine = {
-  shape: "picks" | "playlist";
-};
-
-export type Refinement =
-  | { mode: "learn"; data: LearnRefine }
-  | { mode: "relax"; data: RelaxRefine }
-  | { mode: "find"; data: Record<string, never> }
-  | { mode: "explore"; data: ExploreRefine };
 
 export type ResultVideo = {
   videoId: string;
@@ -62,18 +50,78 @@ export function formatDuration(seconds: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-export function durationBucket(mode: Mode, refine: unknown): [number, number] {
+// --- Smart suggestion engine -----------------------------------------------
+// Generates contextual chips for refinement based on the query + mode.
+// Pure function — runs on client, no API call.
+
+type ChipGroup = { label: string; chips: string[] };
+
+const LEARN_TOPIC_HINTS: Array<{ match: RegExp; chips: string[] }> = [
+  { match: /\b(react|next|vue|svelte|angular|frontend)\b/i, chips: ["with project", "hooks", "typescript", "from scratch"] },
+  { match: /\b(python|django|flask|fastapi)\b/i, chips: ["with project", "data science", "automation", "for beginners"] },
+  { match: /\b(kafka|kubernetes|docker|devops|aws|azure|gcp)\b/i, chips: ["hands-on", "in production", "real-world", "architecture"] },
+  { match: /\b(ml|machine learning|ai|deep learning|llm|transformer)\b/i, chips: ["math intuition", "code along", "no math", "paper walkthrough"] },
+  { match: /\b(sql|database|postgres|mysql)\b/i, chips: ["query practice", "design", "performance"] },
+];
+
+const RELAX_TOPIC_HINTS: Array<{ match: RegExp; chips: string[] }> = [
+  { match: /\b(song|music|track|playlist|album|hindi|tamil|telugu|odia|bhojpuri|punjabi|english)\b/i, chips: ["romantic", "sad", "lofi", "old version", "live", "remix"] },
+  { match: /\b(comedy|standup|stand-up|funny|jokes?)\b/i, chips: ["clean", "5 min", "Indian", "Hindi"] },
+  { match: /\b(gameplay|game|gaming|walkthrough)\b/i, chips: ["highlights", "no commentary", "speedrun"] },
+  { match: /\b(movie|trailer|teaser|scene)\b/i, chips: ["official", "review", "breakdown"] },
+];
+
+export function getSmartChips(mode: Mode, query: string): ChipGroup[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+
   if (mode === "learn") {
-    const d = (refine as LearnRefine)?.duration;
-    if (d === "short") return [60, 15 * 60];
-    if (d === "medium") return [10 * 60, 70 * 60];
-    if (d === "long") return [40 * 60, 60 * 60 * 6];
+    const groups: ChipGroup[] = [
+      { label: "Skill level", chips: ["beginner", "intermediate", "advanced"] },
+      { label: "Format", chips: ["step-by-step", "overview", "deep dive", "crash course"] },
+      { label: "Length", chips: ["under 15 min", "around 1 hour", "full course"] },
+    ];
+    for (const hint of LEARN_TOPIC_HINTS) {
+      if (hint.match.test(q)) {
+        groups.push({ label: "Topic angle", chips: hint.chips });
+        break;
+      }
+    }
+    return groups;
   }
+
   if (mode === "relax") {
-    const l = (refine as RelaxRefine)?.length;
-    if (l === "short") return [30, 5 * 60];
-    if (l === "medium") return [4 * 60, 20 * 60];
-    if (l === "long") return [15 * 60, 60 * 60 * 3];
+    const groups: ChipGroup[] = [
+      { label: "Mood", chips: ["chill", "emotional", "energetic", "nostalgic"] },
+      { label: "Length", chips: ["short", "medium", "long"] },
+    ];
+    for (const hint of RELAX_TOPIC_HINTS) {
+      if (hint.match.test(q)) {
+        groups.unshift({ label: "Style", chips: hint.chips });
+        break;
+      }
+    }
+    return groups;
   }
-  return [0, 60 * 60 * 6];
+
+  if (mode === "explore") {
+    return [
+      { label: "Format", chips: ["3 best picks", "structured playlist", "different angles"] },
+      { label: "Depth", chips: ["intro", "intermediate", "expert"] },
+    ];
+  }
+
+  // find — keep it lean
+  return [
+    { label: "Filter", chips: ["official", "latest", "high quality", "exact match"] },
+  ];
+}
+
+// Estimate a duration bucket from chip selections — used by server search.
+export function inferDurationFromChips(chips: string[]): "short" | "medium" | "long" | undefined {
+  const c = chips.join(" ").toLowerCase();
+  if (/under 15|short|5 min/.test(c)) return "short";
+  if (/around 1 hour|medium/.test(c)) return "medium";
+  if (/full course|long/.test(c)) return "long";
+  return undefined;
 }
