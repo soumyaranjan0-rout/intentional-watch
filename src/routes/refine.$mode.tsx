@@ -1,12 +1,13 @@
-import { createFileRoute, useNavigate, redirect } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, useNavigate, redirect, Link } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
 import { useSessionState } from "@/contexts/SessionStateContext";
-import type { LearnRefine, RelaxRefine, ExploreRefine, Mode } from "@/lib/intent";
-import { MODES } from "@/lib/intent";
+import { MODES, type Mode, getSmartChips } from "@/lib/intent";
+import { ArrowLeft, ArrowRight, Sparkles } from "lucide-react";
 
 const VALID: Mode[] = ["learn", "relax", "explore"];
 
 export const Route = createFileRoute("/refine/$mode")({
+  head: () => ({ meta: [{ title: "Refine — ZenTube" }] }),
   beforeLoad: ({ params }) => {
     if (!VALID.includes(params.mode as Mode)) {
       throw redirect({ to: "/" });
@@ -16,134 +17,129 @@ export const Route = createFileRoute("/refine/$mode")({
 });
 
 function RefinePage() {
-  const { mode } = Route.useParams();
-  const m = mode as Mode;
+  const { mode: paramMode } = Route.useParams();
+  const m = paramMode as Mode;
   const cfg = MODES[m];
   const navigate = useNavigate();
-  const { setRefinement, setMode } = useSessionState();
+  const { query, setRefinement, setMode } = useSessionState();
 
-  const submit = (data: LearnRefine | RelaxRefine | ExploreRefine | Record<string, never>) => {
+  const [chips, setChips] = useState<string[]>([]);
+  const [freeform, setFreeform] = useState("");
+
+  useEffect(() => {
+    // If user landed here without a query, send back to home
+    if (!query) navigate({ to: "/" });
+  }, [query, navigate]);
+
+  const groups = useMemo(() => getSmartChips(m, query), [m, query]);
+
+  if (!query) return null;
+
+  const toggleChip = (label: string) => {
+    setChips((cs) => (cs.includes(label) ? cs.filter((c) => c !== label) : [...cs, label]));
+  };
+
+  const submit = () => {
     setMode(m);
-    if (m === "learn") setRefinement({ mode: "learn", data: data as LearnRefine });
-    else if (m === "relax") setRefinement({ mode: "relax", data: data as RelaxRefine });
-    else if (m === "explore") setRefinement({ mode: "explore", data: data as ExploreRefine });
-    navigate({ to: "/search" });
+    setRefinement({ mode: m, freeform: freeform.trim(), chips });
+    navigate({ to: "/results" });
+  };
+
+  const skip = () => {
+    setMode(m);
+    setRefinement({ mode: m, freeform: "", chips: [] });
+    navigate({ to: "/results" });
   };
 
   return (
     <div className="zen-container py-12 sm:py-16">
       <div className="mx-auto max-w-2xl">
-        <div className="text-sm text-muted-foreground">{cfg.emoji} {cfg.label}</div>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
-          {m === "learn" && "Shape your learning session"}
-          {m === "relax" && "Set the mood"}
-          {m === "explore" && "How do you want to explore?"}
-        </h1>
-        <p className="mt-2 text-muted-foreground">A couple of choices, then we'll keep search short and clean.</p>
+        <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="h-4 w-4" /> Change intent
+        </Link>
 
-        <div className="mt-8 zen-card p-6 sm:p-8">
-          {m === "learn" && <LearnForm onSubmit={submit} />}
-          {m === "relax" && <RelaxForm onSubmit={submit} />}
-          {m === "explore" && <ExploreForm onSubmit={submit} />}
+        <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-border/60 bg-surface/60 px-3 py-1 text-xs text-muted-foreground">
+          <span aria-hidden>{cfg.emoji}</span>
+          {cfg.label}
+        </div>
+        <h1 className="mt-3 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
+          Anything specific you're looking for?
+        </h1>
+        <p className="mt-2 text-muted-foreground">
+          For <span className="text-foreground">"{query}"</span> — pick a few hints, or type
+          your own. You can also skip this.
+        </p>
+
+        <div className="mt-8 zen-card p-5 sm:p-6">
+          {/* Free-form input first — primary control */}
+          <label className="block text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Describe what you want
+          </label>
+          <div className="mt-2 flex items-start gap-2 rounded-md border border-border bg-input px-3 py-2 focus-within:border-primary/60">
+            <Sparkles className="mt-1 h-4 w-4 shrink-0 text-primary/80" />
+            <textarea
+              value={freeform}
+              onChange={(e) => setFreeform(e.target.value)}
+              placeholder={
+                m === "learn"
+                  ? "e.g. hands-on project, no math, beginner friendly"
+                  : m === "relax"
+                    ? "e.g. romantic, sad, lofi, old version"
+                    : "e.g. 3 best videos, different angles"
+              }
+              rows={2}
+              className="flex-1 resize-none bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            />
+          </div>
+
+          {groups.length > 0 && (
+            <div className="mt-6 space-y-5">
+              {groups.map((g) => (
+                <div key={g.label}>
+                  <div className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    {g.label}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {g.chips.map((c) => {
+                      const active = chips.includes(c);
+                      return (
+                        <button
+                          key={c}
+                          type="button"
+                          onClick={() => toggleChip(c)}
+                          className={
+                            "rounded-full border px-3.5 py-1.5 text-sm transition-colors " +
+                            (active
+                              ? "border-primary/60 bg-primary/15 text-foreground"
+                              : "border-border bg-surface text-muted-foreground hover:text-foreground hover:border-primary/30")
+                          }
+                        >
+                          {c}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-7 flex items-center justify-between gap-3">
+            <button
+              onClick={skip}
+              className="text-sm text-muted-foreground hover:text-foreground"
+            >
+              Skip
+            </button>
+            <button
+              onClick={submit}
+              className="inline-flex items-center gap-1.5 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90"
+            >
+              Show results <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-function FieldGroup({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <div className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</div>
-      <div className="flex flex-wrap gap-2">{children}</div>
-    </div>
-  );
-}
-
-function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={
-        "rounded-full border px-3.5 py-1.5 text-sm transition-colors " +
-        (active
-          ? "border-primary bg-primary/15 text-foreground"
-          : "border-border bg-surface text-muted-foreground hover:text-foreground hover:border-primary/40")
-      }
-    >
-      {children}
-    </button>
-  );
-}
-
-function LearnForm({ onSubmit }: { onSubmit: (d: LearnRefine) => void }) {
-  const [level, setLevel] = useState<LearnRefine["level"]>("beginner");
-  const [depth, setDepth] = useState<LearnRefine["depth"]>("stepbystep");
-  const [duration, setDuration] = useState<LearnRefine["duration"]>("medium");
-  return (
-    <div className="space-y-6">
-      <FieldGroup label="Skill level">
-        {(["beginner", "intermediate", "advanced"] as const).map((v) => (
-          <Chip key={v} active={level === v} onClick={() => setLevel(v)}>{v}</Chip>
-        ))}
-      </FieldGroup>
-      <FieldGroup label="Depth">
-        <Chip active={depth === "overview"} onClick={() => setDepth("overview")}>Overview</Chip>
-        <Chip active={depth === "stepbystep"} onClick={() => setDepth("stepbystep")}>Step-by-step</Chip>
-        <Chip active={depth === "deep"} onClick={() => setDepth("deep")}>Deep dive</Chip>
-      </FieldGroup>
-      <FieldGroup label="Duration">
-        <Chip active={duration === "short"} onClick={() => setDuration("short")}>&lt; 15 min</Chip>
-        <Chip active={duration === "medium"} onClick={() => setDuration("medium")}>~ 1 hour</Chip>
-        <Chip active={duration === "long"} onClick={() => setDuration("long")}>Full course</Chip>
-      </FieldGroup>
-      <button onClick={() => onSubmit({ level, depth, duration })} className="w-full rounded-md bg-primary py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90">
-        Continue to search
-      </button>
-    </div>
-  );
-}
-
-function RelaxForm({ onSubmit }: { onSubmit: (d: RelaxRefine) => void }) {
-  const [mood, setMood] = useState<RelaxRefine["mood"]>("chill");
-  const [length, setLength] = useState<RelaxRefine["length"]>("medium");
-  const [type, setType] = useState<RelaxRefine["type"]>("official");
-  return (
-    <div className="space-y-6">
-      <FieldGroup label="Mood">
-        {(["chill", "emotional", "energetic"] as const).map((v) => (
-          <Chip key={v} active={mood === v} onClick={() => setMood(v)}>{v}</Chip>
-        ))}
-      </FieldGroup>
-      <FieldGroup label="Length">
-        <Chip active={length === "short"} onClick={() => setLength("short")}>Short</Chip>
-        <Chip active={length === "medium"} onClick={() => setLength("medium")}>Medium</Chip>
-        <Chip active={length === "long"} onClick={() => setLength("long")}>Long</Chip>
-      </FieldGroup>
-      <FieldGroup label="Type">
-        {(["official", "remix", "clips"] as const).map((v) => (
-          <Chip key={v} active={type === v} onClick={() => setType(v)}>{v}</Chip>
-        ))}
-      </FieldGroup>
-      <button onClick={() => onSubmit({ mood, length, type })} className="w-full rounded-md bg-primary py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90">
-        Continue to search
-      </button>
-    </div>
-  );
-}
-
-function ExploreForm({ onSubmit }: { onSubmit: (d: ExploreRefine) => void }) {
-  const [shape, setShape] = useState<ExploreRefine["shape"]>("picks");
-  return (
-    <div className="space-y-6">
-      <FieldGroup label="Format">
-        <Chip active={shape === "picks"} onClick={() => setShape("picks")}>Give me 3 high-quality picks</Chip>
-        <Chip active={shape === "playlist"} onClick={() => setShape("playlist")}>Give me a structured playlist</Chip>
-      </FieldGroup>
-      <button onClick={() => onSubmit({ shape })} className="w-full rounded-md bg-primary py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90">
-        Continue to search
-      </button>
     </div>
   );
 }
