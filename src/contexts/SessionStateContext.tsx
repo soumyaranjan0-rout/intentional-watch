@@ -10,19 +10,21 @@ type SessionState = {
   setQuery: (q: string) => void;
   // Session counters
   videosWatchedThisSession: number;
+  sessionStartedAt: number;
   bumpWatched: () => void;
   resetSession: () => void;
 };
 
 const Ctx = createContext<SessionState | undefined>(undefined);
 
-const STORAGE_KEY = "zentube.session.v1";
+const STORAGE_KEY = "zentube.session.v2";
 
 export function SessionStateProvider({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<Mode | null>(null);
   const [refinement, setRefinement] = useState<Refinement | null>(null);
   const [query, setQuery] = useState("");
   const [videosWatchedThisSession, setWatched] = useState(0);
+  const [sessionStartedAt] = useState(() => Date.now());
 
   useEffect(() => {
     try {
@@ -53,6 +55,7 @@ export function SessionStateProvider({ children }: { children: ReactNode }) {
       query,
       setQuery,
       videosWatchedThisSession,
+      sessionStartedAt,
       bumpWatched: () => setWatched((n) => n + 1),
       resetSession: () => {
         setMode(null);
@@ -64,7 +67,7 @@ export function SessionStateProvider({ children }: { children: ReactNode }) {
         } catch {}
       },
     }),
-    [mode, refinement, query, videosWatchedThisSession],
+    [mode, refinement, query, videosWatchedThisSession, sessionStartedAt],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
