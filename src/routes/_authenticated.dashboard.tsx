@@ -353,8 +353,8 @@ function Stat({
 }) {
   const ring =
     tone === "primary" ? "ring-primary/20" :
-    tone === "accent" ? "ring-[hsl(var(--chart-2,200_70%_60%))]/20" :
-    tone === "focus" ? "ring-amber-500/20" : "ring-border/50";
+    tone === "accent" ? "ring-primary/15" :
+    tone === "focus" ? "ring-destructive/20" : "ring-border/50";
   return (
     <div className={`zen-card p-5 ring-1 ${ring}`}>
       <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
