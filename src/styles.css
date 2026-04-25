@@ -155,6 +155,15 @@
     color: var(--color-foreground);
     min-height: 100%;
   }
+  /* Ensure YouTube IFrame fills its responsive container */
+  .zen-yt-mount > iframe,
+  iframe[src*="youtube.com/embed"],
+  iframe[src*="youtube-nocookie.com/embed"] {
+    width: 100% !important;
+    height: 100% !important;
+    border: 0;
+    display: block;
+  }
   body {
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
