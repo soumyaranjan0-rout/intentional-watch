@@ -1,174 +1,368 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, CartesianGrid } from "recharts";
+import {
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie, Cell,
+  CartesianGrid, AreaChart, Area, Legend,
+} from "recharts";
 import { MODES, type Mode } from "@/lib/intent";
+import { Skeleton } from "@/components/ui/skeleton";
+import { AlertTriangle, Clock, Brain, Coffee, TrendingUp, Eye, Target } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Insights — ZenTube" }] }),
   component: Dashboard,
 });
 
-type Row = { mode: string; watch_seconds: number; watched_at: string; title: string | null; channel: string | null };
+type Row = {
+  mode: string;
+  watch_seconds: number;
+  effective_seconds: number;
+  seek_count: number;
+  duration_seconds: number | null;
+  watched_at: string;
+  title: string | null;
+  channel: string | null;
+  category: string | null;
+};
+
+// Theme-aware chart colors using CSS variables (works in light + dark)
+const CHART_COLORS = {
+  primary: "hsl(var(--chart-1, 152 60% 55%))",
+  accent: "hsl(var(--chart-2, 200 70% 60%))",
+  warm: "hsl(var(--chart-3, 35 85% 60%))",
+  cool: "hsl(var(--chart-4, 270 60% 65%))",
+  muted: "hsl(var(--chart-5, 0 0% 60%))",
+};
+
+const PIE_COLORS = [CHART_COLORS.primary, CHART_COLORS.accent, CHART_COLORS.warm, CHART_COLORS.cool];
 
 function Dashboard() {
   const { user } = useAuth();
-  const [rows, setRows] = useState<Row[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [rows, setRows] = useState<Row[] | null>(null);
 
   useEffect(() => {
     if (!user) return;
     supabase
       .from("watch_history")
-      .select("mode, watch_seconds, watched_at, title, channel")
+      .select("mode, watch_seconds, effective_seconds, seek_count, duration_seconds, watched_at, title, channel, category")
       .eq("user_id", user.id)
       .order("watched_at", { ascending: false })
       .limit(500)
-      .then(({ data }) => {
-        setRows((data || []) as Row[]);
-        setLoading(false);
-      });
+      .then(({ data }) => setRows((data || []) as Row[]));
   }, [user]);
 
-  const totalSec = rows.reduce((s, r) => s + (r.watch_seconds || 0), 0);
-  const byMode: Record<string, number> = {};
-  for (const r of rows) byMode[r.mode] = (byMode[r.mode] || 0) + (r.watch_seconds || 0);
-  const learnSec = byMode["learn"] || 0;
-  const entSec = byMode["relax"] || 0;
-  const learnPct = totalSec ? Math.round((learnSec / totalSec) * 100) : 0;
-  const entPct = totalSec ? Math.round((entSec / totalSec) * 100) : 0;
+  const stats = useMemo(() => {
+    if (!rows) return null;
+    // Use effective_seconds as primary truth (only seconds actually watched)
+    const totalEff = rows.reduce((s, r) => s + (r.effective_seconds || 0), 0);
+    const totalRaw = rows.reduce((s, r) => s + (r.watch_seconds || 0), 0);
+    const skippedSec = Math.max(0, totalRaw - totalEff);
+    const totalSeeks = rows.reduce((s, r) => s + (r.seek_count || 0), 0);
 
-  // Last 7 days
-  const days: { day: string; min: number }[] = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    d.setDate(d.getDate() - i);
-    const next = new Date(d);
-    next.setDate(d.getDate() + 1);
-    const min = rows
-      .filter((r) => {
+    const byMode: Record<string, number> = {};
+    for (const r of rows) byMode[r.mode] = (byMode[r.mode] || 0) + (r.effective_seconds || 0);
+    const learn = byMode["learn"] || 0;
+    const ent = byMode["relax"] || 0;
+    const find = byMode["find"] || 0;
+    const explore = byMode["explore"] || 0;
+
+    const learnPct = totalEff ? Math.round((learn / totalEff) * 100) : 0;
+    const entPct = totalEff ? Math.round((ent / totalEff) * 100) : 0;
+
+    // Last 14 days area chart with learn vs entertainment split
+    const days: { day: string; learn: number; relax: number; other: number }[] = [];
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date();
+      d.setHours(0, 0, 0, 0);
+      d.setDate(d.getDate() - i);
+      const next = new Date(d);
+      next.setDate(d.getDate() + 1);
+      let l = 0, r2 = 0, o = 0;
+      for (const r of rows) {
         const t = new Date(r.watched_at).getTime();
-        return t >= d.getTime() && t < next.getTime();
-      })
-      .reduce((s, r) => s + r.watch_seconds, 0) / 60;
-    days.push({ day: d.toLocaleDateString(undefined, { weekday: "short" }), min: Math.round(min) });
+        if (t >= d.getTime() && t < next.getTime()) {
+          const m = Math.round((r.effective_seconds || 0) / 60);
+          if (r.mode === "learn") l += m;
+          else if (r.mode === "relax") r2 += m;
+          else o += m;
+        }
+      }
+      days.push({
+        day: d.toLocaleDateString(undefined, { weekday: "short" }),
+        learn: l, relax: r2, other: o,
+      });
+    }
+
+    // Modes pie (effective minutes)
+    const modeData = (Object.keys(MODES) as Mode[]).map((m) => ({
+      name: MODES[m].label,
+      value: Math.round(((byMode[m] || 0) / 60) * 10) / 10,
+    })).filter((d) => d.value > 0);
+
+    // Top categories from inferred category field
+    const catCount: Record<string, number> = {};
+    for (const r of rows) {
+      const k = r.category || "uncategorized";
+      catCount[k] = (catCount[k] || 0) + (r.effective_seconds || 0);
+    }
+    const topCategories = Object.entries(catCount)
+      .map(([name, sec]) => ({ name, min: Math.round(sec / 60) }))
+      .sort((a, b) => b.min - a.min)
+      .slice(0, 5);
+
+    // Channels
+    const chanCount: Record<string, { videos: number; min: number }> = {};
+    for (const r of rows) {
+      const k = r.channel || "Unknown";
+      const e = chanCount[k] || { videos: 0, min: 0 };
+      e.videos += 1;
+      e.min += Math.round((r.effective_seconds || 0) / 60);
+      chanCount[k] = e;
+    }
+    const topChannels = Object.entries(chanCount)
+      .sort((a, b) => b[1].min - a[1].min)
+      .slice(0, 5);
+
+    // Focus / attention metric
+    // High seeks per video AND low effective/duration ratio means low focus
+    const videosWithDuration = rows.filter((r) => (r.duration_seconds || 0) > 60);
+    const completionRatios = videosWithDuration.map((r) =>
+      Math.min(1, (r.effective_seconds || 0) / (r.duration_seconds || 1)),
+    );
+    const avgCompletion = completionRatios.length
+      ? completionRatios.reduce((a, b) => a + b, 0) / completionRatios.length
+      : 0;
+    const seeksPerVideo = rows.length ? totalSeeks / rows.length : 0;
+    // 0 = poor focus, 1 = great focus
+    const focusScore = Math.max(
+      0,
+      Math.min(1, avgCompletion * 0.7 + Math.max(0, 1 - seeksPerVideo / 10) * 0.3),
+    );
+
+    return {
+      totalEff, totalRaw, skippedSec, totalSeeks,
+      learn, ent, find, explore, learnPct, entPct,
+      days, modeData, topCategories, topChannels,
+      focusScore, avgCompletion, seeksPerVideo, videoCount: rows.length,
+    };
+  }, [rows]);
+
+  if (rows === null) {
+    return (
+      <div className="zen-container-wide py-10">
+        <h1 className="text-3xl font-semibold tracking-tight">Insights</h1>
+        <div className="mt-8 grid gap-4 sm:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28" />)}
+        </div>
+        <div className="mt-6 grid gap-4 lg:grid-cols-2">
+          <Skeleton className="h-72" />
+          <Skeleton className="h-72" />
+        </div>
+      </div>
+    );
   }
 
-  const modeData = (Object.keys(MODES) as Mode[]).map((m) => ({
-    name: MODES[m].label,
-    value: Math.round(((byMode[m] || 0) / 60) * 10) / 10,
-  })).filter((d) => d.value > 0);
-
-  const COLORS = ["oklch(0.74 0.11 155)", "oklch(0.65 0.09 200)", "oklch(0.78 0.10 100)", "oklch(0.70 0.10 50)"];
-
-  const channelCount: Record<string, number> = {};
-  for (const r of rows) {
-    const k = r.channel || "Unknown";
-    channelCount[k] = (channelCount[k] || 0) + 1;
+  if (!stats || stats.videoCount === 0) {
+    return (
+      <div className="zen-container-wide py-10">
+        <h1 className="text-3xl font-semibold tracking-tight">Insights</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          A quiet look at how you've been spending your time.
+        </p>
+        <div className="zen-card mt-8 p-8 text-center">
+          <Eye className="mx-auto h-8 w-8 text-muted-foreground" />
+          <p className="mt-3 text-sm text-muted-foreground">
+            Watch your first video to start seeing insights here.
+          </p>
+        </div>
+      </div>
+    );
   }
-  const topChannels = Object.entries(channelCount).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
-  const suggestion =
-    totalSec === 0
-      ? "Watch your first video to start seeing insights here."
-      : entPct > 70
-      ? "You spent the majority of your time on entertainment. Maybe try a learning session next?"
-      : learnPct > 70
-      ? "Strong focus on learning. Consider a calm break too."
-      : "Healthy balance between learning and downtime.";
+  const focusLabel =
+    stats.focusScore > 0.7 ? "Focused" :
+    stats.focusScore > 0.4 ? "Distracted" : "Scattered";
+  const focusTone =
+    stats.focusScore > 0.7 ? "text-primary" :
+    stats.focusScore > 0.4 ? "text-amber-500 dark:text-amber-400" : "text-destructive";
+
+  const skippedPct = stats.totalRaw ? Math.round((stats.skippedSec / stats.totalRaw) * 100) : 0;
 
   return (
     <div className="zen-container-wide py-10">
       <h1 className="text-3xl font-semibold tracking-tight">Insights</h1>
-      <p className="mt-1 text-sm text-muted-foreground">A quiet look at how you've been spending your time.</p>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Time shown is what you <span className="text-foreground">actually watched</span> — skipped sections don't count.
+      </p>
 
-      {loading ? (
-        <div className="mt-8 grid gap-4 sm:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="zen-skeleton h-24 rounded-xl" />
-          ))}
+      {/* Top stats */}
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Stat icon={<Clock className="h-4 w-4" />} label="Watched" value={`${Math.round(stats.totalEff / 60)} min`} sub={`${stats.videoCount} videos`} />
+        <Stat icon={<Brain className="h-4 w-4" />} label="Learning" value={`${Math.round(stats.learn / 60)} min`} sub={`${stats.learnPct}% of time`} tone="primary" />
+        <Stat icon={<Coffee className="h-4 w-4" />} label="Entertainment" value={`${Math.round(stats.ent / 60)} min`} sub={`${stats.entPct}% of time`} tone="accent" />
+        <Stat icon={<Target className={`h-4 w-4 ${focusTone}`} />} label="Focus" value={focusLabel} sub={`${Math.round(stats.focusScore * 100)} / 100`} tone="focus" />
+      </div>
+
+      {/* Attention awareness card */}
+      {(stats.focusScore < 0.5 || stats.seeksPerVideo > 5) && (
+        <div className="mt-4 zen-card border-amber-500/40 bg-amber-500/5 p-4 sm:p-5">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500 dark:text-amber-400" />
+            <div className="flex-1 text-sm">
+              <div className="font-medium text-foreground">Your attention has been scattered.</div>
+              <p className="mt-1 text-muted-foreground">
+                You're skipping around {stats.seeksPerVideo.toFixed(1)} times per video on average,
+                and only finishing {Math.round(stats.avgCompletion * 100)}% of what you start.
+                Try picking one video and watching it without jumping — even a short focused session helps.
+              </p>
+            </div>
+          </div>
         </div>
-      ) : (
-        <>
-          <div className="mt-8 grid gap-4 sm:grid-cols-3">
-            <Stat label="Total watch time" value={`${Math.round(totalSec / 60)} min`} />
-            <Stat label="Learning" value={`${Math.round(learnSec / 60)} min`} sub={`${learnPct}%`} />
-            <Stat label="Entertainment" value={`${Math.round(entSec / 60)} min`} sub={`${entPct}%`} />
-          </div>
-
-          <div className="mt-6 zen-card p-5">
-            <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Suggestion</div>
-            <p className="mt-2 text-foreground">{suggestion}</p>
-          </div>
-
-          <div className="mt-6 grid gap-6 lg:grid-cols-2">
-            <div className="zen-card p-5">
-              <div className="mb-3 text-sm font-medium">Last 7 days (minutes)</div>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={days}>
-                    <CartesianGrid stroke="oklch(0.27 0.012 160)" vertical={false} />
-                    <XAxis dataKey="day" stroke="oklch(0.65 0.015 155)" fontSize={12} />
-                    <YAxis stroke="oklch(0.65 0.015 155)" fontSize={12} />
-                    <Tooltip contentStyle={{ background: "oklch(0.19 0.014 160)", border: "1px solid oklch(0.27 0.012 160)", borderRadius: 8, color: "oklch(0.93 0.01 150)" }} />
-                    <Bar dataKey="min" fill="oklch(0.74 0.11 155)" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            <div className="zen-card p-5">
-              <div className="mb-3 text-sm font-medium">By intent (minutes)</div>
-              <div className="h-64">
-                {modeData.length === 0 ? (
-                  <p className="flex h-full items-center justify-center text-sm text-muted-foreground">No data yet.</p>
-                ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={modeData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={90} stroke="oklch(0.16 0.012 160)">
-                        {modeData.map((_, i) => (
-                          <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip contentStyle={{ background: "oklch(0.19 0.014 160)", border: "1px solid oklch(0.27 0.012 160)", borderRadius: 8, color: "oklch(0.93 0.01 150)" }} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-6 zen-card p-5">
-            <div className="mb-3 text-sm font-medium">Most watched channels</div>
-            {topChannels.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No data yet.</p>
-            ) : (
-              <ul className="divide-y divide-border">
-                {topChannels.map(([name, n]) => (
-                  <li key={name} className="flex items-center justify-between py-2 text-sm">
-                    <span className="text-foreground">{name}</span>
-                    <span className="text-muted-foreground">{n} {n === 1 ? "video" : "videos"}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </>
       )}
+
+      {/* Charts row 1 — Last 14 days area chart */}
+      <div className="mt-6 grid gap-6 lg:grid-cols-3">
+        <div className="zen-card p-5 lg:col-span-2">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="text-sm font-medium">Last 14 days · minutes watched</div>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </div>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={stats.days} margin={{ top: 5, right: 8, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="grad-learn" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={CHART_COLORS.primary} stopOpacity={0.45} />
+                    <stop offset="100%" stopColor={CHART_COLORS.primary} stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="grad-relax" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={CHART_COLORS.accent} stopOpacity={0.45} />
+                    <stop offset="100%" stopColor={CHART_COLORS.accent} stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke="hsl(var(--border))" vertical={false} />
+                <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
+                <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, color: "hsl(var(--popover-foreground))" }} />
+                <Legend wrapperStyle={{ fontSize: 12, color: "hsl(var(--muted-foreground))" }} />
+                <Area type="monotone" name="Learning" dataKey="learn" stackId="1" stroke={CHART_COLORS.primary} fill="url(#grad-learn)" />
+                <Area type="monotone" name="Entertainment" dataKey="relax" stackId="1" stroke={CHART_COLORS.accent} fill="url(#grad-relax)" />
+                <Area type="monotone" name="Other" dataKey="other" stackId="1" stroke={CHART_COLORS.muted} fill={CHART_COLORS.muted} fillOpacity={0.15} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="zen-card p-5">
+          <div className="mb-3 text-sm font-medium">By intent</div>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={stats.modeData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={85} stroke="hsl(var(--background))" strokeWidth={2}>
+                  {stats.modeData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                </Pie>
+                <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, color: "hsl(var(--popover-foreground))" }} formatter={(v: number) => `${v} min`} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <ul className="mt-3 space-y-1 text-xs">
+            {stats.modeData.map((d, i) => (
+              <li key={d.name} className="flex items-center justify-between">
+                <span className="flex items-center gap-2 text-muted-foreground">
+                  <span className="inline-block h-2 w-2 rounded-full" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
+                  {d.name}
+                </span>
+                <span className="text-foreground">{d.value} min</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      {/* Charts row 2 — Categories bar + Skip ratio */}
+      <div className="mt-6 grid gap-6 lg:grid-cols-3">
+        <div className="zen-card p-5 lg:col-span-2">
+          <div className="mb-3 text-sm font-medium">Top categories (minutes watched)</div>
+          {stats.topCategories.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Not enough data yet.</p>
+          ) : (
+            <div className="h-56">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={stats.topCategories} layout="vertical" margin={{ top: 5, right: 12, left: 8, bottom: 0 }}>
+                  <CartesianGrid stroke="hsl(var(--border))" horizontal={false} />
+                  <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
+                  <YAxis type="category" dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} width={90} />
+                  <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, color: "hsl(var(--popover-foreground))" }} formatter={(v: number) => `${v} min`} />
+                  <Bar dataKey="min" fill={CHART_COLORS.primary} radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+
+        <div className="zen-card p-5">
+          <div className="mb-1 text-sm font-medium">Skipping habit</div>
+          <p className="text-xs text-muted-foreground">
+            Of all the video time you opened, you actually watched:
+          </p>
+          <div className="mt-3 flex items-baseline gap-2">
+            <div className="text-3xl font-semibold text-foreground">{100 - skippedPct}%</div>
+            <div className="text-sm text-muted-foreground">{Math.round(stats.skippedSec / 60)} min skipped</div>
+          </div>
+          <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-primary transition-all"
+              style={{ width: `${100 - skippedPct}%` }}
+            />
+          </div>
+          <p className="mt-3 text-xs text-muted-foreground">
+            Average seeks per video: <span className="text-foreground">{stats.seeksPerVideo.toFixed(1)}</span>
+          </p>
+        </div>
+      </div>
+
+      {/* Top channels */}
+      <div className="mt-6 zen-card p-5">
+        <div className="mb-3 text-sm font-medium">Most watched channels</div>
+        {stats.topChannels.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No data yet.</p>
+        ) : (
+          <ul className="divide-y divide-border">
+            {stats.topChannels.map(([name, info]) => (
+              <li key={name} className="flex items-center justify-between py-2.5 text-sm">
+                <span className="truncate pr-3 text-foreground">{name}</span>
+                <span className="shrink-0 text-muted-foreground">
+                  {info.min} min · {info.videos} {info.videos === 1 ? "video" : "videos"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
 
-function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function Stat({
+  label, value, sub, icon, tone,
+}: {
+  label: string; value: string; sub?: string;
+  icon?: React.ReactNode; tone?: "primary" | "accent" | "focus";
+}) {
+  const ring =
+    tone === "primary" ? "ring-primary/20" :
+    tone === "accent" ? "ring-[hsl(var(--chart-2,200_70%_60%))]/20" :
+    tone === "focus" ? "ring-amber-500/20" : "ring-border/50";
   return (
-    <div className="zen-card p-5">
-      <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</div>
-      <div className="mt-2 flex items-baseline gap-2">
-        <div className="text-2xl font-semibold text-foreground">{value}</div>
-        {sub && <div className="text-sm text-primary">{sub}</div>}
+    <div className={`zen-card p-5 ring-1 ${ring}`}>
+      <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+        {icon}
+        <span>{label}</span>
       </div>
+      <div className="mt-2 text-2xl font-semibold text-foreground">{value}</div>
+      {sub && <div className="mt-0.5 text-xs text-muted-foreground">{sub}</div>}
     </div>
   );
 }
