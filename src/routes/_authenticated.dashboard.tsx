@@ -29,11 +29,11 @@ type Row = {
 
 // Theme-aware chart colors using CSS variables (works in light + dark)
 const CHART_COLORS = {
-  primary: "hsl(var(--chart-1, 152 60% 55%))",
-  accent: "hsl(var(--chart-2, 200 70% 60%))",
-  warm: "hsl(var(--chart-3, 35 85% 60%))",
-  cool: "hsl(var(--chart-4, 270 60% 65%))",
-  muted: "hsl(var(--chart-5, 0 0% 60%))",
+  primary: "var(--chart-1)",
+  accent: "var(--chart-2)",
+  warm: "var(--chart-3)",
+  cool: "var(--chart-4)",
+  muted: "var(--chart-5)",
 };
 
 const PIE_COLORS = [CHART_COLORS.primary, CHART_COLORS.accent, CHART_COLORS.warm, CHART_COLORS.cool];
