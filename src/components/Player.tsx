@@ -196,7 +196,7 @@ export function Player({ videoId, onProgress, onEnded, onTipShown }: Props) {
         Style this wrapper to fill — and the global iframe rule below
         ensures the resulting iframe inherits 100% width/height.
       */}
-      <div ref={mountRef} className="absolute inset-0 h-full w-full" />
+      <div ref={mountRef} className="zen-yt-mount absolute inset-0 h-full w-full" />
 
       {/* Loading shimmer until iframe is ready */}
       {!ready && (
