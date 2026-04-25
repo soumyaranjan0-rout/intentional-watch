@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { SessionStateProvider } from "@/contexts/SessionStateContext";
-import { Leaf, LayoutDashboard, Settings, LogIn, LogOut, BookmarkIcon, History } from "lucide-react";
+import { Leaf, LayoutDashboard, Settings, LogIn, LogOut, BookmarkIcon, History, StickyNote } from "lucide-react";
 
 import appCss from "../styles.css?url";
 
@@ -99,6 +99,9 @@ function AppShell({ children }: { children: React.ReactNode }) {
                   </Link>
                   <Link to="/library" className="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-accent hover:text-accent-foreground" activeProps={{ className: "text-foreground bg-accent" }}>
                     <BookmarkIcon className="h-4 w-4" /> <span className="hidden sm:inline">Library</span>
+                  </Link>
+                  <Link to="/notes" className="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-accent hover:text-accent-foreground" activeProps={{ className: "text-foreground bg-accent" }}>
+                    <StickyNote className="h-4 w-4" /> <span className="hidden sm:inline">Notes</span>
                   </Link>
                   <Link to="/history" className="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-accent hover:text-accent-foreground" activeProps={{ className: "text-foreground bg-accent" }}>
                     <History className="h-4 w-4" /> <span className="hidden sm:inline">History</span>

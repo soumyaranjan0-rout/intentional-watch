@@ -61,6 +61,7 @@ function HistoryPage() {
                   channel: it.channel || "",
                   duration: 0,
                   thumbnail: it.thumbnail || "",
+                  t: 0,
                 }}
                 className="zen-card zen-card-hover flex items-center gap-4 p-3 sm:p-4"
               >

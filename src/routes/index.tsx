@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { MODES, type Mode } from "@/lib/intent";
 import { useSessionState } from "@/contexts/SessionStateContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { Leaf, Search, ArrowRight, GraduationCap, Coffee, Sparkles } from "lucide-react";
+import { Leaf, Search, ArrowRight } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -24,12 +24,6 @@ export const Route = createFileRoute("/")({
   component: HomePage,
 });
 
-const ICON_MAP: Record<Mode, React.ComponentType<{ className?: string }>> = {
-  learn: GraduationCap,
-  relax: Coffee,
-  find: Search,
-  explore: Sparkles,
-};
 
 function HomePage() {
   const { setMode, setQuery, resetSession } = useSessionState();
@@ -128,48 +122,16 @@ function HomePage() {
           </form>
         </div>
 
-        {/* Use-case cards */}
-        <div className="mx-auto mt-20 grid max-w-4xl grid-cols-1 gap-4 sm:grid-cols-2">
-          {(Object.keys(MODES) as Mode[]).map((m) => {
-            const cfg = MODES[m];
-            const Icon = ICON_MAP[m];
-            return (
-              <button
-                key={m}
-                onClick={() => {
-                  setMode(m);
-                  if (m === "find") navigate({ to: "/" });
-                  else setSelected(m);
-                  // Scroll back up to focus the search bar
-                  if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-                className="zen-card zen-card-hover group flex items-start gap-4 p-6 text-left"
-              >
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <Icon className="h-5 w-5" />
-                </div>
-                <div className="flex-1">
-                  <div className="text-base font-medium text-foreground">{cfg.label}</div>
-                  <div className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                    {cfg.tagline}
-                  </div>
-                </div>
-                <ArrowRight className="h-4 w-4 translate-x-0 text-muted-foreground opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100" />
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Principles */}
-        <div className="mx-auto mt-20 grid max-w-3xl grid-cols-1 gap-6 text-center sm:grid-cols-3">
+        {/* Principles — minimal, clutter-free */}
+        <div className="mx-auto mt-24 grid max-w-3xl grid-cols-1 gap-8 text-center sm:grid-cols-3">
           {[
             { title: "No autoplay", body: "You decide what's next." },
             { title: "No infinite scroll", body: "5–7 picks. That's it." },
-            { title: "Notes & insights", body: "See where your time goes." },
+            { title: "Notes & insights", body: "See where your time really goes." },
           ].map((p) => (
             <div key={p.title}>
               <div className="text-sm font-medium text-foreground">{p.title}</div>
-              <div className="mt-1 text-sm text-muted-foreground">{p.body}</div>
+              <div className="mt-1.5 text-sm text-muted-foreground">{p.body}</div>
             </div>
           ))}
         </div>
