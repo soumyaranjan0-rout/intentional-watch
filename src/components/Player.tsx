@@ -52,9 +52,9 @@ type Props = {
 };
 
 export function Player({ videoId, onProgress, onEnded, onTipShown }: Props) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
+  // Mount node for the YT iframe; YT replaces this div with an <iframe>
+  const mountRef = useRef<HTMLDivElement | null>(null);
   const playerRef = useRef<YTPlayer | null>(null);
-  const wrapRef = useRef<HTMLDivElement | null>(null);
   const hideTimerRef = useRef<number | null>(null);
 
   const [ready, setReady] = useState(false);
@@ -67,9 +67,14 @@ export function Player({ videoId, onProgress, onEnded, onTipShown }: Props) {
   // Init player
   useEffect(() => {
     let destroyed = false;
+    setReady(false);
+    setPlaying(false);
+    setCurrent(0);
+    setDuration(0);
+
     loadYTApi().then(() => {
-      if (destroyed || !containerRef.current || !window.YT) return;
-      playerRef.current = new window.YT.Player(containerRef.current, {
+      if (destroyed || !mountRef.current || !window.YT) return;
+      playerRef.current = new window.YT.Player(mountRef.current, {
         videoId,
         playerVars: {
           autoplay: 0,
@@ -78,7 +83,7 @@ export function Player({ videoId, onProgress, onEnded, onTipShown }: Props) {
           rel: 0,
           disablekb: 0,
           iv_load_policy: 3,
-          fs: 0,
+          fs: 1,
           playsinline: 1,
         },
         events: {
@@ -104,6 +109,7 @@ export function Player({ videoId, onProgress, onEnded, onTipShown }: Props) {
       try {
         playerRef.current?.destroy();
       } catch {}
+      playerRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoId]);
@@ -119,7 +125,7 @@ export function Player({ videoId, onProgress, onEnded, onTipShown }: Props) {
         onProgress?.(t);
         if (!duration) setDuration(p.getDuration() || 0);
       } catch {}
-    }, 500);
+    }, 1000);
     return () => window.clearInterval(id);
   }, [duration, onProgress]);
 
@@ -178,21 +184,39 @@ export function Player({ videoId, onProgress, onEnded, onTipShown }: Props) {
 
   return (
     <div
-      ref={wrapRef}
-      className="relative aspect-video w-full overflow-hidden rounded-lg bg-black"
-      onMouseMove={() => { setShowControls(true); scheduleHide(); }}
-      onClick={() => { setShowControls((v) => !v); }}
+      className="relative aspect-video w-full overflow-hidden rounded-xl bg-black"
+      onMouseMove={() => {
+        setShowControls(true);
+        scheduleHide();
+      }}
+      onClick={toggle}
     >
-      <div ref={containerRef} className="absolute inset-0" />
+      {/*
+        IMPORTANT: the YT iframe REPLACES this div with an <iframe>.
+        Style this wrapper to fill — and the global iframe rule below
+        ensures the resulting iframe inherits 100% width/height.
+      */}
+      <div ref={mountRef} className="absolute inset-0 h-full w-full" />
+
+      {/* Loading shimmer until iframe is ready */}
+      {!ready && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-white/80" />
+        </div>
+      )}
 
       {/* Center play affordance only when paused */}
       {ready && !playing && (
         <button
-          onClick={(e) => { e.stopPropagation(); toggle(); }}
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            toggle();
+          }}
           aria-label="Play"
-          className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/30 transition-colors"
+          className="absolute inset-0 flex items-center justify-center bg-black/30 transition-colors hover:bg-black/40"
         >
-          <span className="rounded-full bg-background/90 p-4 text-foreground">
+          <span className="rounded-full bg-background/90 p-5 text-foreground shadow-lg">
             <PlayIcon />
           </span>
         </button>
@@ -201,7 +225,7 @@ export function Player({ videoId, onProgress, onEnded, onTipShown }: Props) {
       {/* Controls bar */}
       <div
         className={
-          "pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-3 transition-opacity duration-300 " +
+          "pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent px-3 pb-3 pt-10 transition-opacity duration-300 " +
           (showControls ? "opacity-100" : "opacity-0")
         }
         onClick={(e) => e.stopPropagation()}
@@ -215,23 +239,37 @@ export function Player({ videoId, onProgress, onEnded, onTipShown }: Props) {
             value={current}
             onChange={(e) => seek(parseInt(e.target.value, 10))}
             className="zen-progress w-full"
+            aria-label="Seek"
           />
           <div className="mt-2 flex items-center justify-between text-xs text-white/90">
             <div className="flex items-center gap-3">
-              <button onClick={toggle} aria-label={playing ? "Pause" : "Play"}>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggle();
+                }}
+                aria-label={playing ? "Pause" : "Play"}
+                className="rounded p-1 hover:bg-white/10"
+              >
                 {playing ? <PauseIcon /> : <PlayIcon small />}
               </button>
-              <span>{fmt(current)} / {fmt(duration)}</span>
+              <span className="tabular-nums">
+                {fmt(current)} / {fmt(duration)}
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <span className="opacity-75">Speed</span>
               <select
                 value={speed}
                 onChange={(e) => changeSpeed(parseFloat(e.target.value))}
-                className="rounded bg-black/50 px-1.5 py-0.5 text-xs text-white border border-white/20"
+                onClick={(e) => e.stopPropagation()}
+                className="rounded border border-white/20 bg-black/50 px-1.5 py-0.5 text-xs text-white"
               >
                 {SPEEDS.map((s) => (
-                  <option key={s} value={s}>{s}x</option>
+                  <option key={s} value={s}>
+                    {s}x
+                  </option>
                 ))}
               </select>
             </div>
@@ -250,12 +288,12 @@ export function Player({ videoId, onProgress, onEnded, onTipShown }: Props) {
         .zen-progress::-webkit-slider-thumb {
           appearance: none;
           width: 12px; height: 12px; border-radius: 50%;
-          background: oklch(0.85 0.10 155);
+          background: oklch(0.85 0.10 158);
           cursor: pointer;
         }
         .zen-progress::-moz-range-thumb {
           width: 12px; height: 12px; border-radius: 50%; border: 0;
-          background: oklch(0.85 0.10 155);
+          background: oklch(0.85 0.10 158);
           cursor: pointer;
         }
       `}</style>
@@ -266,11 +304,15 @@ export function Player({ videoId, onProgress, onEnded, onTipShown }: Props) {
 function PlayIcon({ small }: { small?: boolean } = {}) {
   const s = small ? 16 : 28;
   return (
-    <svg width={s} height={s} viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M8 5v14l11-7z" />
+    </svg>
   );
 }
 function PauseIcon() {
   return (
-    <svg width={16} height={16} viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z" /></svg>
+    <svg width={16} height={16} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M6 5h4v14H6zM14 5h4v14h-4z" />
+    </svg>
   );
 }
