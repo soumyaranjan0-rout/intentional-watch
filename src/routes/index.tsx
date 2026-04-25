@@ -71,7 +71,7 @@ function HomePage() {
 
       {!user && (
         <div className="mx-auto mt-10 max-w-md text-center text-sm text-muted-foreground">
-          <Link to="/login" className="text-primary hover:underline">Sign in</Link> to save notes, history, and insights.
+          <Link to="/login" search={{ redirect: "/" }} className="text-primary hover:underline">Sign in</Link> to save notes, history, and insights.
         </div>
       )}
     </div>

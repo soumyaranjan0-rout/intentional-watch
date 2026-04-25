@@ -114,7 +114,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
                   </button>
                 </>
               ) : (
-                <Link to="/login" className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-primary-foreground hover:opacity-90">
+                <Link to="/login" search={{ redirect: "/" }} className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-primary-foreground hover:opacity-90">
                   <LogIn className="h-4 w-4" /> Sign in
                 </Link>
               )}
