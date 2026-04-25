@@ -1,10 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { memo, useEffect } from "react";
+import { memo, useEffect, useState } from "react";
 import { searchVideos } from "@/server/youtube.functions";
 import { useSessionState } from "@/contexts/SessionStateContext";
-import { formatDuration, MODES, type ResultVideo } from "@/lib/intent";
-import { ArrowLeft, Sliders } from "lucide-react";
+import { formatDuration, MODES, detectMismatch, type Mode, type ResultVideo } from "@/lib/intent";
+import { ArrowLeft, RefreshCw, Sliders, Search as SearchIcon, AlertCircle } from "lucide-react";
 
 export const Route = createFileRoute("/results")({
   head: () => ({ meta: [{ title: "Results — ZenTube" }] }),
@@ -12,17 +12,19 @@ export const Route = createFileRoute("/results")({
 });
 
 function ResultsPage() {
-  const { mode, refinement, query } = useSessionState();
+  const { mode, refinement, query, setMode } = useSessionState();
   const navigate = useNavigate();
+  const [variation, setVariation] = useState(0);
+  const [refineText, setRefineText] = useState("");
 
   useEffect(() => {
     if (!mode || !query) navigate({ to: "/" });
   }, [mode, query, navigate]);
 
   const { data, isLoading, error, refetch, isFetching } = useQuery({
-    queryKey: ["search", mode, query, refinement?.chips, refinement?.freeform],
+    queryKey: ["search", mode, query, refinement?.chips, refinement?.freeform, variation],
     enabled: !!mode && !!query,
-    staleTime: 5 * 60 * 1000, // 5 min cache — same query won't refetch
+    staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
     queryFn: () =>
@@ -31,45 +33,93 @@ function ResultsPage() {
           query,
           mode: mode!,
           chips: refinement?.chips ?? [],
-          freeform: refinement?.freeform ?? "",
+          freeform: [refinement?.freeform ?? "", refineText].filter(Boolean).join(" "),
+          variation,
         },
       }),
   });
 
   if (!mode || !query) return null;
   const cfg = MODES[mode];
+  const mismatch = detectMismatch(mode, query);
 
   return (
-    <div className="zen-container py-10 sm:py-14">
+    <div className="zen-container py-8 sm:py-12">
       <div className="mx-auto max-w-3xl">
-        <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-4 w-4" /> New search
-        </Link>
+        <div className="flex items-center justify-between">
+          <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="h-4 w-4" /> New search
+          </Link>
+          <button
+            onClick={() => setVariation((v) => v + 1)}
+            disabled={isFetching}
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-sm hover:bg-accent disabled:opacity-50"
+            title="Show different relevant videos"
+          >
+            <RefreshCw className={"h-4 w-4 " + (isFetching ? "animate-spin" : "")} />
+            Show more
+          </button>
+        </div>
 
-        <div className="mt-6 flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-surface/60 px-2.5 py-0.5 text-xs text-muted-foreground">
-              <span aria-hidden>{cfg.emoji}</span>
-              {cfg.label}
+        <div className="mt-6">
+          <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-surface/60 px-2.5 py-0.5 text-xs text-muted-foreground">
+            <span aria-hidden>{cfg.emoji}</span>
+            {cfg.label}
+          </div>
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">"{query}"</h1>
+          {refinement?.chips && refinement.chips.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {refinement.chips.map((c) => (
+                <span key={c} className="rounded-full bg-surface px-2 py-0.5 text-xs text-muted-foreground">{c}</span>
+              ))}
             </div>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">"{query}"</h1>
-            {refinement?.chips && refinement.chips.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {refinement.chips.map((c) => (
-                  <span key={c} className="rounded-full bg-surface px-2 py-0.5 text-xs text-muted-foreground">{c}</span>
-                ))}
+          )}
+
+          {/* Effective query — what we actually searched for */}
+          {data?.effectiveQuery && (
+            <div className="mt-3 flex items-start gap-2 rounded-md border border-border/60 bg-surface/40 px-3 py-2 text-xs text-muted-foreground">
+              <SearchIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+              <span>
+                Searching YouTube for: <span className="text-foreground">{data.effectiveQuery}</span>
+              </span>
+            </div>
+          )}
+
+          {/* Mismatch prompt */}
+          {mismatch.mismatched && mismatch.suggested && (
+            <div className="mt-3 flex items-start gap-2 rounded-md border border-primary/40 bg-primary/10 px-3 py-2 text-sm">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <div className="flex-1">
+                <span className="text-foreground">{mismatch.reason}</span>
+                <button
+                  onClick={() => setMode(mismatch.suggested!)}
+                  className="ml-2 underline text-primary hover:opacity-80"
+                >
+                  Switch to {MODES[mismatch.suggested].label}
+                </button>
               </div>
+            </div>
+          )}
+
+          {/* Inline refinement input */}
+          <div className="mt-3 flex items-center gap-2 rounded-full border border-border bg-surface/60 px-4 py-2 focus-within:border-primary/50">
+            <Sliders className="h-4 w-4 text-muted-foreground" />
+            <input
+              value={refineText}
+              onChange={(e) => setRefineText(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") refetch(); }}
+              placeholder="Refine — add more context (e.g. 'in Hindi', 'beginner')"
+              className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            />
+            {refineText && (
+              <button
+                onClick={() => refetch()}
+                className="rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground hover:opacity-90"
+              >
+                Apply
+              </button>
             )}
           </div>
-          {mode !== "find" && (
-            <Link
-              to="/refine/$mode"
-              params={{ mode }}
-              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-            >
-              <Sliders className="h-4 w-4" /> Refine
-            </Link>
-          )}
         </div>
 
         {isLoading || isFetching ? (
@@ -77,18 +127,16 @@ function ResultsPage() {
         ) : error ? (
           <div className="mt-12 zen-card p-6 text-sm text-muted-foreground">
             Something went wrong fetching results.{" "}
-            <button onClick={() => refetch()} className="text-primary hover:underline">
-              Try again
-            </button>
+            <button onClick={() => refetch()} className="text-primary hover:underline">Try again</button>
           </div>
         ) : data?.error ? (
           <div className="mt-12 zen-card p-6 text-sm text-muted-foreground">{data.error}</div>
         ) : !data?.results.length ? (
           <div className="mt-12 zen-card p-6 text-sm text-muted-foreground">
-            No good matches. Try a different phrasing.
+            No good matches. Try different phrasing or hit "Show more".
           </div>
         ) : (
-          <ResultsList results={data.results} />
+          <ResultsList results={data.results} mode={mode} />
         )}
       </div>
     </div>
@@ -113,12 +161,12 @@ function ResultsSkeleton() {
   );
 }
 
-function ResultsList({ results }: { results: ResultVideo[] }) {
+function ResultsList({ results, mode }: { results: ResultVideo[]; mode: Mode }) {
   const primary = results.find((r) => r.primary) ?? results[0];
   const rest = results.filter((r) => r.videoId !== primary.videoId);
   return (
-    <div className="mt-8 space-y-4">
-      <ResultCard v={primary} highlighted />
+    <div className="mt-6 space-y-4">
+      <ResultCard v={primary} highlighted={mode === "find"} />
       {rest.length > 0 && (
         <>
           <div className="pt-2 text-xs uppercase tracking-wider text-muted-foreground">
@@ -130,29 +178,20 @@ function ResultsList({ results }: { results: ResultVideo[] }) {
         </>
       )}
       <p className="pt-6 text-center text-xs text-muted-foreground">
-        Showing {results.length} curated picks. No more loaded — that's by design.
+        Showing {results.length} curated picks. Use "Show more" for different ones.
       </p>
     </div>
   );
 }
 
 const ResultCard = memo(function ResultCard({
-  v,
-  highlighted,
-}: {
-  v: ResultVideo;
-  highlighted?: boolean;
-}) {
+  v, highlighted,
+}: { v: ResultVideo; highlighted?: boolean }) {
   return (
     <Link
       to="/watch/$videoId"
       params={{ videoId: v.videoId }}
-      search={{
-        title: v.title,
-        channel: v.channel,
-        duration: v.durationSeconds,
-        thumbnail: v.thumbnail,
-      }}
+      search={{ title: v.title, channel: v.channel, duration: v.durationSeconds, thumbnail: v.thumbnail }}
       className={
         "zen-card zen-card-hover block overflow-hidden " +
         (highlighted ? "border-primary/40 ring-1 ring-primary/15" : "")
@@ -162,13 +201,7 @@ const ResultCard = memo(function ResultCard({
         <div className="relative shrink-0 overflow-hidden rounded-md bg-muted sm:w-64">
           <div className="aspect-video w-full">
             {v.thumbnail ? (
-              <img
-                src={v.thumbnail}
-                alt=""
-                className="h-full w-full object-cover"
-                loading="lazy"
-                decoding="async"
-              />
+              <img src={v.thumbnail} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
             ) : null}
           </div>
           <div className="absolute bottom-2 right-2 rounded bg-background/85 px-1.5 py-0.5 text-xs text-foreground">
@@ -178,16 +211,12 @@ const ResultCard = memo(function ResultCard({
         <div className="flex-1">
           {highlighted && (
             <div className="mb-1 inline-flex rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wider text-primary">
-              Best pick
+              Best match
             </div>
           )}
-          <h3 className="text-base font-medium leading-snug text-foreground sm:text-lg">
-            {v.title}
-          </h3>
+          <h3 className="text-base font-medium leading-snug text-foreground sm:text-lg">{v.title}</h3>
           <div className="mt-1 text-sm text-muted-foreground">{v.channel}</div>
-          <p className="mt-3 border-l-2 border-primary/40 pl-3 text-sm text-muted-foreground">
-            {v.reason}
-          </p>
+          <p className="mt-3 border-l-2 border-primary/40 pl-3 text-sm text-muted-foreground">{v.reason}</p>
         </div>
       </div>
     </Link>
