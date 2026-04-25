@@ -94,6 +94,7 @@ function ResultCard({ v, highlighted }: { v: ResultVideo; highlighted?: boolean 
     <Link
       to="/watch/$videoId"
       params={{ videoId: v.videoId }}
+      search={{ title: v.title, channel: v.channel, duration: v.durationSeconds, thumbnail: v.thumbnail }}
       className={
         "zen-card zen-card-hover block overflow-hidden " +
         (highlighted ? "border-primary/40 ring-1 ring-primary/15" : "")
