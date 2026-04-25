@@ -14,7 +14,245 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      notes: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          timestamp_seconds: number
+          updated_at: string
+          user_id: string
+          video_id: string
+          video_title: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          timestamp_seconds?: number
+          updated_at?: string
+          user_id: string
+          video_id: string
+          video_title?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          timestamp_seconds?: number
+          updated_at?: string
+          user_id?: string
+          video_id?: string
+          video_title?: string | null
+        }
+        Relationships: []
+      }
+      playlist_items: {
+        Row: {
+          channel: string | null
+          created_at: string
+          duration_seconds: number | null
+          id: string
+          playlist_id: string
+          position: number
+          thumbnail: string | null
+          title: string | null
+          user_id: string
+          video_id: string
+        }
+        Insert: {
+          channel?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          playlist_id: string
+          position?: number
+          thumbnail?: string | null
+          title?: string | null
+          user_id: string
+          video_id: string
+        }
+        Update: {
+          channel?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          playlist_id?: string
+          position?: number
+          thumbnail?: string | null
+          title?: string | null
+          user_id?: string
+          video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "playlist_items_playlist_id_fkey"
+            columns: ["playlist_id"]
+            isOneToOne: false
+            referencedRelation: "playlists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      playlists: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      preferences: {
+        Row: {
+          created_at: string
+          daily_watch_limit_min: number
+          data_tracking: boolean
+          default_mode: string | null
+          id: string
+          theme: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          daily_watch_limit_min?: number
+          data_tracking?: boolean
+          default_mode?: string | null
+          id?: string
+          theme?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          daily_watch_limit_min?: number
+          data_tracking?: boolean
+          default_mode?: string | null
+          id?: string
+          theme?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      saved_videos: {
+        Row: {
+          channel: string | null
+          created_at: string
+          duration_seconds: number | null
+          id: string
+          thumbnail: string | null
+          title: string | null
+          user_id: string
+          video_id: string
+        }
+        Insert: {
+          channel?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          thumbnail?: string | null
+          title?: string | null
+          user_id: string
+          video_id: string
+        }
+        Update: {
+          channel?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          thumbnail?: string | null
+          title?: string | null
+          user_id?: string
+          video_id?: string
+        }
+        Relationships: []
+      }
+      watch_history: {
+        Row: {
+          category: string | null
+          channel: string | null
+          id: string
+          mode: string
+          thumbnail: string | null
+          title: string | null
+          user_id: string
+          video_id: string
+          watch_seconds: number
+          watched_at: string
+        }
+        Insert: {
+          category?: string | null
+          channel?: string | null
+          id?: string
+          mode: string
+          thumbnail?: string | null
+          title?: string | null
+          user_id: string
+          video_id: string
+          watch_seconds?: number
+          watched_at?: string
+        }
+        Update: {
+          category?: string | null
+          channel?: string | null
+          id?: string
+          mode?: string
+          thumbnail?: string | null
+          title?: string | null
+          user_id?: string
+          video_id?: string
+          watch_seconds?: number
+          watched_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
