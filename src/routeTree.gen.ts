@@ -10,12 +10,24 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SearchRouteImport } from './routes/search'
+import { Route as ResultsRouteImport } from './routes/results'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RefineModeRouteImport } from './routes/refine.$mode'
 
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
   path: '/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResultsRoute = ResultsRouteImport.update({
+  id: '/results',
+  path: '/results',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -31,30 +43,38 @@ const RefineModeRoute = RefineModeRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/results': typeof ResultsRoute
   '/search': typeof SearchRoute
   '/refine/$mode': typeof RefineModeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/results': typeof ResultsRoute
   '/search': typeof SearchRoute
   '/refine/$mode': typeof RefineModeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/results': typeof ResultsRoute
   '/search': typeof SearchRoute
   '/refine/$mode': typeof RefineModeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/search' | '/refine/$mode'
+  fullPaths: '/' | '/login' | '/results' | '/search' | '/refine/$mode'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/search' | '/refine/$mode'
-  id: '__root__' | '/' | '/search' | '/refine/$mode'
+  to: '/' | '/login' | '/results' | '/search' | '/refine/$mode'
+  id: '__root__' | '/' | '/login' | '/results' | '/search' | '/refine/$mode'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  LoginRoute: typeof LoginRoute
+  ResultsRoute: typeof ResultsRoute
   SearchRoute: typeof SearchRoute
   RefineModeRoute: typeof RefineModeRoute
 }
@@ -66,6 +86,20 @@ declare module '@tanstack/react-router' {
       path: '/search'
       fullPath: '/search'
       preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/results': {
+      id: '/results'
+      path: '/results'
+      fullPath: '/results'
+      preLoaderRoute: typeof ResultsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -87,6 +121,8 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  LoginRoute: LoginRoute,
+  ResultsRoute: ResultsRoute,
   SearchRoute: SearchRoute,
   RefineModeRoute: RefineModeRoute,
 }
