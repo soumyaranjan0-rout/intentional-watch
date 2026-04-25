@@ -85,7 +85,11 @@ function Dashboard() {
       <p className="mt-1 text-sm text-muted-foreground">A quiet look at how you've been spending your time.</p>
 
       {loading ? (
-        <p className="mt-10 text-sm text-muted-foreground">Loading…</p>
+        <div className="mt-8 grid gap-4 sm:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="zen-skeleton h-24 rounded-xl" />
+          ))}
+        </div>
       ) : (
         <>
           <div className="mt-8 grid gap-4 sm:grid-cols-3">
