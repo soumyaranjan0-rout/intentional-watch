@@ -224,7 +224,15 @@ const ResultCard = memo(function ResultCard({
             </div>
           )}
           <h3 className="text-base font-medium leading-snug text-foreground sm:text-lg">{v.title}</h3>
-          <div className="mt-1 text-sm text-muted-foreground">{v.channel}</div>
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
+            <span>{v.channel}</span>
+            {v.publishedAt && (
+              <>
+                <span aria-hidden>·</span>
+                <span className="text-xs">{new Date(v.publishedAt).toLocaleDateString()}</span>
+              </>
+            )}
+          </div>
           <p className="mt-3 border-l-2 border-primary/40 pl-3 text-sm text-muted-foreground">{v.reason}</p>
         </div>
       </div>
