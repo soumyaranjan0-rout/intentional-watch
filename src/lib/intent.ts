@@ -144,6 +144,43 @@ export function guessCategory(query: string): CategoryGuess {
   return "neutral";
 }
 
+// --- Inferred intent from video metadata (content-tied) ---
+// Maps to two main intents: "learn" or "relax". Returns null if uncertain.
+export function inferIntentFromVideo(input: {
+  title?: string;
+  channel?: string;
+  durationSeconds?: number;
+  category?: string;
+}): Mode | null {
+  const title = (input.title || "").toLowerCase();
+  const channel = (input.channel || "").toLowerCase();
+  const dur = input.durationSeconds || 0;
+  const cat = (input.category || "").toLowerCase();
+
+  // Strong learning signals
+  if (LEARN_PATTERNS.test(title) || LEARN_PATTERNS.test(channel)) return "learn";
+  if (/education|science & technology|howto|tech/.test(cat)) return "learn";
+
+  // Strong entertainment signals
+  if (RELAX_PATTERNS.test(title) || RELAX_PATTERNS.test(channel)) return "relax";
+  if (/music|comedy|gaming|entertainment|film|sport/.test(cat)) return "relax";
+
+  // Duration heuristic — short videos are usually entertainment, long ones learning
+  if (dur > 0 && dur < 5 * 60) return "relax";
+  if (dur >= 20 * 60) return "learn";
+
+  return null;
+}
+
+// Resolve final intent: explicit override wins, then inferred, then session fallback.
+export function resolveFinalIntent(
+  override: Mode | null | undefined,
+  inferred: Mode | null | undefined,
+  sessionFallback: Mode | null | undefined,
+): Mode {
+  return (override || inferred || sessionFallback || "find") as Mode;
+}
+
 export function detectMismatch(
   mode: Mode,
   query: string,

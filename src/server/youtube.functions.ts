@@ -125,6 +125,77 @@ function fitScore(
   return viewScore * durationFit;
 }
 
+export type ResultPlaylist = {
+  playlistId: string;
+  title: string;
+  channel: string;
+  channelId: string;
+  description: string;
+  thumbnail: string;
+  itemCount: number;
+  reason: string;
+};
+
+async function fetchPlaylists(apiKey: string, q: string): Promise<ResultPlaylist[]> {
+  try {
+    const params = new URLSearchParams({
+      part: "snippet",
+      q,
+      maxResults: "5",
+      type: "playlist",
+      safeSearch: "moderate",
+      key: apiKey,
+    });
+    const res = await fetch(`${YT_BASE}/search?${params.toString()}`);
+    if (!res.ok) return [];
+    const json = (await res.json()) as {
+      items: Array<{
+        id: { playlistId: string };
+        snippet: {
+          title: string;
+          channelTitle: string;
+          channelId: string;
+          description: string;
+          thumbnails: { medium?: { url: string }; high?: { url: string } };
+        };
+      }>;
+    };
+    const ids = json.items.map((i) => i.id.playlistId).filter(Boolean);
+    if (ids.length === 0) return [];
+
+    // Fetch item counts
+    const dParams = new URLSearchParams({
+      part: "contentDetails",
+      id: ids.join(","),
+      key: apiKey,
+    });
+    const dRes = await fetch(`${YT_BASE}/playlists?${dParams.toString()}`);
+    const dJson = dRes.ok
+      ? ((await dRes.json()) as {
+          items: Array<{ id: string; contentDetails: { itemCount: number } }>;
+        })
+      : { items: [] };
+    const countMap = new Map(dJson.items.map((d) => [d.id, d.contentDetails.itemCount]));
+
+    return json.items
+      .map((it) => ({
+        playlistId: it.id.playlistId,
+        title: it.snippet.title,
+        channel: it.snippet.channelTitle,
+        channelId: it.snippet.channelId,
+        description: it.snippet.description,
+        thumbnail:
+          it.snippet.thumbnails.high?.url || it.snippet.thumbnails.medium?.url || "",
+        itemCount: countMap.get(it.id.playlistId) || 0,
+        reason: `Curated series · ${countMap.get(it.id.playlistId) || 0} videos`,
+      }))
+      .filter((p) => p.itemCount >= 3)
+      .slice(0, 3);
+  } catch {
+    return [];
+  }
+}
+
 export const searchVideos = createServerFn({ method: "POST" })
   .inputValidator((input: Input) => SearchInput.parse(input))
   .handler(async ({ data }) => {
@@ -133,6 +204,7 @@ export const searchVideos = createServerFn({ method: "POST" })
       return {
         error: "YouTube API key is not configured.",
         results: [] as ResultVideo[],
+        playlists: [] as ResultPlaylist[],
         effectiveQuery: "",
       };
     }
@@ -140,7 +212,6 @@ export const searchVideos = createServerFn({ method: "POST" })
     const { q, videoDuration, order } = buildSearchQuery(data);
     const limit = data.maxResults ?? (data.mode === "find" ? 5 : data.mode === "explore" ? 5 : 7);
 
-    // Fetch more than we need so we can filter out shorts and still have enough
     const searchParams = new URLSearchParams({
       part: "snippet",
       q,
@@ -151,15 +222,19 @@ export const searchVideos = createServerFn({ method: "POST" })
       key: apiKey,
     });
     if (videoDuration && videoDuration !== "any") searchParams.set("videoDuration", videoDuration);
-    // Always exclude shorts via API filter where possible — "short" duration is <4 min
-    // We additionally filter <65s (Shorts are ≤60s) below.
 
     try {
-      const sRes = await fetch(`${YT_BASE}/search?${searchParams.toString()}`);
+      // Run video + playlist searches in parallel for speed
+      const includePlaylists = data.mode === "learn" || data.mode === "explore";
+      const [sRes, playlists] = await Promise.all([
+        fetch(`${YT_BASE}/search?${searchParams.toString()}`),
+        includePlaylists ? fetchPlaylists(apiKey, q) : Promise.resolve([]),
+      ]);
+
       if (!sRes.ok) {
         const body = await sRes.text();
         console.error("YouTube search failed", sRes.status, body);
-        return { error: `Search failed (${sRes.status})`, results: [] as ResultVideo[], effectiveQuery: q };
+        return { error: `Search failed (${sRes.status})`, results: [] as ResultVideo[], playlists: [] as ResultPlaylist[], effectiveQuery: q };
       }
       const sJson = (await sRes.json()) as {
         items: Array<{
@@ -176,7 +251,7 @@ export const searchVideos = createServerFn({ method: "POST" })
       };
 
       const ids = sJson.items.map((i) => i.id.videoId).filter(Boolean);
-      if (ids.length === 0) return { error: null, results: [] as ResultVideo[], effectiveQuery: q };
+      if (ids.length === 0) return { error: null, results: [] as ResultVideo[], playlists, effectiveQuery: q };
 
       const dParams = new URLSearchParams({
         part: "contentDetails,statistics",
@@ -187,7 +262,7 @@ export const searchVideos = createServerFn({ method: "POST" })
       if (!dRes.ok) {
         const body = await dRes.text();
         console.error("YouTube videos failed", dRes.status, body);
-        return { error: `Details failed (${dRes.status})`, results: [] as ResultVideo[], effectiveQuery: q };
+        return { error: `Details failed (${dRes.status})`, results: [] as ResultVideo[], playlists, effectiveQuery: q };
       }
       const dJson = (await dRes.json()) as {
         items: Array<{
@@ -220,7 +295,6 @@ export const searchVideos = createServerFn({ method: "POST" })
           return v;
         })
         .filter((v) => {
-          // Always exclude Shorts (<= 65s) and #shorts in title
           if (v.durationSeconds <= 65) return false;
           if (/#shorts?\b/i.test(v.title)) return false;
           if (data.mode === "learn" && v.durationSeconds < 90) return false;
@@ -237,10 +311,68 @@ export const searchVideos = createServerFn({ method: "POST" })
       const trimmed = results.slice(0, limit);
       if (trimmed[0]) trimmed[0].primary = true;
 
-      return { error: null, results: trimmed, effectiveQuery: q };
+      return { error: null, results: trimmed, playlists, effectiveQuery: q };
     } catch (err) {
       console.error("YouTube search error", err);
-      return { error: "Could not reach YouTube right now.", results: [] as ResultVideo[], effectiveQuery: q };
+      return { error: "Could not reach YouTube right now.", results: [] as ResultVideo[], playlists: [] as ResultPlaylist[], effectiveQuery: q };
+    }
+  });
+
+// --- Playlist items: load videos in a playlist on demand --------------------
+
+const PlaylistItemsInput = z.object({ playlistId: z.string().min(5).max(64) });
+
+export const getPlaylistItems = createServerFn({ method: "POST" })
+  .inputValidator((input: { playlistId: string }) => PlaylistItemsInput.parse(input))
+  .handler(async ({ data }) => {
+    const apiKey = process.env.YOUTUBE_API_KEY;
+    if (!apiKey) return { items: [] as Array<{ videoId: string; title: string; channel: string; thumbnail: string; durationSeconds: number; position: number }>, error: "API key missing" };
+    try {
+      const params = new URLSearchParams({
+        part: "snippet,contentDetails",
+        playlistId: data.playlistId,
+        maxResults: "50",
+        key: apiKey,
+      });
+      const res = await fetch(`${YT_BASE}/playlistItems?${params.toString()}`);
+      if (!res.ok) return { items: [], error: `playlistItems ${res.status}` };
+      const json = (await res.json()) as {
+        items: Array<{
+          snippet: {
+            title: string;
+            videoOwnerChannelTitle?: string;
+            position: number;
+            thumbnails: { medium?: { url: string }; high?: { url: string } };
+            resourceId: { videoId: string };
+          };
+        }>;
+      };
+      const ids = json.items.map((i) => i.snippet.resourceId.videoId).filter(Boolean);
+      const dParams = new URLSearchParams({
+        part: "contentDetails",
+        id: ids.join(","),
+        key: apiKey,
+      });
+      const dRes = await fetch(`${YT_BASE}/videos?${dParams.toString()}`);
+      const dJson = dRes.ok
+        ? ((await dRes.json()) as { items: Array<{ id: string; contentDetails: { duration: string } }> })
+        : { items: [] };
+      const durMap = new Map(dJson.items.map((d) => [d.id, parseISODuration(d.contentDetails.duration)]));
+
+      const items = json.items
+        .map((it) => ({
+          videoId: it.snippet.resourceId.videoId,
+          title: it.snippet.title,
+          channel: it.snippet.videoOwnerChannelTitle || "",
+          thumbnail: it.snippet.thumbnails.high?.url || it.snippet.thumbnails.medium?.url || "",
+          durationSeconds: durMap.get(it.snippet.resourceId.videoId) || 0,
+          position: it.snippet.position,
+        }))
+        .filter((v) => v.title !== "Deleted video" && v.title !== "Private video");
+      return { items, error: null as string | null };
+    } catch (err) {
+      console.error("getPlaylistItems error", err);
+      return { items: [], error: "Failed to fetch" };
     }
   });
 
@@ -260,6 +392,7 @@ export type VideoMeta = {
   publishedAt: string;
   description: string;
   durationSeconds: number;
+  categoryId: string;
 };
 
 export const getVideoMeta = createServerFn({ method: "POST" })
@@ -285,6 +418,7 @@ export const getVideoMeta = createServerFn({ method: "POST" })
             channelId: string;
             description: string;
             publishedAt: string;
+            categoryId?: string;
           };
           contentDetails: { duration: string };
           statistics: { viewCount?: string; likeCount?: string };
@@ -323,6 +457,7 @@ export const getVideoMeta = createServerFn({ method: "POST" })
         publishedAt: v.snippet.publishedAt,
         description: v.snippet.description,
         durationSeconds: parseISODuration(v.contentDetails.duration),
+        categoryId: v.snippet.categoryId || "",
       };
       return { meta, error: null as string | null };
     } catch (err) {

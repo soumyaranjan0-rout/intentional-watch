@@ -1,10 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { memo, useEffect, useState } from "react";
-import { searchVideos } from "@/server/youtube.functions";
+import { searchVideos, getPlaylistItems, type ResultPlaylist } from "@/server/youtube.functions";
 import { useSessionState } from "@/contexts/SessionStateContext";
 import { formatDuration, MODES, detectMismatch, type Mode, type ResultVideo } from "@/lib/intent";
-import { ArrowLeft, RefreshCw, Sliders, Search as SearchIcon, AlertCircle } from "lucide-react";
+import { ArrowLeft, RefreshCw, Sliders, Search as SearchIcon, AlertCircle, ListVideo, ChevronDown, Play } from "lucide-react";
 
 export const Route = createFileRoute("/results")({
   head: () => ({ meta: [{ title: "Results — ZenTube" }] }),
@@ -75,7 +75,6 @@ function ResultsPage() {
             </div>
           )}
 
-          {/* Effective query — what we actually searched for */}
           {data?.effectiveQuery && (
             <div className="mt-3 flex items-start gap-2 rounded-md border border-border/60 bg-surface/40 px-3 py-2 text-xs text-muted-foreground">
               <SearchIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
@@ -85,7 +84,6 @@ function ResultsPage() {
             </div>
           )}
 
-          {/* Mismatch prompt */}
           {mismatch.mismatched && mismatch.suggested && (
             <div className="mt-3 flex items-start gap-2 rounded-md border border-primary/40 bg-primary/10 px-3 py-2 text-sm">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
@@ -101,7 +99,6 @@ function ResultsPage() {
             </div>
           )}
 
-          {/* Inline refinement input */}
           <div className="mt-3 flex items-center gap-2 rounded-full border border-border bg-surface/60 px-4 py-2 focus-within:border-primary/50">
             <Sliders className="h-4 w-4 text-muted-foreground" />
             <input
@@ -131,12 +128,12 @@ function ResultsPage() {
           </div>
         ) : data?.error ? (
           <div className="mt-12 zen-card p-6 text-sm text-muted-foreground">{data.error}</div>
-        ) : !data?.results.length ? (
+        ) : !data?.results.length && !data?.playlists?.length ? (
           <div className="mt-12 zen-card p-6 text-sm text-muted-foreground">
             No good matches. Try different phrasing or hit "Show more".
           </div>
         ) : (
-          <ResultsList results={data.results} mode={mode} />
+          <ResultsList results={data.results} playlists={data.playlists || []} mode={mode} />
         )}
       </div>
     </div>
@@ -161,12 +158,24 @@ function ResultsSkeleton() {
   );
 }
 
-function ResultsList({ results, mode }: { results: ResultVideo[]; mode: Mode }) {
+function ResultsList({
+  results, playlists, mode,
+}: { results: ResultVideo[]; playlists: ResultPlaylist[]; mode: Mode }) {
   const primary = results.find((r) => r.primary) ?? results[0];
-  const rest = results.filter((r) => r.videoId !== primary.videoId);
+  const rest = results.filter((r) => primary && r.videoId !== primary.videoId);
   return (
     <div className="mt-6 space-y-4">
-      <ResultCard v={primary} highlighted={mode === "find"} />
+      {primary && <ResultCard v={primary} highlighted={mode === "find"} />}
+
+      {playlists.length > 0 && (
+        <>
+          <div className="pt-2 text-xs uppercase tracking-wider text-muted-foreground">
+            Curated playlists
+          </div>
+          {playlists.map((p) => <PlaylistCard key={p.playlistId} p={p} />)}
+        </>
+      )}
+
       {rest.length > 0 && (
         <>
           <div className="pt-2 text-xs uppercase tracking-wider text-muted-foreground">
@@ -191,7 +200,7 @@ const ResultCard = memo(function ResultCard({
     <Link
       to="/watch/$videoId"
       params={{ videoId: v.videoId }}
-      search={{ title: v.title, channel: v.channel, duration: v.durationSeconds, thumbnail: v.thumbnail, t: 0 }}
+      search={{ title: v.title, channel: v.channel, duration: v.durationSeconds, thumbnail: v.thumbnail, t: 0, intent: "" }}
       className={
         "zen-card zen-card-hover block overflow-hidden " +
         (highlighted ? "border-primary/40 ring-1 ring-primary/15" : "")
@@ -222,3 +231,83 @@ const ResultCard = memo(function ResultCard({
     </Link>
   );
 });
+
+function PlaylistCard({ p }: { p: ResultPlaylist }) {
+  const [open, setOpen] = useState(false);
+  const { data, isFetching } = useQuery({
+    queryKey: ["playlist-items", p.playlistId],
+    queryFn: () => getPlaylistItems({ data: { playlistId: p.playlistId } }),
+    enabled: open,
+    staleTime: 10 * 60 * 1000,
+  });
+
+  return (
+    <div className="zen-card overflow-hidden">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full flex-col gap-4 p-4 text-left transition-colors hover:bg-accent/30 sm:flex-row sm:p-5"
+      >
+        <div className="relative shrink-0 overflow-hidden rounded-md bg-muted sm:w-64">
+          <div className="aspect-video w-full">
+            {p.thumbnail && (
+              <img src={p.thumbnail} alt="" className="h-full w-full object-cover" loading="lazy" />
+            )}
+          </div>
+          <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+            <ListVideo className="h-8 w-8 text-white" />
+          </div>
+          <div className="absolute bottom-2 right-2 rounded bg-background/85 px-1.5 py-0.5 text-xs text-foreground">
+            {p.itemCount} videos
+          </div>
+        </div>
+        <div className="flex-1">
+          <div className="mb-1 inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wider text-primary">
+            <ListVideo className="h-3 w-3" /> Playlist
+          </div>
+          <h3 className="text-base font-medium leading-snug text-foreground sm:text-lg">{p.title}</h3>
+          <div className="mt-1 text-sm text-muted-foreground">{p.channel}</div>
+          <p className="mt-2 text-sm text-muted-foreground">{p.reason}</p>
+          <div className="mt-3 inline-flex items-center gap-1 text-xs text-primary">
+            <ChevronDown className={"h-3.5 w-3.5 transition-transform " + (open ? "rotate-180" : "")} />
+            {open ? "Hide videos" : "View videos"}
+          </div>
+        </div>
+      </button>
+
+      {open && (
+        <div className="border-t border-border bg-surface/40">
+          {isFetching ? (
+            <div className="p-4 text-sm text-muted-foreground">Loading playlist…</div>
+          ) : !data?.items.length ? (
+            <div className="p-4 text-sm text-muted-foreground">No videos available.</div>
+          ) : (
+            <ol className="divide-y divide-border max-h-96 overflow-y-auto">
+              {data.items.map((it) => (
+                <li key={it.videoId}>
+                  <Link
+                    to="/watch/$videoId"
+                    params={{ videoId: it.videoId }}
+                    search={{
+                      title: it.title, channel: it.channel,
+                      duration: it.durationSeconds, thumbnail: it.thumbnail, t: 0, intent: "",
+                    }}
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-accent/30"
+                  >
+                    <span className="w-6 shrink-0 text-center text-xs tabular-nums text-muted-foreground">
+                      {it.position + 1}
+                    </span>
+                    <Play className="h-3.5 w-3.5 shrink-0 text-primary" />
+                    <span className="line-clamp-1 flex-1 text-foreground">{it.title}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground">
+                      {formatDuration(it.durationSeconds)}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
