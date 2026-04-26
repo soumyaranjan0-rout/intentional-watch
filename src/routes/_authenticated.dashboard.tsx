@@ -17,6 +17,7 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 
 type Row = {
   mode: string;
+  final_intent: string | null;
   watch_seconds: number;
   effective_seconds: number;
   seek_count: number;
@@ -46,7 +47,7 @@ function Dashboard() {
     if (!user) return;
     supabase
       .from("watch_history")
-      .select("mode, watch_seconds, effective_seconds, seek_count, duration_seconds, watched_at, title, channel, category")
+      .select("mode, final_intent, watch_seconds, effective_seconds, seek_count, duration_seconds, watched_at, title, channel, category")
       .eq("user_id", user.id)
       .order("watched_at", { ascending: false })
       .limit(500)
@@ -61,8 +62,10 @@ function Dashboard() {
     const skippedSec = Math.max(0, totalRaw - totalEff);
     const totalSeeks = rows.reduce((s, r) => s + (r.seek_count || 0), 0);
 
+    // Use final_intent (content-tied) instead of session mode for accuracy
+    const intentOf = (r: Row) => (r.final_intent || r.mode) as string;
     const byMode: Record<string, number> = {};
-    for (const r of rows) byMode[r.mode] = (byMode[r.mode] || 0) + (r.effective_seconds || 0);
+    for (const r of rows) byMode[intentOf(r)] = (byMode[intentOf(r)] || 0) + (r.effective_seconds || 0);
     const learn = byMode["learn"] || 0;
     const ent = byMode["relax"] || 0;
     const find = byMode["find"] || 0;
@@ -84,8 +87,9 @@ function Dashboard() {
         const t = new Date(r.watched_at).getTime();
         if (t >= d.getTime() && t < next.getTime()) {
           const m = Math.round((r.effective_seconds || 0) / 60);
-          if (r.mode === "learn") l += m;
-          else if (r.mode === "relax") r2 += m;
+          const i = intentOf(r);
+          if (i === "learn") l += m;
+          else if (i === "relax") r2 += m;
           else o += m;
         }
       }
