@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSessionState } from "@/contexts/SessionStateContext";
-import { formatCount, formatDuration } from "@/lib/intent";
+import { formatDuration, formatCount, inferIntentFromVideo, resolveFinalIntent, MODES, type Mode } from "@/lib/intent";
 import { Player, type PlayerHandle } from "@/components/Player";
 import { NotesPanel } from "@/components/NotesPanel";
 import { SessionPrompt } from "@/components/SessionPrompt";
@@ -12,7 +12,7 @@ import { getVideoMeta } from "@/server/youtube.functions";
 import { toast } from "sonner";
 import {
   ArrowLeft, BookmarkPlus, BookmarkCheck, Share2, ThumbsUp, ThumbsDown,
-  Clock, Bell, BellOff,
+  Clock, Sparkles, Brain, Coffee, Search as SearchIcon,
 } from "lucide-react";
 
 export const Route = createFileRoute("/watch/$videoId")({
@@ -22,6 +22,7 @@ export const Route = createFileRoute("/watch/$videoId")({
     duration: typeof s.duration === "number" ? (s.duration as number) : 0,
     thumbnail: typeof s.thumbnail === "string" ? s.thumbnail : "",
     t: typeof s.t === "number" ? (s.t as number) : 0,
+    intent: typeof s.intent === "string" ? (s.intent as string) : "",
   }),
   head: () => ({ meta: [{ title: "Watching — ZenTube" }] }),
   component: WatchPage,
@@ -31,28 +32,31 @@ function WatchPage() {
   const { videoId } = Route.useParams();
   const search = Route.useSearch();
   const { user } = useAuth();
-  const { mode, bumpWatched, videosWatchedThisSession, sessionStartedAt } = useSessionState();
+  const { mode: sessionMode, bumpWatched, videosWatchedThisSession, sessionStartedAt } = useSessionState();
   const navigate = useNavigate();
 
   const [ended, setEnded] = useState(false);
   const [showSessionPrompt, setShowSessionPrompt] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [reaction, setReaction] = useState<"up" | "down" | null>(null);
-  const [subscribed, setSubscribed] = useState(false);
+  const [feedback, setFeedback] = useState<"helpful" | "not_useful" | null>(null);
   const [sessionMinutes, setSessionMinutes] = useState(0);
+
+  // Intent: explicit override (from URL or user-set), inferred (from meta), session fallback.
+  const [override, setOverride] = useState<Mode | null>(
+    (search.intent as Mode) || null,
+  );
 
   const playerRef = useRef<PlayerHandle | null>(null);
   const initialSeekRef = useRef(false);
-  const watchSecondsRef = useRef(0); // current playback position
-  const effectiveSecondsRef = useRef(0); // sum of actual played segments
+  const watchSecondsRef = useRef(0);
+  const effectiveSecondsRef = useRef(0);
   const seekCountRef = useRef(0);
-  const segmentsRef = useRef<Array<[number, number]>>([]); // merged ranges
+  const segmentsRef = useRef<Array<[number, number]>>([]);
 
   const lastSyncedRef = useRef(0);
   const recordedFinalRef = useRef(false);
   const historyIdRef = useRef<string | null>(null);
 
-  // Fetch full video metadata (channel subs, likes, view count)
   const { data: metaData } = useQuery({
     queryKey: ["video-meta", videoId],
     queryFn: () => getVideoMeta({ data: { videoId } }),
@@ -60,6 +64,15 @@ function WatchPage() {
     refetchOnWindowFocus: false,
   });
   const meta = metaData?.meta;
+
+  // Inferred + final intent (content-tied)
+  const inferred = inferIntentFromVideo({
+    title: meta?.title || search.title,
+    channel: meta?.channel || search.channel,
+    durationSeconds: meta?.durationSeconds || search.duration,
+    category: meta?.categoryId,
+  });
+  const finalIntent: Mode = resolveFinalIntent(override, inferred, sessionMode);
 
   // Saved state
   useEffect(() => {
@@ -77,6 +90,22 @@ function WatchPage() {
     return () => { cancelled = true; };
   }, [user, videoId]);
 
+  // Existing feedback
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    supabase
+      .from("video_feedback")
+      .select("feedback")
+      .eq("user_id", user.id)
+      .eq("video_id", videoId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled && data) setFeedback(data.feedback as "helpful" | "not_useful");
+      });
+    return () => { cancelled = true; };
+  }, [user, videoId]);
+
   // Session timer
   useEffect(() => {
     const id = window.setInterval(() => {
@@ -86,7 +115,6 @@ function WatchPage() {
     return () => window.clearInterval(id);
   }, [sessionStartedAt]);
 
-  // Merge a played [start, end] segment into ranges, return new total effective seconds
   const mergeSegment = (start: number, end: number) => {
     if (end <= start) return;
     const segs = segmentsRef.current.slice();
@@ -106,7 +134,6 @@ function WatchPage() {
     );
   };
 
-  // Periodic sync to DB
   const syncHistory = useCallback(async () => {
     if (!user) return;
     const sec = Math.round(watchSecondsRef.current);
@@ -123,7 +150,9 @@ function WatchPage() {
           title: meta?.title || search.title || null,
           channel: meta?.channel || search.channel || null,
           thumbnail: search.thumbnail || null,
-          mode: mode ?? "find",
+          mode: sessionMode ?? finalIntent,
+          final_intent: finalIntent,
+          inferred_intent: inferred,
           watch_seconds: sec,
           effective_seconds: eff,
           seek_count: seekCountRef.current,
@@ -139,10 +168,11 @@ function WatchPage() {
           watch_seconds: sec,
           effective_seconds: eff,
           seek_count: seekCountRef.current,
+          final_intent: finalIntent,
         })
         .eq("id", historyIdRef.current);
     }
-  }, [user, videoId, mode, search.title, search.channel, search.thumbnail, search.duration, meta]);
+  }, [user, videoId, sessionMode, finalIntent, inferred, search.title, search.channel, search.thumbnail, search.duration, meta]);
 
   const handleProgress = useCallback(
     (s: number) => {
@@ -160,7 +190,6 @@ function WatchPage() {
     seekCountRef.current += 1;
   }, []);
 
-  // Final sync on unmount
   useEffect(() => {
     return () => {
       if (user && historyIdRef.current) {
@@ -223,9 +252,40 @@ function WatchPage() {
     } catch {}
   };
 
+  const sendFeedback = async (kind: "helpful" | "not_useful") => {
+    if (!user) {
+      toast.message("Sign in to give feedback");
+      return;
+    }
+    const next = feedback === kind ? null : kind;
+    setFeedback(next);
+    if (next === null) {
+      await supabase.from("video_feedback").delete().eq("user_id", user.id).eq("video_id", videoId);
+    } else {
+      await supabase.from("video_feedback").upsert(
+        { user_id: user.id, video_id: videoId, feedback: next },
+        { onConflict: "user_id,video_id" },
+      );
+    }
+  };
+
+  const setIntentOverride = async (m: Mode) => {
+    setOverride(m);
+    if (user && historyIdRef.current) {
+      await supabase
+        .from("watch_history")
+        .update({ final_intent: m })
+        .eq("id", historyIdRef.current);
+    }
+    toast.success(`Marked as ${MODES[m].label}`);
+  };
+
   const title = meta?.title || search.title || "Untitled";
   const channelName = meta?.channel || search.channel || "";
-  const subText = meta ? `${formatCount(meta.subscriberCount)} subscribers` : "";
+  const isLearning = finalIntent === "learn";
+  const isRelax = finalIntent === "relax";
+  const isFind = finalIntent === "find";
+  const isExplore = finalIntent === "explore";
 
   return (
     <div className="zen-container-wide py-6 sm:py-8">
@@ -237,7 +297,7 @@ function WatchPage() {
           <ArrowLeft className="h-4 w-4" /> Back to results
         </Link>
 
-        {mode === "relax" && sessionMinutes >= 5 && (
+        {isRelax && sessionMinutes >= 5 && (
           <div className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface/70 px-3 py-1 text-xs text-muted-foreground">
             <Clock className="h-3.5 w-3.5" />
             You've been watching for {sessionMinutes} min
@@ -245,7 +305,7 @@ function WatchPage() {
         )}
       </div>
 
-      <div className={"grid gap-6 " + (mode === "learn" ? "lg:grid-cols-[1fr_360px]" : "")}>
+      <div className={"grid gap-6 " + (isLearning ? "lg:grid-cols-[1fr_360px]" : "")}>
         <div className="min-w-0">
           <Player
             ref={playerRef}
@@ -267,105 +327,87 @@ function WatchPage() {
             {title}
           </h1>
 
-          {/* YouTube-style channel + actions row */}
-          <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3 min-w-0">
-              {meta?.channelThumbnail ? (
-                <img
-                  src={meta.channelThumbnail}
-                  alt=""
-                  className="h-10 w-10 shrink-0 rounded-full object-cover"
-                  loading="lazy"
-                />
-              ) : (
-                <div className="h-10 w-10 shrink-0 rounded-full bg-surface-2" />
-              )}
-              <div className="min-w-0">
-                <div className="truncate text-sm font-medium text-foreground">{channelName}</div>
-                <div className="truncate text-xs text-muted-foreground">{subText}</div>
-              </div>
-              <button
-                onClick={() => setSubscribed((s) => !s)}
-                className={
-                  "ml-3 shrink-0 rounded-full px-4 py-1.5 text-xs font-medium transition-colors " +
-                  (subscribed
-                    ? "border border-border bg-surface text-muted-foreground"
-                    : "bg-foreground text-background hover:opacity-90")
-                }
-              >
-                {subscribed ? (
-                  <span className="inline-flex items-center gap-1"><BellOff className="h-3 w-3" /> Subscribed</span>
-                ) : (
-                  <span className="inline-flex items-center gap-1"><Bell className="h-3 w-3" /> Subscribe</span>
-                )}
-              </button>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              {/* Like / Dislike pill */}
-              <div className="inline-flex overflow-hidden rounded-full border border-border bg-surface">
-                <button
-                  onClick={() => setReaction((r) => (r === "up" ? null : "up"))}
-                  aria-pressed={reaction === "up"}
-                  className={
-                    "inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm transition-colors " +
-                    (reaction === "up" ? "text-primary" : "text-foreground hover:bg-accent")
-                  }
-                >
-                  <ThumbsUp className={"h-4 w-4 " + (reaction === "up" ? "fill-primary" : "")} />
-                  {meta ? formatCount(meta.likeCount + (reaction === "up" ? 1 : 0)) : ""}
-                </button>
-                <div className="w-px self-stretch bg-border" />
-                <button
-                  onClick={() => setReaction((r) => (r === "down" ? null : "down"))}
-                  aria-pressed={reaction === "down"}
-                  className={
-                    "inline-flex items-center px-3 py-1.5 text-sm transition-colors " +
-                    (reaction === "down" ? "text-destructive" : "text-foreground hover:bg-accent")
-                  }
-                >
-                  <ThumbsDown className={"h-4 w-4 " + (reaction === "down" ? "fill-destructive" : "")} />
-                </button>
-              </div>
-
-              <button
-                onClick={share}
-                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3.5 py-1.5 text-sm hover:bg-accent"
-              >
-                <Share2 className="h-4 w-4" /> Share
-              </button>
-              <button
-                onClick={toggleSave}
-                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3.5 py-1.5 text-sm hover:bg-accent"
-              >
-                {saved ? (
-                  <BookmarkCheck className="h-4 w-4 text-primary" />
-                ) : (
-                  <BookmarkPlus className="h-4 w-4" />
-                )}
-                {saved ? "Saved" : "Save"}
-              </button>
-            </div>
+          {/* Channel + minimal meta line */}
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-muted-foreground">
+            <span className="text-foreground/90">{channelName}</span>
+            {meta?.publishedAt && <span>· {new Date(meta.publishedAt).toLocaleDateString()}</span>}
+            {meta?.viewCount ? <span>· {formatCount(meta.viewCount)} views</span> : null}
+            {(meta?.durationSeconds || search.duration) ? (
+              <span>· {formatDuration(meta?.durationSeconds || search.duration)}</span>
+            ) : null}
           </div>
 
-          {/* Stats line */}
-          <div className="mt-3 rounded-lg border border-border bg-surface/60 p-3 text-sm">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-muted-foreground">
-              {meta && <span className="font-medium text-foreground">{formatCount(meta.viewCount)} views</span>}
-              {meta?.publishedAt && <span>· {new Date(meta.publishedAt).toLocaleDateString()}</span>}
-              {meta?.durationSeconds ? <span>· {formatDuration(meta.durationSeconds)}</span> : null}
-            </div>
-            {meta?.description && (
-              <p className="mt-2 line-clamp-3 whitespace-pre-wrap text-xs text-muted-foreground">
-                {meta.description}
-              </p>
-            )}
+          {/* Intent badge + override */}
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface/60 px-2.5 py-1 text-xs text-muted-foreground">
+              {isLearning ? <Brain className="h-3 w-3 text-primary" /> :
+                isRelax ? <Coffee className="h-3 w-3 text-primary" /> :
+                isFind ? <SearchIcon className="h-3 w-3 text-primary" /> :
+                <Sparkles className="h-3 w-3 text-primary" />}
+              This looks like: <span className="text-foreground">{MODES[finalIntent].label}</span>
+            </span>
+            <details className="group relative">
+              <summary className="cursor-pointer list-none rounded-full border border-border bg-surface/60 px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground">
+                Change
+              </summary>
+              <div className="absolute left-0 top-full z-20 mt-1 w-44 overflow-hidden rounded-md border border-border bg-popover py-1 shadow-lg">
+                {(Object.keys(MODES) as Mode[]).map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => setIntentOverride(m)}
+                    className={"flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-accent " +
+                      (m === finalIntent ? "text-primary" : "text-foreground")}
+                  >
+                    <span aria-hidden>{MODES[m].emoji}</span> {MODES[m].label}
+                  </button>
+                ))}
+              </div>
+            </details>
+            {isFind && <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wider text-primary">Best match</span>}
+            {isExplore && <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] text-muted-foreground">Part of curated set</span>}
           </div>
+
+          {/* MINIMAL ACTION BAR — Save · Share · Helpful · Not useful */}
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <ActionButton
+              onClick={toggleSave}
+              active={saved}
+              icon={saved ? <BookmarkCheck className="h-4 w-4" /> : <BookmarkPlus className="h-4 w-4" />}
+              label={saved ? "Saved" : "Save"}
+            />
+            <ActionButton
+              onClick={share}
+              icon={<Share2 className="h-4 w-4" />}
+              label="Share"
+            />
+            <div className="mx-1 h-5 w-px bg-border" aria-hidden />
+            <ActionButton
+              onClick={() => sendFeedback("helpful")}
+              active={feedback === "helpful"}
+              icon={<ThumbsUp className={"h-4 w-4 " + (feedback === "helpful" ? "fill-primary" : "")} />}
+              label="Helpful"
+              tone="primary"
+            />
+            <ActionButton
+              onClick={() => sendFeedback("not_useful")}
+              active={feedback === "not_useful"}
+              icon={<ThumbsDown className={"h-4 w-4 " + (feedback === "not_useful" ? "fill-muted-foreground" : "")} />}
+              label="Not useful"
+              tone="muted"
+            />
+          </div>
+
+          {/* Description — only when something to show, very subtle */}
+          {meta?.description && (
+            <p className="mt-4 line-clamp-3 whitespace-pre-wrap rounded-md bg-surface/40 p-3 text-xs text-muted-foreground">
+              {meta.description}
+            </p>
+          )}
 
           {ended && <EndScreen />}
         </div>
 
-        {mode === "learn" && (
+        {isLearning && (
           <NotesPanel
             videoId={videoId}
             videoTitle={title}
@@ -382,6 +424,31 @@ function WatchPage() {
         />
       )}
     </div>
+  );
+}
+
+function ActionButton({
+  onClick, icon, label, active, tone,
+}: {
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+  active?: boolean;
+  tone?: "primary" | "muted";
+}) {
+  const activeCls =
+    active && tone === "primary" ? "border-primary/50 bg-primary/10 text-primary" :
+    active && tone === "muted" ? "border-border bg-accent text-foreground" :
+    active ? "border-primary/50 bg-primary/10 text-primary" :
+    "border-border bg-surface text-foreground hover:bg-accent";
+  return (
+    <button
+      onClick={onClick}
+      className={"inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm transition-colors " + activeCls}
+    >
+      {icon}
+      <span>{label}</span>
+    </button>
   );
 }
 
