@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useImperativeHandle, useRef, useState, forwardRef } from "react";
 import {
   Play, Pause, Volume2, VolumeX, Volume1, Maximize2, Minimize2,
-  Settings as SettingsIcon, RotateCcw, RotateCw, Subtitles, PictureInPicture2,
+  Settings as SettingsIcon, RotateCcw, RotateCw, Subtitles, AlertTriangle, ExternalLink,
 } from "lucide-react";
 
 declare global {
@@ -42,6 +42,7 @@ type YTPlayer = {
   getAvailableQualityLevels?: () => string[];
   getPlaybackQuality?: () => string;
   setPlaybackQuality?: (q: string) => void;
+  loadModule?: (m: string) => void;
 };
 
 let ytApiPromise: Promise<void> | null = null;
@@ -89,6 +90,8 @@ type Props = {
   onReady?: () => void;
 };
 
+type CaptionTrack = { languageCode: string; languageName?: string; displayName?: string };
+
 export const Player = forwardRef<PlayerHandle, Props>(function Player(
   { videoId, onProgress, onEnded, onSegmentPlayed, onSeek, onReady },
   ref,
@@ -110,17 +113,17 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
   const [muted, setMuted] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [settingsTab, setSettingsTab] = useState<"speed" | "quality">("speed");
+  const [settingsTab, setSettingsTab] = useState<"speed" | "quality" | "captions">("speed");
   const [qualities, setQualities] = useState<string[]>([]);
   const [quality, setQuality] = useState<string>("auto");
-  const [ccOn, setCcOn] = useState(false);
-  const [pipSupported, setPipSupported] = useState(false);
+  const [captionTracks, setCaptionTracks] = useState<CaptionTrack[]>([]);
+  const [activeCaption, setActiveCaption] = useState<string>(""); // languageCode or "" = off
+  const [unavailable, setUnavailable] = useState(false);
 
   // Imperative handle for parent (notes click to seek)
   useImperativeHandle(ref, () => ({
     seekTo: (sec: number) => {
       if (!playerRef.current) return;
-      // close current segment before jump
       flushSegment();
       playerRef.current.seekTo(sec, true);
       setCurrent(sec);
@@ -140,6 +143,19 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
     }
   }, [onSegmentPlayed]);
 
+  // Discover caption tracks once player is ready
+  const refreshCaptionTracks = useCallback(() => {
+    const p = playerRef.current;
+    if (!p) return;
+    try {
+      p.loadModule?.("captions");
+      const tracks = (p.getOption("captions", "tracklist") as CaptionTrack[] | undefined) ?? [];
+      if (Array.isArray(tracks)) setCaptionTracks(tracks);
+    } catch {
+      setCaptionTracks([]);
+    }
+  }, []);
+
   // Init player
   useEffect(() => {
     let destroyed = false;
@@ -147,6 +163,9 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
     setPlaying(false);
     setCurrent(0);
     setDuration(0);
+    setUnavailable(false);
+    setCaptionTracks([]);
+    setActiveCaption("");
     segmentStartRef.current = null;
 
     loadYTApi().then(() => {
@@ -163,6 +182,7 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
           fs: 0,
           playsinline: 1,
           cc_load_policy: 0,
+          origin: typeof window !== "undefined" ? window.location.origin : undefined,
         },
         events: {
           onReady: (e) => {
@@ -174,6 +194,9 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
               const qs = p.getAvailableQualityLevels?.() || [];
               setQualities(qs);
             } catch {}
+            // Caption tracks may not be available immediately; retry
+            setTimeout(refreshCaptionTracks, 800);
+            setTimeout(refreshCaptionTracks, 2000);
             onReady?.();
           },
           onStateChange: (e) => {
@@ -185,6 +208,8 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
               if (segmentStartRef.current == null) {
                 segmentStartRef.current = p.getCurrentTime();
               }
+              // Refresh captions list once playback begins (often populated then)
+              refreshCaptionTracks();
             } else if (st === window.YT?.PlayerState.PAUSED) {
               setPlaying(false);
               flushSegment();
@@ -192,6 +217,16 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
               setPlaying(false);
               flushSegment();
               onEnded?.();
+            } else if (st === window.YT?.PlayerState.BUFFERING) {
+              // Don't change playing state during buffering — keep it in sync with intent
+            }
+          },
+          // YouTube error codes: 2 invalid, 5 HTML5, 100 not found, 101/150 embed disabled
+          onError: (e) => {
+            const code = e.data;
+            if (code === 101 || code === 150 || code === 100 || code === 5 || code === 2) {
+              setUnavailable(true);
+              setReady(true); // hide loader
             }
           },
         },
@@ -208,11 +243,6 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoId]);
 
-  // PIP support detection
-  useEffect(() => {
-    setPipSupported("pictureInPictureEnabled" in document && (document as { pictureInPictureEnabled?: boolean }).pictureInPictureEnabled === true);
-  }, []);
-
   // Time tracker
   useEffect(() => {
     const id = window.setInterval(() => {
@@ -220,11 +250,15 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
       if (!p) return;
       try {
         const t = p.getCurrentTime();
+        // Sync playing state defensively from real player state
+        const st = p.getPlayerState?.();
+        if (window.YT) {
+          if (st === window.YT.PlayerState.PLAYING && !playing) setPlaying(true);
+          else if (st === window.YT.PlayerState.PAUSED && playing) setPlaying(false);
+        }
         setCurrent(t);
-        // Detect non-play time jumps (e.g. seek without state change)
         const delta = t - lastTimeRef.current;
         if (Math.abs(delta) > 1.6) {
-          // user scrubbed — close prior segment, start fresh
           flushSegment();
           if (playing) segmentStartRef.current = t;
         }
@@ -270,17 +304,20 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
       else if (e.code === "ArrowDown") { e.preventDefault(); changeVolume(Math.max(0, volume - 5)); }
       else if (e.key === "f" || e.key === "F") toggleFullscreen();
       else if (e.key === "m" || e.key === "M") toggleMute();
-      else if (e.key === "c" || e.key === "C") toggleCC();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playing, ready, volume, muted, ccOn, fullscreen]);
+  }, [playing, ready, volume, muted, fullscreen]);
 
   const togglePlay = () => {
-    if (!playerRef.current) return;
-    if (playing) playerRef.current.pauseVideo();
-    else playerRef.current.playVideo();
+    const p = playerRef.current;
+    if (!p || unavailable) return;
+    // Read true state from player rather than React state to avoid drift
+    const st = p.getPlayerState?.();
+    const isPlaying = window.YT && st === window.YT.PlayerState.PLAYING;
+    if (isPlaying) p.pauseVideo();
+    else p.playVideo();
     setShowControls(true);
   };
 
@@ -338,22 +375,34 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
     }
   };
 
-  const toggleCC = () => {
-    if (!playerRef.current) return;
+  const setCaption = (langCode: string) => {
+    const p = playerRef.current;
+    if (!p) return;
     try {
-      if (ccOn) {
-        playerRef.current.setOption("captions", "track", {});
+      if (!langCode) {
+        // Off
+        p.setOption("captions", "track", {});
+        setActiveCaption("");
       } else {
-        playerRef.current.setOption("captions", "reload", true);
-        const tracks = playerRef.current.getOption("captions", "tracklist") as Array<{ languageCode: string }> | undefined;
-        if (tracks && tracks.length > 0) {
-          playerRef.current.setOption("captions", "track", tracks[0]);
+        const track = captionTracks.find((t) => t.languageCode === langCode);
+        if (track) {
+          p.setOption("captions", "track", track);
+          setActiveCaption(langCode);
         }
       }
-      setCcOn(!ccOn);
-    } catch {
-      setCcOn(!ccOn);
+    } catch {}
+  };
+
+  const toggleCC = () => {
+    if (captionTracks.length === 0) {
+      // Try to refresh once more then open settings
+      refreshCaptionTracks();
+      setSettingsTab("captions");
+      setSettingsOpen(true);
+      return;
     }
+    if (activeCaption) setCaption("");
+    else setCaption(captionTracks[0].languageCode);
   };
 
   const toggleFullscreen = () => {
@@ -361,17 +410,6 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
     if (!el) return;
     if (!document.fullscreenElement) el.requestFullscreen?.();
     else document.exitFullscreen?.();
-  };
-
-  const togglePip = async () => {
-    const iframe = playerRef.current?.getIframe();
-    if (!iframe) return;
-    // YouTube iframe doesn't directly support PIP; we can only attempt to toggle the video element inside if same-origin (it isn't).
-    // So this is a no-op fallback — keep button hidden if not supported.
-    try {
-      const doc = document as Document & { exitPictureInPicture?: () => Promise<void>; pictureInPictureElement?: Element | null };
-      if (doc.pictureInPictureElement) await doc.exitPictureInPicture?.();
-    } catch {}
   };
 
   const changeQuality = (q: string) => {
@@ -392,11 +430,12 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
 
   const VolumeIcon = muted || volume === 0 ? VolumeX : volume < 40 ? Volume1 : Volume2;
   const progressPct = duration > 0 ? (current / duration) * 100 : 0;
+  const ccAvailable = captionTracks.length > 0;
 
   return (
     <div
       ref={containerRef}
-      className="zen-player relative aspect-video w-full overflow-hidden rounded-xl bg-black"
+      className="zen-player relative aspect-video w-full overflow-hidden rounded-xl bg-black shadow-[0_8px_40px_-12px_rgba(0,0,0,0.6)]"
       onMouseMove={() => {
         setShowControls(true);
         scheduleHide();
@@ -409,23 +448,44 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
       />
 
       {/* Click-to-toggle overlay (excludes the controls area) */}
-      <button
-        type="button"
-        aria-label={playing ? "Pause" : "Play"}
-        onClick={togglePlay}
-        onDoubleClick={toggleFullscreen}
-        className="absolute inset-x-0 top-0 bottom-16 z-10 cursor-pointer bg-transparent"
-      />
+      {!unavailable && (
+        <button
+          type="button"
+          aria-label={playing ? "Pause" : "Play"}
+          onClick={togglePlay}
+          onDoubleClick={toggleFullscreen}
+          className="absolute inset-x-0 top-0 bottom-16 z-10 cursor-pointer bg-transparent"
+        />
+      )}
 
       {/* Loading shimmer */}
-      {!ready && (
+      {!ready && !unavailable && (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-black">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-white/80" />
         </div>
       )}
 
+      {/* Embed disabled / unavailable overlay */}
+      {unavailable && (
+        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3 bg-black/95 px-6 text-center text-white">
+          <AlertTriangle className="h-8 w-8 text-white/70" />
+          <div className="text-base font-medium">This video can't be played here</div>
+          <p className="max-w-md text-sm text-white/60">
+            The owner has disabled embedded playback. You can still watch it on YouTube.
+          </p>
+          <a
+            href={`https://www.youtube.com/watch?v=${videoId}`}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-sm font-medium text-black hover:opacity-90"
+          >
+            <ExternalLink className="h-4 w-4" /> Watch on YouTube
+          </a>
+        </div>
+      )}
+
       {/* Big center play button when paused */}
-      {ready && !playing && (
+      {ready && !playing && !unavailable && (
         <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
           <span className="rounded-full bg-white/90 p-5 text-black shadow-2xl">
             <Play className="h-8 w-8 fill-black" />
@@ -433,137 +493,133 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
         </div>
       )}
 
-      {/* Top bar: progress (DataCamp-style — thin at rest, grows on hover) */}
-      <div
-        className={
-          "absolute inset-x-0 bottom-0 z-30 px-3 pt-12 pb-2 bg-gradient-to-t from-black/95 via-black/60 to-transparent transition-opacity duration-200 " +
-          (showControls || !playing ? "opacity-100" : "opacity-0 pointer-events-none")
-        }
-      >
-        {/* Progress bar */}
-        <div className="group relative mb-2 h-4 cursor-pointer" onClick={(e) => {
-          const rect = e.currentTarget.getBoundingClientRect();
-          const pct = (e.clientX - rect.left) / rect.width;
-          seek(pct * duration);
-        }}>
-          <div className="absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-white/25 transition-all group-hover:h-1.5">
-            <div
-              className="absolute left-0 top-0 h-full rounded-full bg-[oklch(0.78_0.12_158)]"
-              style={{ width: `${progressPct}%` }}
-            />
-            <div
-              className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white opacity-0 shadow transition-opacity group-hover:opacity-100"
-              style={{ left: `${progressPct}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Controls row */}
-        <div className="flex items-center justify-between gap-2 text-white">
-          <div className="flex items-center gap-1">
-            <CtrlBtn label={playing ? "Pause (k)" : "Play (k)"} onClick={togglePlay}>
-              {playing ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 fill-white" />}
-            </CtrlBtn>
-            <CtrlBtn label="Back 10s (←)" onClick={() => skip(-10)}>
-              <RotateCcw className="h-5 w-5" />
-            </CtrlBtn>
-            <CtrlBtn label="Forward 10s (→)" onClick={() => skip(10)}>
-              <RotateCw className="h-5 w-5" />
-            </CtrlBtn>
-
-            {/* Volume */}
-            <div className="group flex items-center">
-              <CtrlBtn label={muted ? "Unmute (m)" : "Mute (m)"} onClick={toggleMute}>
-                <VolumeIcon className="h-5 w-5" />
-              </CtrlBtn>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={1}
-                value={muted ? 0 : volume}
-                onChange={(e) => changeVolume(parseInt(e.target.value, 10))}
-                className="zen-vol w-0 transition-[width] duration-200 group-hover:w-20 group-hover:ml-1"
-                aria-label="Volume"
+      {/* Bottom controls */}
+      {!unavailable && (
+        <div
+          className={
+            "absolute inset-x-0 bottom-0 z-30 px-3 pt-12 pb-2 bg-gradient-to-t from-black/95 via-black/60 to-transparent transition-opacity duration-200 " +
+            (showControls || !playing ? "opacity-100" : "opacity-0 pointer-events-none")
+          }
+        >
+          {/* Progress bar */}
+          <div className="group relative mb-2 h-4 cursor-pointer" onClick={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const pct = (e.clientX - rect.left) / rect.width;
+            seek(pct * duration);
+          }}>
+            <div className="absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-white/25 transition-all group-hover:h-1.5">
+              <div
+                className="absolute left-0 top-0 h-full rounded-full bg-[oklch(0.78_0.12_158)]"
+                style={{ width: `${progressPct}%` }}
+              />
+              <div
+                className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white opacity-0 shadow transition-opacity group-hover:opacity-100"
+                style={{ left: `${progressPct}%` }}
               />
             </div>
-
-            <span className="ml-2 select-none tabular-nums text-xs text-white/90">
-              {fmt(current)} / {fmt(duration)}
-            </span>
           </div>
 
-          <div className="relative flex items-center gap-1">
-            <CtrlBtn label={ccOn ? "Captions on (c)" : "Captions off (c)"} onClick={toggleCC}>
-              <Subtitles className={"h-5 w-5 " + (ccOn ? "text-[oklch(0.78_0.12_158)]" : "")} />
-            </CtrlBtn>
-            <CtrlBtn label="Settings" onClick={() => setSettingsOpen((v) => !v)}>
-              <SettingsIcon className="h-5 w-5" />
-            </CtrlBtn>
-            {pipSupported && (
-              <CtrlBtn label="Mini-player" onClick={togglePip}>
-                <PictureInPicture2 className="h-5 w-5" />
+          {/* Controls row */}
+          <div className="flex items-center justify-between gap-2 text-white">
+            <div className="flex items-center gap-1">
+              <CtrlBtn label={playing ? "Pause (space)" : "Play (space)"} onClick={togglePlay}>
+                {playing ? <Pause className="h-5 w-5 fill-white" /> : <Play className="h-5 w-5 fill-white" />}
               </CtrlBtn>
-            )}
-            <CtrlBtn label={fullscreen ? "Exit fullscreen (f)" : "Fullscreen (f)"} onClick={toggleFullscreen}>
-              {fullscreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
-            </CtrlBtn>
+              <CtrlBtn label="Back 10s (←)" onClick={() => skip(-10)}>
+                <RotateCcw className="h-5 w-5" />
+              </CtrlBtn>
+              <CtrlBtn label="Forward 10s (→)" onClick={() => skip(10)}>
+                <RotateCw className="h-5 w-5" />
+              </CtrlBtn>
 
-            {settingsOpen && (
-              <div className="absolute bottom-12 right-0 w-56 overflow-hidden rounded-lg border border-white/10 bg-black/95 text-sm text-white shadow-2xl backdrop-blur">
-                <div className="flex border-b border-white/10">
-                  <button
-                    onClick={() => setSettingsTab("speed")}
-                    className={"flex-1 py-2 text-xs " + (settingsTab === "speed" ? "bg-white/10 text-white" : "text-white/60 hover:text-white")}
-                  >
-                    Speed
-                  </button>
-                  <button
-                    onClick={() => setSettingsTab("quality")}
-                    className={"flex-1 py-2 text-xs " + (settingsTab === "quality" ? "bg-white/10 text-white" : "text-white/60 hover:text-white")}
-                  >
-                    Quality
-                  </button>
-                </div>
-                <div className="max-h-64 overflow-y-auto py-1">
-                  {settingsTab === "speed" &&
-                    SPEEDS.map((s) => (
-                      <button
-                        key={s}
-                        onClick={() => { changeSpeed(s); setSettingsOpen(false); }}
-                        className={"flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-white/10 " + (s === speed ? "text-[oklch(0.82_0.12_158)]" : "")}
-                      >
-                        <span>{s === 1 ? "Normal" : `${s}×`}</span>
-                        {s === speed && <span>✓</span>}
-                      </button>
-                    ))}
-                  {settingsTab === "quality" && (
-                    <>
-                      <button
-                        onClick={() => { changeQuality("default"); setSettingsOpen(false); }}
-                        className={"flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-white/10 " + (quality === "default" || quality === "auto" ? "text-[oklch(0.82_0.12_158)]" : "")}
-                      >
-                        <span>Auto</span>
-                        {(quality === "default" || quality === "auto") && <span>✓</span>}
-                      </button>
-                      {qualities.map((q) => (
-                        <button
-                          key={q}
-                          onClick={() => { changeQuality(q); setSettingsOpen(false); }}
-                          className={"flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-white/10 " + (q === quality ? "text-[oklch(0.82_0.12_158)]" : "")}
-                        >
-                          <span>{QUALITY_LABEL[q] || q}</span>
-                          {q === quality && <span>✓</span>}
-                        </button>
-                      ))}
-                    </>
-                  )}
-                </div>
+              {/* Volume */}
+              <div className="group flex items-center">
+                <CtrlBtn label={muted ? "Unmute (m)" : "Mute (m)"} onClick={toggleMute}>
+                  <VolumeIcon className="h-5 w-5" />
+                </CtrlBtn>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={muted ? 0 : volume}
+                  onChange={(e) => changeVolume(parseInt(e.target.value, 10))}
+                  className="zen-vol w-0 transition-[width] duration-200 group-hover:w-20 group-hover:ml-1"
+                  aria-label="Volume"
+                />
               </div>
-            )}
+
+              <span className="ml-2 select-none tabular-nums text-xs text-white/90">
+                {fmt(current)} / {fmt(duration)}
+              </span>
+            </div>
+
+            <div className="relative flex items-center gap-1">
+              <CtrlBtn
+                label={ccAvailable ? (activeCaption ? "Captions on" : "Captions off") : "No captions available"}
+                onClick={toggleCC}
+                disabled={!ccAvailable}
+              >
+                <Subtitles className={"h-5 w-5 " + (activeCaption ? "text-[oklch(0.78_0.12_158)]" : "")} />
+              </CtrlBtn>
+              <CtrlBtn label="Settings" onClick={() => setSettingsOpen((v) => !v)}>
+                <SettingsIcon className="h-5 w-5" />
+              </CtrlBtn>
+              <CtrlBtn label={fullscreen ? "Exit fullscreen (f)" : "Fullscreen (f)"} onClick={toggleFullscreen}>
+                {fullscreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
+              </CtrlBtn>
+
+              {settingsOpen && (
+                <div className="absolute bottom-12 right-0 w-60 overflow-hidden rounded-lg border border-white/10 bg-black/95 text-sm text-white shadow-2xl backdrop-blur">
+                  <div className="flex border-b border-white/10">
+                    <SettingsTab active={settingsTab === "speed"} onClick={() => setSettingsTab("speed")}>Speed</SettingsTab>
+                    <SettingsTab active={settingsTab === "quality"} onClick={() => setSettingsTab("quality")}>Quality</SettingsTab>
+                    <SettingsTab active={settingsTab === "captions"} onClick={() => setSettingsTab("captions")}>CC</SettingsTab>
+                  </div>
+                  <div className="max-h-64 overflow-y-auto py-1">
+                    {settingsTab === "speed" &&
+                      SPEEDS.map((s) => (
+                        <SettingsRow key={s} active={s === speed} onClick={() => { changeSpeed(s); setSettingsOpen(false); }}>
+                          {s === 1 ? "Normal" : `${s}×`}
+                        </SettingsRow>
+                      ))}
+                    {settingsTab === "quality" && (
+                      <>
+                        <SettingsRow active={quality === "default" || quality === "auto"} onClick={() => { changeQuality("default"); setSettingsOpen(false); }}>
+                          Auto
+                        </SettingsRow>
+                        {qualities.length === 0 ? (
+                          <div className="px-3 py-2 text-xs text-white/50">Quality options will appear once playback starts.</div>
+                        ) : (
+                          qualities.map((q) => (
+                            <SettingsRow key={q} active={q === quality} onClick={() => { changeQuality(q); setSettingsOpen(false); }}>
+                              {QUALITY_LABEL[q] || q}
+                            </SettingsRow>
+                          ))
+                        )}
+                      </>
+                    )}
+                    {settingsTab === "captions" && (
+                      <>
+                        <SettingsRow active={!activeCaption} onClick={() => { setCaption(""); setSettingsOpen(false); }}>Off</SettingsRow>
+                        {captionTracks.length === 0 ? (
+                          <div className="px-3 py-2 text-xs text-white/50">No captions available for this video.</div>
+                        ) : (
+                          captionTracks.map((t) => (
+                            <SettingsRow key={t.languageCode} active={activeCaption === t.languageCode} onClick={() => { setCaption(t.languageCode); setSettingsOpen(false); }}>
+                              {t.displayName || t.languageName || t.languageCode}
+                            </SettingsRow>
+                          ))
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <style>{`
         .zen-vol {
@@ -590,17 +646,46 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
 });
 
 function CtrlBtn({
-  children, onClick, label,
-}: { children: React.ReactNode; onClick: () => void; label: string }) {
+  children, onClick, label, disabled,
+}: { children: React.ReactNode; onClick: () => void; label: string; disabled?: boolean }) {
   return (
     <button
       type="button"
       aria-label={label}
       title={label}
-      onClick={(e) => { e.stopPropagation(); onClick(); }}
-      className="rounded p-2 text-white/90 transition-colors hover:bg-white/15 hover:text-white"
+      disabled={disabled}
+      onClick={(e) => { e.stopPropagation(); if (!disabled) onClick(); }}
+      className={
+        "rounded p-2 transition-colors " +
+        (disabled
+          ? "text-white/30 cursor-not-allowed"
+          : "text-white/90 hover:bg-white/15 hover:text-white")
+      }
     >
       {children}
+    </button>
+  );
+}
+
+function SettingsTab({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className={"flex-1 py-2 text-xs " + (active ? "bg-white/10 text-white" : "text-white/60 hover:text-white")}
+    >
+      {children}
+    </button>
+  );
+}
+
+function SettingsRow({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className={"flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-white/10 " + (active ? "text-[oklch(0.82_0.12_158)]" : "")}
+    >
+      <span>{children}</span>
+      {active && <span>✓</span>}
     </button>
   );
 }

@@ -254,6 +254,7 @@ export type Database = {
           id: string
           inferred_intent: string | null
           mode: string
+          playlist_id: string | null
           seek_count: number
           thumbnail: string | null
           title: string | null
@@ -271,6 +272,7 @@ export type Database = {
           id?: string
           inferred_intent?: string | null
           mode: string
+          playlist_id?: string | null
           seek_count?: number
           thumbnail?: string | null
           title?: string | null
@@ -288,6 +290,7 @@ export type Database = {
           id?: string
           inferred_intent?: string | null
           mode?: string
+          playlist_id?: string | null
           seek_count?: number
           thumbnail?: string | null
           title?: string | null
