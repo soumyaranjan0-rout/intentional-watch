@@ -171,7 +171,7 @@ function NotesPage() {
                         key={n.id}
                         to="/watch/$videoId"
                         params={{ videoId: n.video_id }}
-                        search={{ title: g.videoTitle, channel: "", duration: 0, thumbnail: "", t: n.timestamp_seconds }}
+                        search={{ title: g.videoTitle, channel: "", duration: 0, thumbnail: "", t: n.timestamp_seconds, intent: "" }}
                         className="group flex items-start gap-3 rounded-md border border-border/60 bg-background p-3 hover:border-primary/40"
                       >
                         <span className="inline-flex shrink-0 items-center gap-1 rounded bg-primary/15 px-1.5 py-0.5 text-xs font-medium text-primary">
