@@ -217,13 +217,42 @@ export type Database = {
         }
         Relationships: []
       }
+      video_feedback: {
+        Row: {
+          created_at: string
+          feedback: string
+          id: string
+          updated_at: string
+          user_id: string
+          video_id: string
+        }
+        Insert: {
+          created_at?: string
+          feedback: string
+          id?: string
+          updated_at?: string
+          user_id: string
+          video_id: string
+        }
+        Update: {
+          created_at?: string
+          feedback?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+          video_id?: string
+        }
+        Relationships: []
+      }
       watch_history: {
         Row: {
           category: string | null
           channel: string | null
           duration_seconds: number | null
           effective_seconds: number
+          final_intent: string | null
           id: string
+          inferred_intent: string | null
           mode: string
           seek_count: number
           thumbnail: string | null
@@ -238,7 +267,9 @@ export type Database = {
           channel?: string | null
           duration_seconds?: number | null
           effective_seconds?: number
+          final_intent?: string | null
           id?: string
+          inferred_intent?: string | null
           mode: string
           seek_count?: number
           thumbnail?: string | null
@@ -253,7 +284,9 @@ export type Database = {
           channel?: string | null
           duration_seconds?: number | null
           effective_seconds?: number
+          final_intent?: string | null
           id?: string
+          inferred_intent?: string | null
           mode?: string
           seek_count?: number
           thumbnail?: string | null
