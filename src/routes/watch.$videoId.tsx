@@ -333,14 +333,28 @@ function WatchPage() {
             {title}
           </h1>
 
-          {/* Channel + minimal meta line */}
-          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-muted-foreground">
-            <span className="text-foreground/90">{channelName}</span>
-            {meta?.publishedAt && <span>· {new Date(meta.publishedAt).toLocaleDateString()}</span>}
-            {meta?.viewCount ? <span>· {formatCount(meta.viewCount)} views</span> : null}
-            {(meta?.durationSeconds || search.duration) ? (
-              <span>· {formatDuration(meta?.durationSeconds || search.duration)}</span>
-            ) : null}
+          {/* Channel row with avatar */}
+          <div className="mt-2 flex items-center gap-3">
+            {meta?.channelThumbnail ? (
+              <img
+                src={meta.channelThumbnail}
+                alt=""
+                className="h-9 w-9 shrink-0 rounded-full object-cover"
+                loading="lazy"
+              />
+            ) : (
+              <div className="h-9 w-9 shrink-0 rounded-full bg-muted" />
+            )}
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-medium text-foreground">{channelName}</div>
+              <div className="text-xs text-muted-foreground">
+                {meta?.publishedAt && <>{new Date(meta.publishedAt).toLocaleDateString()}</>}
+                {meta?.viewCount ? <> · {formatCount(meta.viewCount)} views</> : null}
+                {(meta?.durationSeconds || search.duration) ? (
+                  <> · {formatDuration(meta?.durationSeconds || search.duration)}</>
+                ) : null}
+              </div>
+            </div>
           </div>
 
           {/* Intent badge + override */}
@@ -403,12 +417,6 @@ function WatchPage() {
             />
           </div>
 
-          {/* Description — only when something to show, very subtle */}
-          {meta?.description && (
-            <p className="mt-4 line-clamp-3 whitespace-pre-wrap rounded-md bg-surface/40 p-3 text-xs text-muted-foreground">
-              {meta.description}
-            </p>
-          )}
 
           {ended && <EndScreen />}
         </div>
