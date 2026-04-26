@@ -142,22 +142,27 @@ function WatchPage() {
     lastSyncedRef.current = sec;
 
     if (!historyIdRef.current) {
+      // Upsert on (user_id, video_id) so re-watches update the same row instead of creating duplicates
       const { data, error } = await supabase
         .from("watch_history")
-        .insert({
-          user_id: user.id,
-          video_id: videoId,
-          title: meta?.title || search.title || null,
-          channel: meta?.channel || search.channel || null,
-          thumbnail: search.thumbnail || null,
-          mode: sessionMode ?? finalIntent,
-          final_intent: finalIntent,
-          inferred_intent: inferred,
-          watch_seconds: sec,
-          effective_seconds: eff,
-          seek_count: seekCountRef.current,
-          duration_seconds: meta?.durationSeconds || search.duration || null,
-        })
+        .upsert(
+          {
+            user_id: user.id,
+            video_id: videoId,
+            title: meta?.title || search.title || null,
+            channel: meta?.channel || search.channel || null,
+            thumbnail: search.thumbnail || null,
+            mode: sessionMode ?? finalIntent,
+            final_intent: finalIntent,
+            inferred_intent: inferred,
+            watch_seconds: sec,
+            effective_seconds: eff,
+            seek_count: seekCountRef.current,
+            duration_seconds: meta?.durationSeconds || search.duration || null,
+            watched_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id,video_id" },
+        )
         .select("id")
         .single();
       if (!error && data) historyIdRef.current = data.id;
@@ -169,6 +174,7 @@ function WatchPage() {
           effective_seconds: eff,
           seek_count: seekCountRef.current,
           final_intent: finalIntent,
+          watched_at: new Date().toISOString(),
         })
         .eq("id", historyIdRef.current);
     }
