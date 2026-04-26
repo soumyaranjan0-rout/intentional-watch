@@ -392,6 +392,7 @@ export type VideoMeta = {
   publishedAt: string;
   description: string;
   durationSeconds: number;
+  categoryId: string;
 };
 
 export const getVideoMeta = createServerFn({ method: "POST" })
@@ -417,6 +418,7 @@ export const getVideoMeta = createServerFn({ method: "POST" })
             channelId: string;
             description: string;
             publishedAt: string;
+            categoryId?: string;
           };
           contentDetails: { duration: string };
           statistics: { viewCount?: string; likeCount?: string };
@@ -455,6 +457,7 @@ export const getVideoMeta = createServerFn({ method: "POST" })
         publishedAt: v.snippet.publishedAt,
         description: v.snippet.description,
         durationSeconds: parseISODuration(v.contentDetails.duration),
+        categoryId: v.snippet.categoryId || "",
       };
       return { meta, error: null as string | null };
     } catch (err) {
