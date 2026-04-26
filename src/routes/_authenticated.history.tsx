@@ -17,8 +17,10 @@ type H = {
   channel: string | null;
   thumbnail: string | null;
   mode: string;
+  final_intent: string | null;
   watched_at: string;
   watch_seconds: number;
+  effective_seconds: number;
 };
 
 function HistoryPage() {
@@ -29,7 +31,7 @@ function HistoryPage() {
     if (!user) return;
     supabase
       .from("watch_history")
-      .select("id, video_id, title, channel, thumbnail, mode, watched_at, watch_seconds")
+      .select("id, video_id, title, channel, thumbnail, mode, final_intent, watched_at, watch_seconds, effective_seconds")
       .eq("user_id", user.id)
       .order("watched_at", { ascending: false })
       .limit(100)
@@ -39,7 +41,9 @@ function HistoryPage() {
   return (
     <div className="zen-container py-10">
       <h1 className="text-3xl font-semibold tracking-tight">History</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Your last 100 watched videos.</p>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Your last 100 watched videos. Time shown is what you actually watched.
+      </p>
 
       <div className="mt-8 space-y-3">
         {items === null ? (
@@ -50,7 +54,8 @@ function HistoryPage() {
           <div className="zen-card p-6 text-sm text-muted-foreground">No history yet.</div>
         ) : (
           items.map((it) => {
-            const m = MODES[it.mode as Mode];
+            const intent = (it.final_intent || it.mode) as Mode;
+            const m = MODES[intent];
             return (
               <Link
                 key={it.id}
@@ -62,6 +67,7 @@ function HistoryPage() {
                   duration: 0,
                   thumbnail: it.thumbnail || "",
                   t: 0,
+                  intent: intent,
                 }}
                 className="zen-card zen-card-hover flex items-center gap-4 p-3 sm:p-4"
               >
@@ -83,9 +89,9 @@ function HistoryPage() {
                   <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                     <span>{it.channel}</span>
                     <span>·</span>
-                    <span>{m ? `${m.emoji} ${m.label}` : it.mode}</span>
+                    <span>{m ? `${m.emoji} ${m.label}` : intent}</span>
                     <span>·</span>
-                    <span>{formatDuration(it.watch_seconds)} watched</span>
+                    <span>{formatDuration(it.effective_seconds || it.watch_seconds)} watched</span>
                     <span>·</span>
                     <span>{new Date(it.watched_at).toLocaleString()}</span>
                   </div>
