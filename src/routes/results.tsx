@@ -200,7 +200,7 @@ const ResultCard = memo(function ResultCard({
     <Link
       to="/watch/$videoId"
       params={{ videoId: v.videoId }}
-      search={{ title: v.title, channel: v.channel, duration: v.durationSeconds, thumbnail: v.thumbnail, t: 0 }}
+      search={{ title: v.title, channel: v.channel, duration: v.durationSeconds, thumbnail: v.thumbnail, t: 0, intent: "" }}
       className={
         "zen-card zen-card-hover block overflow-hidden " +
         (highlighted ? "border-primary/40 ring-1 ring-primary/15" : "")
@@ -289,7 +289,7 @@ function PlaylistCard({ p }: { p: ResultPlaylist }) {
                     params={{ videoId: it.videoId }}
                     search={{
                       title: it.title, channel: it.channel,
-                      duration: it.durationSeconds, thumbnail: it.thumbnail, t: 0,
+                      duration: it.durationSeconds, thumbnail: it.thumbnail, t: 0, intent: "",
                     }}
                     className="flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-accent/30"
                   >
