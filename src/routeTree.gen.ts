@@ -15,6 +15,7 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as WatchVideoIdRouteImport } from './routes/watch.$videoId'
 import { Route as RefineModeRouteImport } from './routes/refine.$mode'
+import { Route as PlaylistPlaylistIdRouteImport } from './routes/playlist.$playlistId'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated.settings'
 import { Route as AuthenticatedNotesRouteImport } from './routes/_authenticated.notes'
 import { Route as AuthenticatedLibraryRouteImport } from './routes/_authenticated.library'
@@ -48,6 +49,11 @@ const WatchVideoIdRoute = WatchVideoIdRouteImport.update({
 const RefineModeRoute = RefineModeRouteImport.update({
   id: '/refine/$mode',
   path: '/refine/$mode',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlaylistPlaylistIdRoute = PlaylistPlaylistIdRouteImport.update({
+  id: '/playlist/$playlistId',
+  path: '/playlist/$playlistId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
@@ -85,6 +91,7 @@ export interface FileRoutesByFullPath {
   '/library': typeof AuthenticatedLibraryRoute
   '/notes': typeof AuthenticatedNotesRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/playlist/$playlistId': typeof PlaylistPlaylistIdRoute
   '/refine/$mode': typeof RefineModeRoute
   '/watch/$videoId': typeof WatchVideoIdRoute
 }
@@ -97,6 +104,7 @@ export interface FileRoutesByTo {
   '/library': typeof AuthenticatedLibraryRoute
   '/notes': typeof AuthenticatedNotesRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/playlist/$playlistId': typeof PlaylistPlaylistIdRoute
   '/refine/$mode': typeof RefineModeRoute
   '/watch/$videoId': typeof WatchVideoIdRoute
 }
@@ -111,6 +119,7 @@ export interface FileRoutesById {
   '/_authenticated/library': typeof AuthenticatedLibraryRoute
   '/_authenticated/notes': typeof AuthenticatedNotesRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/playlist/$playlistId': typeof PlaylistPlaylistIdRoute
   '/refine/$mode': typeof RefineModeRoute
   '/watch/$videoId': typeof WatchVideoIdRoute
 }
@@ -125,6 +134,7 @@ export interface FileRouteTypes {
     | '/library'
     | '/notes'
     | '/settings'
+    | '/playlist/$playlistId'
     | '/refine/$mode'
     | '/watch/$videoId'
   fileRoutesByTo: FileRoutesByTo
@@ -137,6 +147,7 @@ export interface FileRouteTypes {
     | '/library'
     | '/notes'
     | '/settings'
+    | '/playlist/$playlistId'
     | '/refine/$mode'
     | '/watch/$videoId'
   id:
@@ -150,6 +161,7 @@ export interface FileRouteTypes {
     | '/_authenticated/library'
     | '/_authenticated/notes'
     | '/_authenticated/settings'
+    | '/playlist/$playlistId'
     | '/refine/$mode'
     | '/watch/$videoId'
   fileRoutesById: FileRoutesById
@@ -159,6 +171,7 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   LoginRoute: typeof LoginRoute
   ResultsRoute: typeof ResultsRoute
+  PlaylistPlaylistIdRoute: typeof PlaylistPlaylistIdRoute
   RefineModeRoute: typeof RefineModeRoute
   WatchVideoIdRoute: typeof WatchVideoIdRoute
 }
@@ -205,6 +218,13 @@ declare module '@tanstack/react-router' {
       path: '/refine/$mode'
       fullPath: '/refine/$mode'
       preLoaderRoute: typeof RefineModeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/playlist/$playlistId': {
+      id: '/playlist/$playlistId'
+      path: '/playlist/$playlistId'
+      fullPath: '/playlist/$playlistId'
+      preLoaderRoute: typeof PlaylistPlaylistIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/settings': {
@@ -270,6 +290,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   LoginRoute: LoginRoute,
   ResultsRoute: ResultsRoute,
+  PlaylistPlaylistIdRoute: PlaylistPlaylistIdRoute,
   RefineModeRoute: RefineModeRoute,
   WatchVideoIdRoute: WatchVideoIdRoute,
 }
