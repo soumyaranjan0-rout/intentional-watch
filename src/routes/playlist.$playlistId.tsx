@@ -69,7 +69,7 @@ function PlaylistPage() {
         <div>
           <div className="zen-card overflow-hidden">
             <div className="aspect-video w-full bg-black">
-              <Player videoId={current.videoId} startSeconds={0} />
+              <Player videoId={current.videoId} onEnded={() => active < items.length - 1 && playAt(active + 1)} />
             </div>
           </div>
           <h1 className="mt-4 text-xl font-semibold tracking-tight sm:text-2xl">{current.title}</h1>
