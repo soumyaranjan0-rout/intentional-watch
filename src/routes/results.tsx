@@ -75,12 +75,18 @@ function ResultsPage() {
             </div>
           )}
 
-          {data?.effectiveQuery && (
-            <div className="mt-3 flex items-start gap-2 rounded-md border border-border/60 bg-surface/40 px-3 py-2 text-xs text-muted-foreground">
-              <SearchIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-              <span>
-                Searching YouTube for: <span className="text-foreground">{data.effectiveQuery}</span>
-              </span>
+          {(data?.effectiveQuery || data?.hint) && (
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+              {data?.hint && (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-primary">
+                  <SearchIcon className="h-3 w-3" /> {data.hint}
+                </span>
+              )}
+              {data?.effectiveQuery && data.effectiveQuery !== query && (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-surface/60 px-2.5 py-1 text-muted-foreground">
+                  Searching: <span className="text-foreground">{data.effectiveQuery}</span>
+                </span>
+              )}
             </div>
           )}
 
