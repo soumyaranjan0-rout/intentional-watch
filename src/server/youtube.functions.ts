@@ -27,18 +27,54 @@ const VARIATION_SUFFIX = [
   "top",
 ];
 
+// --- Smart query intent detection ----------------------------------------
+// Inspects the raw query for freshness/creator/content hints and rewrites
+// the YouTube query + sort order accordingly.
+const FRESHNESS_RX = /\b(new|latest|recent|today|just\s+uploaded|upload|this\s+week)\b/i;
+const CONTENT_TYPE_RX: Array<{ rx: RegExp; add: string }> = [
+  { rx: /\bsong\b|\bmusic\b/i, add: "official audio" },
+  { rx: /\btrailer\b/i, add: "official trailer" },
+  { rx: /\binterview\b/i, add: "interview" },
+  { rx: /\bfull\s+movie\b/i, add: "full movie" },
+];
+
+export function detectQueryIntent(raw: string): {
+  cleaned: string;
+  freshness: boolean;
+  contentHint: string | null;
+  hint: string | null;
+} {
+  const q = raw.trim();
+  const freshness = FRESHNESS_RX.test(q);
+  let contentHint: string | null = null;
+  for (const c of CONTENT_TYPE_RX) {
+    if (c.rx.test(q)) { contentHint = c.add; break; }
+  }
+  // Strip freshness keywords from the channel/topic phrase so the search
+  // matches the actual creator/topic instead of fighting the keyword.
+  const cleaned = q.replace(FRESHNESS_RX, "").replace(/\s+/g, " ").trim() || q;
+
+  let hint: string | null = null;
+  if (freshness) hint = `Sorted by recently uploaded`;
+  else if (contentHint) hint = `Filtered for ${contentHint}`;
+  return { cleaned, freshness, contentHint, hint };
+}
+
 function buildSearchQuery(input: Input): {
   q: string;
   videoDuration?: "short" | "medium" | "long" | "any";
   order: "relevance" | "viewCount" | "date";
+  hint: string | null;
 } {
   const { query, mode, freeform, chips = [], variation = 0 } = input;
-  const parts: string[] = [query.trim()];
+  const intent = detectQueryIntent(query);
+  const parts: string[] = [intent.cleaned];
+  if (intent.contentHint) parts.push(intent.contentHint);
+
   let videoDuration: "short" | "medium" | "long" | "any" = "any";
-  let order: "relevance" | "viewCount" | "date" = "relevance";
+  let order: "relevance" | "viewCount" | "date" = intent.freshness ? "date" : "relevance";
 
   const chipText = chips.join(" ").toLowerCase();
-
   if (/under 15|\bshort\b|5 min/.test(chipText)) videoDuration = "short";
   else if (/around 1 hour|\bmedium\b/.test(chipText)) videoDuration = "medium";
   else if (/full course|\blong\b/.test(chipText)) videoDuration = "long";
@@ -60,7 +96,7 @@ function buildSearchQuery(input: Input): {
     }
   } else if (mode === "explore") {
     if (/playlist/.test(chipText)) parts.push("series guide");
-    else parts.push("best");
+    else if (!intent.freshness) parts.push("best");
     for (const c of chips) {
       if (!/intro|intermediate|expert|3 best picks|structured playlist|different angles/i.test(c)) {
         parts.push(c);
@@ -68,23 +104,19 @@ function buildSearchQuery(input: Input): {
     }
   } else if (mode === "find") {
     if (/official/.test(chipText)) parts.push("official");
-    if (/latest/.test(chipText)) {
-      parts.push("latest");
-      order = "date";
-    }
+    if (/latest/.test(chipText)) { parts.push("latest"); order = "date"; }
   }
 
   if (freeform && freeform.trim()) parts.push(freeform.trim());
 
-  // Variation: rotate through helper suffixes & shift order on later refreshes
   const v = variation % VARIATION_SUFFIX.length;
-  if (v > 0) {
+  if (v > 0 && !intent.freshness) {
     parts.push(VARIATION_SUFFIX[v]);
     if (v % 3 === 0) order = "viewCount";
     else if (v % 3 === 2) order = "date";
   }
 
-  return { q: parts.join(" "), videoDuration, order };
+  return { q: parts.filter(Boolean).join(" "), videoDuration, order, hint: intent.hint };
 }
 
 function reasonFor(
