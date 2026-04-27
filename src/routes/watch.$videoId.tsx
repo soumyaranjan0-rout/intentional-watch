@@ -316,6 +316,7 @@ function WatchPage() {
           <Player
             ref={playerRef}
             videoId={videoId}
+            chapterLabel={meta?.title || search.title || ""}
             onProgress={handleProgress}
             onEnded={handleEnded}
             onSegmentPlayed={handleSegment}
