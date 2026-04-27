@@ -344,10 +344,10 @@ export const searchVideos = createServerFn({ method: "POST" })
       const trimmed = results.slice(0, limit);
       if (trimmed[0]) trimmed[0].primary = true;
 
-      return { error: null, results: trimmed, playlists, effectiveQuery: q };
+      return { error: null, results: trimmed, playlists, effectiveQuery: q, hint };
     } catch (err) {
       console.error("YouTube search error", err);
-      return { error: "Could not reach YouTube right now.", results: [] as ResultVideo[], playlists: [] as ResultPlaylist[], effectiveQuery: q };
+      return { error: "Could not reach YouTube right now.", results: [] as ResultVideo[], playlists: [] as ResultPlaylist[], effectiveQuery: q, hint };
     }
   });
 
