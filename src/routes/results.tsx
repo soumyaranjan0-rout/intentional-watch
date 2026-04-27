@@ -75,12 +75,18 @@ function ResultsPage() {
             </div>
           )}
 
-          {data?.effectiveQuery && (
-            <div className="mt-3 flex items-start gap-2 rounded-md border border-border/60 bg-surface/40 px-3 py-2 text-xs text-muted-foreground">
-              <SearchIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-              <span>
-                Searching YouTube for: <span className="text-foreground">{data.effectiveQuery}</span>
-              </span>
+          {(data?.effectiveQuery || data?.hint) && (
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+              {data?.hint && (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-primary">
+                  <SearchIcon className="h-3 w-3" /> {data.hint}
+                </span>
+              )}
+              {data?.effectiveQuery && data.effectiveQuery !== query && (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-surface/60 px-2.5 py-1 text-muted-foreground">
+                  Searching: <span className="text-foreground">{data.effectiveQuery}</span>
+                </span>
+              )}
             </div>
           )}
 
@@ -251,36 +257,60 @@ function PlaylistCard({ p }: { p: ResultPlaylist }) {
 
   return (
     <div className="zen-card overflow-hidden">
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="flex w-full flex-col gap-4 p-4 text-left transition-colors hover:bg-accent/30 sm:flex-row sm:p-5"
-      >
-        <div className="relative shrink-0 overflow-hidden rounded-md bg-muted sm:w-64">
+      <div className="flex flex-col gap-4 p-4 sm:flex-row sm:p-5">
+        <Link
+          to="/playlist/$playlistId"
+          params={{ playlistId: p.playlistId }}
+          search={{ index: 0 }}
+          className="relative shrink-0 overflow-hidden rounded-md bg-muted sm:w-64 group"
+        >
           <div className="aspect-video w-full">
             {p.thumbnail && (
-              <img src={p.thumbnail} alt="" className="h-full w-full object-cover" loading="lazy" />
+              <img src={p.thumbnail} alt="" className="h-full w-full object-cover transition-transform group-hover:scale-[1.02]" loading="lazy" />
             )}
           </div>
-          <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+          <div className="absolute inset-0 flex items-center justify-center bg-black/40 transition-colors group-hover:bg-black/55">
             <ListVideo className="h-8 w-8 text-white" />
           </div>
           <div className="absolute bottom-2 right-2 rounded bg-background/85 px-1.5 py-0.5 text-xs text-foreground">
             {p.itemCount} videos
           </div>
-        </div>
+        </Link>
+
         <div className="flex-1">
           <div className="mb-1 inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wider text-primary">
             <ListVideo className="h-3 w-3" /> Playlist
           </div>
-          <h3 className="text-base font-medium leading-snug text-foreground sm:text-lg">{p.title}</h3>
+          <Link
+            to="/playlist/$playlistId"
+            params={{ playlistId: p.playlistId }}
+            search={{ index: 0 }}
+            className="block"
+          >
+            <h3 className="text-base font-medium leading-snug text-foreground hover:text-primary sm:text-lg">{p.title}</h3>
+          </Link>
           <div className="mt-1 text-sm text-muted-foreground">{p.channel}</div>
           <p className="mt-2 text-sm text-muted-foreground">{p.reason}</p>
-          <div className="mt-3 inline-flex items-center gap-1 text-xs text-primary">
-            <ChevronDown className={"h-3.5 w-3.5 transition-transform " + (open ? "rotate-180" : "")} />
-            {open ? "Hide videos" : "View videos"}
+
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Link
+              to="/playlist/$playlistId"
+              params={{ playlistId: p.playlistId }}
+              search={{ index: 0 }}
+              className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90"
+            >
+              <Play className="h-3 w-3" /> Open playlist
+            </Link>
+            <button
+              onClick={() => setOpen((o) => !o)}
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <ChevronDown className={"h-3.5 w-3.5 transition-transform " + (open ? "rotate-180" : "")} />
+              {open ? "Hide preview" : "Preview videos"}
+            </button>
           </div>
         </div>
-      </button>
+      </div>
 
       {open && (
         <div className="border-t border-border bg-surface/40">
@@ -289,16 +319,13 @@ function PlaylistCard({ p }: { p: ResultPlaylist }) {
           ) : !data?.items.length ? (
             <div className="p-4 text-sm text-muted-foreground">No videos available.</div>
           ) : (
-            <ol className="divide-y divide-border max-h-96 overflow-y-auto">
-              {data.items.map((it) => (
+            <ol className="divide-y divide-border max-h-72 overflow-y-auto">
+              {data.items.slice(0, 8).map((it, i) => (
                 <li key={it.videoId}>
                   <Link
-                    to="/watch/$videoId"
-                    params={{ videoId: it.videoId }}
-                    search={{
-                      title: it.title, channel: it.channel,
-                      duration: it.durationSeconds, thumbnail: it.thumbnail, t: 0, intent: "",
-                    }}
+                    to="/playlist/$playlistId"
+                    params={{ playlistId: p.playlistId }}
+                    search={{ index: i }}
                     className="flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-accent/30"
                   >
                     <span className="w-6 shrink-0 text-center text-xs tabular-nums text-muted-foreground">

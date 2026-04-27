@@ -205,12 +205,39 @@
     background: var(--gradient-hero), var(--color-background);
   }
   .zen-search-glow {
+    position: relative;
     box-shadow: var(--shadow-soft);
-    transition: box-shadow 240ms ease, border-color 240ms ease;
+    transition: box-shadow 240ms ease, border-color 240ms ease, transform 240ms ease;
   }
+  .zen-search-glow:hover { transform: translateY(-1px); }
   .zen-search-glow:focus-within {
     box-shadow: var(--shadow-glow);
     border-color: color-mix(in oklab, var(--primary) 50%, var(--border));
+  }
+  .zen-search-glow::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(120deg,
+      transparent 30%,
+      color-mix(in oklab, var(--primary) 35%, transparent) 50%,
+      transparent 70%);
+    background-size: 200% 100%;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 300ms ease;
+    animation: zen-sheen 6s linear infinite;
+  }
+  .zen-search-glow:focus-within::before { opacity: 1; }
+  @keyframes zen-sheen {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
   }
   @keyframes zen-fade {
     from { opacity: 0; transform: translateY(6px); }
