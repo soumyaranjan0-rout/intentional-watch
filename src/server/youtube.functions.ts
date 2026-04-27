@@ -295,7 +295,7 @@ export const searchVideos = createServerFn({ method: "POST" })
       if (!dRes.ok) {
         const body = await dRes.text();
         console.error("YouTube videos failed", dRes.status, body);
-        return { error: `Details failed (${dRes.status})`, results: [] as ResultVideo[], playlists, effectiveQuery: q };
+        return { error: `Details failed (${dRes.status})`, results: [] as ResultVideo[], playlists, effectiveQuery: q, hint };
       }
       const dJson = (await dRes.json()) as {
         items: Array<{
