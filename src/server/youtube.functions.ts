@@ -238,10 +238,11 @@ export const searchVideos = createServerFn({ method: "POST" })
         results: [] as ResultVideo[],
         playlists: [] as ResultPlaylist[],
         effectiveQuery: "",
+        hint: null as string | null,
       };
     }
 
-    const { q, videoDuration, order } = buildSearchQuery(data);
+    const { q, videoDuration, order, hint } = buildSearchQuery(data);
     const limit = data.maxResults ?? (data.mode === "find" ? 5 : data.mode === "explore" ? 5 : 7);
 
     const searchParams = new URLSearchParams({
