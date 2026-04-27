@@ -284,7 +284,7 @@ export const searchVideos = createServerFn({ method: "POST" })
       };
 
       const ids = sJson.items.map((i) => i.id.videoId).filter(Boolean);
-      if (ids.length === 0) return { error: null, results: [] as ResultVideo[], playlists, effectiveQuery: q };
+      if (ids.length === 0) return { error: null, results: [] as ResultVideo[], playlists, effectiveQuery: q, hint };
 
       const dParams = new URLSearchParams({
         part: "contentDetails,statistics",
