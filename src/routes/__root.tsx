@@ -1,9 +1,10 @@
 import { Outlet, Link, createRootRouteWithContext, HeadContent, Scripts, useRouterState } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { SessionStateProvider } from "@/contexts/SessionStateContext";
-import { Leaf, LayoutDashboard, Settings, LogIn, LogOut, BookmarkIcon, History, StickyNote } from "lucide-react";
+import { AccountMenu } from "@/components/AccountMenu";
+import { Leaf } from "lucide-react";
 
 import appCss from "../styles.css?url";
 
