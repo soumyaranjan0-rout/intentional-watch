@@ -1,9 +1,10 @@
 import { Outlet, Link, createRootRouteWithContext, HeadContent, Scripts, useRouterState } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { SessionStateProvider } from "@/contexts/SessionStateContext";
-import { Leaf, LayoutDashboard, Settings, LogIn, LogOut, BookmarkIcon, History, StickyNote } from "lucide-react";
+import { AccountMenu } from "@/components/AccountMenu";
+import { Leaf } from "lucide-react";
 
 import appCss from "../styles.css?url";
 
@@ -78,50 +79,19 @@ function RootComponent() {
 }
 
 function AppShell({ children }: { children: React.ReactNode }) {
-  const { user, signOut } = useAuth();
   const { location } = useRouterState();
   const onAuthPage = location.pathname.startsWith("/login");
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       {!onAuthPage && (
-        <header className="sticky top-0 z-30 border-b border-border/60 bg-background/80 backdrop-blur">
+        <header className="sticky top-0 z-30 border-b border-border/40 bg-background/70 backdrop-blur-xl">
           <div className="zen-container-wide flex h-14 items-center justify-between">
-            <Link to="/" className="flex items-center gap-2 text-foreground">
+            <Link to="/" className="flex items-center gap-2 text-foreground transition-opacity hover:opacity-80">
               <Leaf className="h-5 w-5 text-primary" />
               <span className="font-semibold tracking-tight">ZenTube</span>
             </Link>
-            <nav className="flex items-center gap-1 text-sm text-muted-foreground">
-              {user ? (
-                <>
-                  <Link to="/dashboard" className="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-accent hover:text-accent-foreground" activeProps={{ className: "text-foreground bg-accent" }}>
-                    <LayoutDashboard className="h-4 w-4" /> <span className="hidden sm:inline">Insights</span>
-                  </Link>
-                  <Link to="/library" className="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-accent hover:text-accent-foreground" activeProps={{ className: "text-foreground bg-accent" }}>
-                    <BookmarkIcon className="h-4 w-4" /> <span className="hidden sm:inline">Library</span>
-                  </Link>
-                  <Link to="/notes" className="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-accent hover:text-accent-foreground" activeProps={{ className: "text-foreground bg-accent" }}>
-                    <StickyNote className="h-4 w-4" /> <span className="hidden sm:inline">Notes</span>
-                  </Link>
-                  <Link to="/history" className="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-accent hover:text-accent-foreground" activeProps={{ className: "text-foreground bg-accent" }}>
-                    <History className="h-4 w-4" /> <span className="hidden sm:inline">History</span>
-                  </Link>
-                  <Link to="/settings" className="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-accent hover:text-accent-foreground" activeProps={{ className: "text-foreground bg-accent" }}>
-                    <Settings className="h-4 w-4" /> <span className="hidden sm:inline">Settings</span>
-                  </Link>
-                  <button
-                    onClick={() => signOut()}
-                    className="ml-1 flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-accent hover:text-accent-foreground"
-                  >
-                    <LogOut className="h-4 w-4" /> <span className="hidden sm:inline">Sign out</span>
-                  </button>
-                </>
-              ) : (
-                <Link to="/login" search={{ redirect: "/" }} className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-primary-foreground hover:opacity-90">
-                  <LogIn className="h-4 w-4" /> Sign in
-                </Link>
-              )}
-            </nav>
+            <AccountMenu />
           </div>
         </header>
       )}
