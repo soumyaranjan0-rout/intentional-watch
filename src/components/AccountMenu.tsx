@@ -4,8 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
 import {
-  User as UserIcon, LogOut, LayoutDashboard, BookmarkIcon, History,
-  StickyNote, Settings, RefreshCcw, LogIn,
+  User as UserIcon, LogOut, History, Settings, RefreshCcw, LogIn,
 } from "lucide-react";
 
 /**
@@ -102,9 +101,6 @@ export function AccountMenu() {
               </div>
 
               <div className="py-1">
-                <MenuLink to="/dashboard" icon={<LayoutDashboard className="h-4 w-4" />}>Insights</MenuLink>
-                <MenuLink to="/library"   icon={<BookmarkIcon className="h-4 w-4" />}>Library</MenuLink>
-                <MenuLink to="/notes"     icon={<StickyNote className="h-4 w-4" />}>Notes</MenuLink>
                 <MenuLink to="/history"   icon={<History className="h-4 w-4" />}>History</MenuLink>
                 <MenuLink to="/settings"  icon={<Settings className="h-4 w-4" />}>Settings</MenuLink>
               </div>
@@ -155,7 +151,7 @@ export function AccountMenu() {
 
 function MenuLink({
   to, icon, children,
-}: { to: "/dashboard" | "/library" | "/notes" | "/history" | "/settings"; icon: React.ReactNode; children: React.ReactNode }) {
+}: { to: "/history" | "/settings"; icon: React.ReactNode; children: React.ReactNode }) {
   return (
     <Link
       to={to}
