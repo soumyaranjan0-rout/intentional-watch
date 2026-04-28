@@ -9,6 +9,7 @@ const SearchInput = z.object({
   chips: z.array(z.string()).max(20).optional(),
   maxResults: z.number().int().min(3).max(15).optional(),
   variation: z.number().int().min(0).max(20).optional(),
+  pageToken: z.string().max(200).optional(),
 });
 
 type Input = z.infer<typeof SearchInput>;
@@ -239,6 +240,7 @@ export const searchVideos = createServerFn({ method: "POST" })
         playlists: [] as ResultPlaylist[],
         effectiveQuery: "",
         hint: null as string | null,
+        nextPageToken: null as string | null,
       };
     }
 
@@ -255,10 +257,11 @@ export const searchVideos = createServerFn({ method: "POST" })
       key: apiKey,
     });
     if (videoDuration && videoDuration !== "any") searchParams.set("videoDuration", videoDuration);
+    if (data.pageToken) searchParams.set("pageToken", data.pageToken);
 
     try {
       // Run video + playlist searches in parallel for speed
-      const includePlaylists = data.mode === "learn" || data.mode === "explore";
+      const includePlaylists = (data.mode === "learn" || data.mode === "explore") && !data.pageToken;
       const [sRes, playlists] = await Promise.all([
         fetch(`${YT_BASE}/search?${searchParams.toString()}`),
         includePlaylists ? fetchPlaylists(apiKey, q) : Promise.resolve([]),
@@ -267,9 +270,10 @@ export const searchVideos = createServerFn({ method: "POST" })
       if (!sRes.ok) {
         const body = await sRes.text();
         console.error("YouTube search failed", sRes.status, body);
-        return { error: `Search failed (${sRes.status})`, results: [] as ResultVideo[], playlists: [] as ResultPlaylist[], effectiveQuery: q, hint };
+        return { error: `Search failed (${sRes.status})`, results: [] as ResultVideo[], playlists: [] as ResultPlaylist[], effectiveQuery: q, hint, nextPageToken: null };
       }
       const sJson = (await sRes.json()) as {
+        nextPageToken?: string;
         items: Array<{
           id: { videoId: string };
           snippet: {
@@ -284,7 +288,7 @@ export const searchVideos = createServerFn({ method: "POST" })
       };
 
       const ids = sJson.items.map((i) => i.id.videoId).filter(Boolean);
-      if (ids.length === 0) return { error: null, results: [] as ResultVideo[], playlists, effectiveQuery: q, hint };
+      if (ids.length === 0) return { error: null, results: [] as ResultVideo[], playlists, effectiveQuery: q, hint, nextPageToken: sJson.nextPageToken ?? null };
 
       const dParams = new URLSearchParams({
         part: "contentDetails,statistics",
@@ -295,7 +299,7 @@ export const searchVideos = createServerFn({ method: "POST" })
       if (!dRes.ok) {
         const body = await dRes.text();
         console.error("YouTube videos failed", dRes.status, body);
-        return { error: `Details failed (${dRes.status})`, results: [] as ResultVideo[], playlists, effectiveQuery: q, hint };
+        return { error: `Details failed (${dRes.status})`, results: [] as ResultVideo[], playlists, effectiveQuery: q, hint, nextPageToken: null };
       }
       const dJson = (await dRes.json()) as {
         items: Array<{
@@ -342,12 +346,12 @@ export const searchVideos = createServerFn({ method: "POST" })
       );
 
       const trimmed = results.slice(0, limit);
-      if (trimmed[0]) trimmed[0].primary = true;
+      if (trimmed[0] && !data.pageToken) trimmed[0].primary = true;
 
-      return { error: null, results: trimmed, playlists, effectiveQuery: q, hint };
+      return { error: null, results: trimmed, playlists, effectiveQuery: q, hint, nextPageToken: sJson.nextPageToken ?? null };
     } catch (err) {
       console.error("YouTube search error", err);
-      return { error: "Could not reach YouTube right now.", results: [] as ResultVideo[], playlists: [] as ResultPlaylist[], effectiveQuery: q, hint };
+      return { error: "Could not reach YouTube right now.", results: [] as ResultVideo[], playlists: [] as ResultPlaylist[], effectiveQuery: q, hint, nextPageToken: null };
     }
   });
 
