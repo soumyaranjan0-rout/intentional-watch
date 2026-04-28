@@ -151,14 +151,26 @@ function ResultsPage() {
             Something went wrong fetching results.{" "}
             <button onClick={() => refetch()} className="text-primary hover:underline">Try again</button>
           </div>
-        ) : data?.error ? (
-          <div className="mt-12 zen-card p-6 text-sm text-muted-foreground">{data.error}</div>
-        ) : !data?.results.length && !data?.playlists?.length ? (
+        ) : merged.firstError ? (
+          <div className="mt-12 zen-card p-6 text-sm text-muted-foreground">{merged.firstError}</div>
+        ) : !merged.results.length && !merged.playlists.length ? (
           <div className="mt-12 zen-card p-6 text-sm text-muted-foreground">
             No good matches. Try different phrasing or hit "Show more".
           </div>
         ) : (
-          <ResultsList results={data.results} playlists={data.playlists || []} mode={mode} />
+          <ResultsList results={merged.results} playlists={merged.playlists} mode={mode} />
+        )}
+        {hasNextPage && merged.results.length > 0 && (
+          <div className="mt-6 flex justify-center">
+            <button
+              onClick={() => fetchNextPage()}
+              disabled={isFetchingNextPage}
+              className="inline-flex items-center gap-2 rounded-full border border-border bg-surface/60 px-5 py-2 text-sm text-foreground hover:border-primary/40 disabled:opacity-50"
+            >
+              {isFetchingNextPage ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+              Show more
+            </button>
+          </div>
         )}
       </div>
     </div>
