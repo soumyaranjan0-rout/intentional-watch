@@ -1,10 +1,12 @@
 import { Outlet, Link, createRootRouteWithContext, HeadContent, Scripts, useRouterState } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { SessionStateProvider } from "@/contexts/SessionStateContext";
 import { AccountMenu } from "@/components/AccountMenu";
-import { Leaf } from "lucide-react";
+import { ZenLogo } from "@/components/ZenLogo";
+import { NavSearch } from "@/components/NavSearch";
+import { LayoutDashboard, BookmarkIcon, StickyNote } from "lucide-react";
 
 import appCss from "../styles.css?url";
 
@@ -85,17 +87,45 @@ function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background text-foreground">
       {!onAuthPage && (
-        <header className="sticky top-0 z-30 border-b border-border/40 bg-background/70 backdrop-blur-xl">
-          <div className="zen-container-wide flex h-14 items-center justify-between">
+        <header className="sticky top-0 z-30 border-b border-border/40 bg-background/75 backdrop-blur-xl">
+          <div className="zen-container-wide flex h-14 items-center gap-3">
             <Link to="/" className="flex items-center gap-2 text-foreground transition-opacity hover:opacity-80">
-              <Leaf className="h-5 w-5 text-primary" />
+              <ZenLogo size={26} />
               <span className="font-semibold tracking-tight">ZenTube</span>
             </Link>
-            <AccountMenu />
+
+            <NavSearch />
+
+            <PrimaryNav />
+
+            <div className="ml-auto flex items-center gap-1">
+              <AccountMenu />
+            </div>
           </div>
         </header>
       )}
       <main className="zen-fade-in">{children}</main>
     </div>
+  );
+}
+
+function PrimaryNav() {
+  const { user } = useAuth();
+  if (!user) return <div className="ml-auto" />;
+  const linkBase =
+    "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground";
+  const activeCls = "bg-accent text-foreground";
+  return (
+    <nav className="ml-auto hidden items-center gap-1 lg:flex">
+      <Link to="/dashboard" className={linkBase} activeProps={{ className: linkBase + " " + activeCls }}>
+        <LayoutDashboard className="h-4 w-4" /> Insights
+      </Link>
+      <Link to="/library" className={linkBase} activeProps={{ className: linkBase + " " + activeCls }}>
+        <BookmarkIcon className="h-4 w-4" /> Library
+      </Link>
+      <Link to="/notes" className={linkBase} activeProps={{ className: linkBase + " " + activeCls }}>
+        <StickyNote className="h-4 w-4" /> Notes
+      </Link>
+    </nav>
   );
 }
