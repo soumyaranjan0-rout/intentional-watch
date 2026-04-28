@@ -1,10 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { memo, useEffect, useState } from "react";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { memo, useEffect, useMemo, useState } from "react";
 import { searchVideos, getPlaylistItems, type ResultPlaylist } from "@/server/youtube.functions";
 import { useSessionState } from "@/contexts/SessionStateContext";
 import { formatDuration, MODES, detectMismatch, type Mode, type ResultVideo } from "@/lib/intent";
-import { ArrowLeft, RefreshCw, Sliders, Search as SearchIcon, AlertCircle, ListVideo, ChevronDown, Play } from "lucide-react";
+import { ResumeBanner } from "@/components/ResumeBanner";
+import { ArrowLeft, Loader2, Sliders, Search as SearchIcon, AlertCircle, ListVideo, ChevronDown, Play } from "lucide-react";
 
 export const Route = createFileRoute("/results")({
   head: () => ({ meta: [{ title: "Results — ZenTube" }] }),
@@ -14,30 +15,55 @@ export const Route = createFileRoute("/results")({
 function ResultsPage() {
   const { mode, refinement, query, setMode } = useSessionState();
   const navigate = useNavigate();
-  const [variation, setVariation] = useState(0);
   const [refineText, setRefineText] = useState("");
 
   useEffect(() => {
     if (!mode || !query) navigate({ to: "/" });
   }, [mode, query, navigate]);
 
-  const { data, isLoading, error, refetch, isFetching } = useQuery({
-    queryKey: ["search", mode, query, refinement?.chips, refinement?.freeform, variation],
+  const {
+    data, isLoading, error, refetch, isFetching, hasNextPage, fetchNextPage, isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ["search", mode, query, refinement?.chips, refinement?.freeform],
     enabled: !!mode && !!query,
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
-    queryFn: () =>
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last?.nextPageToken ?? undefined,
+    queryFn: ({ pageParam }) =>
       searchVideos({
         data: {
           query,
           mode: mode!,
           chips: refinement?.chips ?? [],
           freeform: [refinement?.freeform ?? "", refineText].filter(Boolean).join(" "),
-          variation,
+          pageToken: pageParam,
         },
       }),
   });
+
+  // Flatten + dedupe by videoId across pages
+  const merged = useMemo(() => {
+    const seen = new Set<string>();
+    const results: ResultVideo[] = [];
+    let playlists: ResultPlaylist[] = [];
+    let hint: string | null = null;
+    let effectiveQuery = "";
+    let firstError: string | null = null;
+    for (const page of data?.pages ?? []) {
+      if (page.hint && !hint) hint = page.hint;
+      if (page.effectiveQuery && !effectiveQuery) effectiveQuery = page.effectiveQuery;
+      if (page.error && !firstError) firstError = page.error;
+      if (page.playlists?.length && playlists.length === 0) playlists = page.playlists;
+      for (const r of page.results || []) {
+        if (seen.has(r.videoId)) continue;
+        seen.add(r.videoId);
+        results.push(r);
+      }
+    }
+    return { results, playlists, hint, effectiveQuery, firstError };
+  }, [data]);
 
   if (!mode || !query) return null;
   const cfg = MODES[mode];
@@ -46,19 +72,11 @@ function ResultsPage() {
   return (
     <div className="zen-container py-8 sm:py-12">
       <div className="mx-auto max-w-3xl">
-        <div className="flex items-center justify-between">
+        <ResumeBanner />
+        <div className="mt-4 flex items-center justify-between">
           <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-4 w-4" /> New search
           </Link>
-          <button
-            onClick={() => setVariation((v) => v + 1)}
-            disabled={isFetching}
-            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-sm hover:bg-accent disabled:opacity-50"
-            title="Show different relevant videos"
-          >
-            <RefreshCw className={"h-4 w-4 " + (isFetching ? "animate-spin" : "")} />
-            Show more
-          </button>
         </div>
 
         <div className="mt-6">

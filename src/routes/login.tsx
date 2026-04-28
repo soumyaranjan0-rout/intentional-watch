@@ -2,7 +2,8 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { lovable } from "@/integrations/lovable";
-import { Leaf, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { ZenLogo } from "@/components/ZenLogo";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/login")({
@@ -42,7 +43,7 @@ function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-background px-6">
       <div className="w-full max-w-md">
         <div className="mb-8 flex items-center justify-center gap-2 text-foreground">
-          <Leaf className="h-6 w-6 text-primary" />
+          <ZenLogo size={28} />
           <span className="text-lg font-semibold tracking-tight">ZenTube</span>
         </div>
         <div className="zen-card p-8">
