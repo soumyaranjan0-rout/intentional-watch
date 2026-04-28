@@ -21,15 +21,16 @@ function ResultsPage() {
     if (!mode || !query) navigate({ to: "/" });
   }, [mode, query, navigate]);
 
+  type SearchPage = Awaited<ReturnType<typeof searchVideos>>;
   const {
     data, isLoading, error, refetch, isFetching, hasNextPage, fetchNextPage, isFetchingNextPage,
-  } = useInfiniteQuery({
+  } = useInfiniteQuery<SearchPage, Error, { pages: SearchPage[]; pageParams: (string | undefined)[] }, readonly unknown[], string | undefined>({
     queryKey: ["search", mode, query, refinement?.chips, refinement?.freeform],
     enabled: !!mode && !!query,
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
-    initialPageParam: undefined as string | undefined,
+    initialPageParam: undefined,
     getNextPageParam: (last) => last?.nextPageToken ?? undefined,
     queryFn: ({ pageParam }) =>
       searchVideos({
