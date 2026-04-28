@@ -21,15 +21,16 @@ function ResultsPage() {
     if (!mode || !query) navigate({ to: "/" });
   }, [mode, query, navigate]);
 
+  type SearchPage = Awaited<ReturnType<typeof searchVideos>>;
   const {
     data, isLoading, error, refetch, isFetching, hasNextPage, fetchNextPage, isFetchingNextPage,
-  } = useInfiniteQuery({
+  } = useInfiniteQuery<SearchPage, Error, { pages: SearchPage[]; pageParams: (string | undefined)[] }, readonly unknown[], string | undefined>({
     queryKey: ["search", mode, query, refinement?.chips, refinement?.freeform],
     enabled: !!mode && !!query,
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
-    initialPageParam: undefined as string | undefined,
+    initialPageParam: undefined,
     getNextPageParam: (last) => last?.nextPageToken ?? undefined,
     queryFn: ({ pageParam }) =>
       searchVideos({
@@ -93,16 +94,16 @@ function ResultsPage() {
             </div>
           )}
 
-          {(data?.effectiveQuery || data?.hint) && (
+          {(merged.effectiveQuery || merged.hint) && (
             <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-              {data?.hint && (
+              {merged.hint && (
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-primary">
-                  <SearchIcon className="h-3 w-3" /> {data.hint}
+                  <SearchIcon className="h-3 w-3" /> {merged.hint}
                 </span>
               )}
-              {data?.effectiveQuery && data.effectiveQuery !== query && (
+              {merged.effectiveQuery && merged.effectiveQuery !== query && (
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-surface/60 px-2.5 py-1 text-muted-foreground">
-                  Searching: <span className="text-foreground">{data.effectiveQuery}</span>
+                  Searching: <span className="text-foreground">{merged.effectiveQuery}</span>
                 </span>
               )}
             </div>
@@ -150,14 +151,26 @@ function ResultsPage() {
             Something went wrong fetching results.{" "}
             <button onClick={() => refetch()} className="text-primary hover:underline">Try again</button>
           </div>
-        ) : data?.error ? (
-          <div className="mt-12 zen-card p-6 text-sm text-muted-foreground">{data.error}</div>
-        ) : !data?.results.length && !data?.playlists?.length ? (
+        ) : merged.firstError ? (
+          <div className="mt-12 zen-card p-6 text-sm text-muted-foreground">{merged.firstError}</div>
+        ) : !merged.results.length && !merged.playlists.length ? (
           <div className="mt-12 zen-card p-6 text-sm text-muted-foreground">
             No good matches. Try different phrasing or hit "Show more".
           </div>
         ) : (
-          <ResultsList results={data.results} playlists={data.playlists || []} mode={mode} />
+          <ResultsList results={merged.results} playlists={merged.playlists} mode={mode} />
+        )}
+        {hasNextPage && merged.results.length > 0 && (
+          <div className="mt-6 flex justify-center">
+            <button
+              onClick={() => fetchNextPage()}
+              disabled={isFetchingNextPage}
+              className="inline-flex items-center gap-2 rounded-full border border-border bg-surface/60 px-5 py-2 text-sm text-foreground hover:border-primary/40 disabled:opacity-50"
+            >
+              {isFetchingNextPage ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+              Show more
+            </button>
+          </div>
         )}
       </div>
     </div>
