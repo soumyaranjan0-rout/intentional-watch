@@ -93,16 +93,16 @@ function ResultsPage() {
             </div>
           )}
 
-          {(data?.effectiveQuery || data?.hint) && (
+          {(merged.effectiveQuery || merged.hint) && (
             <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-              {data?.hint && (
+              {merged.hint && (
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-primary">
-                  <SearchIcon className="h-3 w-3" /> {data.hint}
+                  <SearchIcon className="h-3 w-3" /> {merged.hint}
                 </span>
               )}
-              {data?.effectiveQuery && data.effectiveQuery !== query && (
+              {merged.effectiveQuery && merged.effectiveQuery !== query && (
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-surface/60 px-2.5 py-1 text-muted-foreground">
-                  Searching: <span className="text-foreground">{data.effectiveQuery}</span>
+                  Searching: <span className="text-foreground">{merged.effectiveQuery}</span>
                 </span>
               )}
             </div>
