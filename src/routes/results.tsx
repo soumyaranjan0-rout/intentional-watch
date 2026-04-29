@@ -1,11 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { memo, useEffect, useMemo, useState } from "react";
 import { searchVideos, getPlaylistItems, type ResultPlaylist } from "@/server/youtube.functions";
 import { useSessionState } from "@/contexts/SessionStateContext";
 import { formatDuration, MODES, detectMismatch, type Mode, type ResultVideo } from "@/lib/intent";
 import { ResumeBanner } from "@/components/ResumeBanner";
-import { ArrowLeft, Loader2, Sliders, Search as SearchIcon, AlertCircle, ListVideo, ChevronDown, Play } from "lucide-react";
+import { ArrowLeft, Loader2, Sliders, Search as SearchIcon, AlertCircle, ListVideo, ChevronDown, Play, RefreshCw } from "lucide-react";
 
 export const Route = createFileRoute("/results")({
   head: () => ({ meta: [{ title: "Results — ZenTube" }] }),
@@ -16,74 +16,85 @@ function ResultsPage() {
   const { mode, refinement, query, setMode } = useSessionState();
   const navigate = useNavigate();
   const [refineText, setRefineText] = useState("");
+  // Forward-only "Show more": we track the chain of tokens we've used so we
+  // can advance one page at a time but always render only the latest page.
+  const [tokenChain, setTokenChain] = useState<(string | undefined)[]>([undefined]);
+  const currentToken = tokenChain[tokenChain.length - 1];
+
+  // Reset paging when the underlying search changes
+  useEffect(() => {
+    setTokenChain([undefined]);
+  }, [mode, query, refinement?.chips, refinement?.freeform]);
 
   useEffect(() => {
     if (!mode || !query) navigate({ to: "/" });
   }, [mode, query, navigate]);
 
-  type SearchPage = Awaited<ReturnType<typeof searchVideos>>;
-  const {
-    data, isLoading, error, refetch, isFetching, hasNextPage, fetchNextPage, isFetchingNextPage,
-  } = useInfiniteQuery<SearchPage, Error, { pages: SearchPage[]; pageParams: (string | undefined)[] }, readonly unknown[], string | undefined>({
-    queryKey: ["search", mode, query, refinement?.chips, refinement?.freeform],
+  const { data, isLoading, isFetching, error, refetch } = useQuery({
+    queryKey: ["search", mode, query, refinement?.chips, refinement?.freeform, currentToken ?? "first"],
     enabled: !!mode && !!query,
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
-    initialPageParam: undefined,
-    getNextPageParam: (last) => last?.nextPageToken ?? undefined,
-    queryFn: ({ pageParam }) =>
+    queryFn: () =>
       searchVideos({
         data: {
           query,
           mode: mode!,
           chips: refinement?.chips ?? [],
           freeform: [refinement?.freeform ?? "", refineText].filter(Boolean).join(" "),
-          pageToken: pageParam,
+          pageToken: currentToken,
         },
       }),
   });
 
-  // Flatten + dedupe by videoId across pages
-  const merged = useMemo(() => {
-    const seen = new Set<string>();
-    const results: ResultVideo[] = [];
-    let playlists: ResultPlaylist[] = [];
-    let hint: string | null = null;
-    let effectiveQuery = "";
-    let firstError: string | null = null;
-    for (const page of data?.pages ?? []) {
-      if (page.hint && !hint) hint = page.hint;
-      if (page.effectiveQuery && !effectiveQuery) effectiveQuery = page.effectiveQuery;
-      if (page.error && !firstError) firstError = page.error;
-      if (page.playlists?.length && playlists.length === 0) playlists = page.playlists;
-      for (const r of page.results || []) {
-        if (seen.has(r.videoId)) continue;
-        seen.add(r.videoId);
-        results.push(r);
-      }
-    }
-    return { results, playlists, hint, effectiveQuery, firstError };
-  }, [data]);
+  const view = useMemo(() => ({
+    results: (data?.results ?? []) as ResultVideo[],
+    playlists: (data?.playlists ?? []) as ResultPlaylist[],
+    hint: data?.hint ?? null,
+    effectiveQuery: data?.effectiveQuery ?? "",
+    firstError: data?.error ?? null,
+    nextPageToken: data?.nextPageToken ?? null,
+  }), [data]);
+
+  const showMore = () => {
+    if (!view.nextPageToken) return;
+    setTokenChain((c) => [...c, view.nextPageToken!]);
+    // Scroll to top so the user clearly sees the swap
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   if (!mode || !query) return null;
   const cfg = MODES[mode];
   const mismatch = detectMismatch(mode, query);
+  const pageNumber = tokenChain.length;
 
   return (
     <div className="zen-container py-8 sm:py-12">
       <div className="mx-auto max-w-3xl">
         <ResumeBanner />
-        <div className="mt-4 flex items-center justify-between">
+        <div className="mt-4 flex items-center justify-between gap-3">
           <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-4 w-4" /> New search
           </Link>
+          {view.nextPageToken && view.results.length > 0 && (
+            <button
+              onClick={showMore}
+              disabled={isFetching}
+              className="zen-show-more inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-4 py-1.5 text-xs font-medium text-primary transition-all hover:bg-primary/20 hover:shadow-[0_0_0_3px_color-mix(in_oklab,var(--primary)_15%,transparent)] disabled:opacity-50"
+              title="Show different relevant videos"
+            >
+              {isFetching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+              Show more
+            </button>
+          )}
         </div>
 
         <div className="mt-6">
           <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-surface/60 px-2.5 py-0.5 text-xs text-muted-foreground">
             <span aria-hidden>{cfg.emoji}</span>
             {cfg.label}
+            {pageNumber > 1 && <span className="text-muted-foreground/70">· page {pageNumber}</span>}
           </div>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">"{query}"</h1>
           {refinement?.chips && refinement.chips.length > 0 && (
@@ -94,16 +105,16 @@ function ResultsPage() {
             </div>
           )}
 
-          {(merged.effectiveQuery || merged.hint) && (
+          {(view.effectiveQuery || view.hint) && (
             <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-              {merged.hint && (
+              {view.hint && (
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-primary">
-                  <SearchIcon className="h-3 w-3" /> {merged.hint}
+                  <SearchIcon className="h-3 w-3" /> {view.hint}
                 </span>
               )}
-              {merged.effectiveQuery && merged.effectiveQuery !== query && (
+              {view.effectiveQuery && view.effectiveQuery !== query && (
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-surface/60 px-2.5 py-1 text-muted-foreground">
-                  Searching: <span className="text-foreground">{merged.effectiveQuery}</span>
+                  Searching: <span className="text-foreground">{view.effectiveQuery}</span>
                 </span>
               )}
             </div>
@@ -144,38 +155,29 @@ function ResultsPage() {
           </div>
         </div>
 
-        {isLoading || isFetching ? (
+        {isLoading ? (
           <ResultsSkeleton />
         ) : error ? (
           <div className="mt-12 zen-card p-6 text-sm text-muted-foreground">
             Something went wrong fetching results.{" "}
             <button onClick={() => refetch()} className="text-primary hover:underline">Try again</button>
           </div>
-        ) : merged.firstError ? (
-          <div className="mt-12 zen-card p-6 text-sm text-muted-foreground">{merged.firstError}</div>
-        ) : !merged.results.length && !merged.playlists.length ? (
+        ) : view.firstError ? (
+          <div className="mt-12 zen-card p-6 text-sm text-muted-foreground">{view.firstError}</div>
+        ) : !view.results.length && !view.playlists.length ? (
           <div className="mt-12 zen-card p-6 text-sm text-muted-foreground">
-            No good matches. Try different phrasing or hit "Show more".
+            No good matches. Try different phrasing.
           </div>
         ) : (
-          <ResultsList results={merged.results} playlists={merged.playlists} mode={mode} />
-        )}
-        {hasNextPage && merged.results.length > 0 && (
-          <div className="mt-6 flex justify-center">
-            <button
-              onClick={() => fetchNextPage()}
-              disabled={isFetchingNextPage}
-              className="inline-flex items-center gap-2 rounded-full border border-border bg-surface/60 px-5 py-2 text-sm text-foreground hover:border-primary/40 disabled:opacity-50"
-            >
-              {isFetchingNextPage ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-              Show more
-            </button>
+          <div className={isFetching ? "opacity-60 transition-opacity" : "transition-opacity"}>
+            <ResultsList results={view.results} playlists={view.playlists} mode={mode} />
           </div>
         )}
       </div>
     </div>
   );
 }
+
 
 function ResultsSkeleton() {
   return (
