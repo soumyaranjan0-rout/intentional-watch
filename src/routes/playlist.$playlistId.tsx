@@ -150,7 +150,7 @@ function PlaylistViewer({
     durationSeconds: meta?.durationSeconds || fallbackDuration,
     category: meta?.categoryId,
   });
-  const finalIntent: Mode = inferred;
+  const finalIntent: Mode = inferred ?? "explore";
   const isLearning = finalIntent === "learn";
   const isRelax = finalIntent === "relax";
   const isFind = finalIntent === "find";
@@ -335,7 +335,7 @@ function PlaylistViewer({
 
       {saveOpen && (
         <SaveToLibraryModal
-          video={{
+          target={{
             videoId, title, channel: channelName,
             thumbnail: fallbackThumbnail,
             durationSeconds: meta?.durationSeconds || fallbackDuration,
