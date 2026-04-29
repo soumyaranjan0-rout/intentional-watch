@@ -161,16 +161,6 @@ export function AccountMenu() {
               <div className="px-3 pb-3">
                 <button
                   onClick={signInGoogle}
-            <>
-              <div className="px-4 pt-4 pb-2">
-                <div className="text-sm font-medium text-foreground">You're browsing as a guest</div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Sign in to save videos, take notes and see your insights — your history syncs across devices.
-                </p>
-              </div>
-              <div className="px-3 pb-3">
-                <button
-                  onClick={() => signInGoogle()}
                   disabled={busy}
                   className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
                 >
