@@ -143,7 +143,7 @@ export function AccountMenu() {
                   <RefreshCcw className="h-4 w-4 text-muted-foreground" /> Switch account
                 </button>
                 <button
-                  onClick={async () => { await signOut(); navigate({ to: "/" }); }}
+                  onClick={handleSignOut}
                   className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-foreground hover:bg-accent"
                 >
                   <LogOut className="h-4 w-4 text-muted-foreground" /> Sign out
@@ -151,6 +151,16 @@ export function AccountMenu() {
               </div>
             </>
           ) : (
+            <>
+              <div className="px-4 pt-4 pb-2">
+                <div className="text-sm font-medium text-foreground">You're browsing as a guest</div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Sign in to save videos, take notes and see your insights — your history syncs across devices.
+                </p>
+              </div>
+              <div className="px-3 pb-3">
+                <button
+                  onClick={signInGoogle}
             <>
               <div className="px-4 pt-4 pb-2">
                 <div className="text-sm font-medium text-foreground">You're browsing as a guest</div>
