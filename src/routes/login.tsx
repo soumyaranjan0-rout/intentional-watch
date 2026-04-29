@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { lovable } from "@/integrations/lovable";
@@ -15,26 +15,50 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
   const { user, loading } = useAuth();
   const search = Route.useSearch();
+  const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
 
+  // If already signed in, bounce to the requested page (no throw-in-effect).
   useEffect(() => {
-    if (!loading && user) {
-      throw redirect({ to: search.redirect as "/" });
-    }
-  }, [user, loading, search.redirect]);
+    if (loading || !user) return;
+    const target = typeof search.redirect === "string" && search.redirect.startsWith("/")
+      ? search.redirect
+      : "/";
+    navigate({ to: target as "/", replace: true }).catch(() => {
+      window.location.replace(target);
+    });
+  }, [user, loading, search.redirect, navigate]);
 
   const onGoogle = async () => {
+    if (busy) return;
     setBusy(true);
     try {
       const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin + (search.redirect || "/"),
+        // Per docs: redirect to origin only — the allowlist matches origins,
+        // not nested paths. We restore the intended path after sign-in.
+        redirect_uri: window.location.origin,
+        extraParams: { prompt: "select_account" },
       });
-      if (result.error) {
-        toast.error(result.error.message || "Google sign-in failed");
+
+      if (result?.error) {
+        toast.error(result.error.message || "Google sign-in failed. Please try again.");
+        setBusy(false);
+        return;
       }
+
+      // The browser is being redirected to Google — keep the spinner.
+      if (result?.redirected) return;
+
+      // Tokens were returned directly (popup-style). Session is already set;
+      // navigate to the intended destination.
+      const target = typeof search.redirect === "string" && search.redirect.startsWith("/")
+        ? search.redirect
+        : "/";
+      navigate({ to: target as "/", replace: true }).catch(() => {
+        window.location.replace(target);
+      });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Google sign-in failed");
-    } finally {
       setBusy(false);
     }
   };
@@ -55,10 +79,10 @@ function LoginPage() {
           <button
             onClick={onGoogle}
             disabled={busy || loading}
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60"
+            className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleIcon />}
-            Continue with Google
+            {busy ? "Opening Google…" : "Continue with Google"}
           </button>
 
           <p className="mt-4 text-center text-xs text-muted-foreground">

@@ -33,27 +33,56 @@ export function AccountMenu() {
   // Close menu when route changes
   useEffect(() => { setOpen(false); }, [location.pathname]);
 
-  const signInGoogle = async (forceChooser = false) => {
+  const signInGoogle = async () => {
+    if (busy) return;
     setBusy(true);
+    setOpen(false);
     try {
+      // Remember where to land after the OAuth round-trip.
+      try {
+        sessionStorage.setItem("zen:postLoginPath", location.pathname + location.search);
+      } catch { /* storage may be unavailable */ }
+
       const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin + location.pathname,
-        extraParams: forceChooser ? { prompt: "select_account" } : undefined,
+        redirect_uri: window.location.origin,
+        // Always show the account chooser — users expect to pick the Gmail.
+        extraParams: { prompt: "select_account" },
       });
-      if (result.error) {
-        toast.error(result.error.message || "Sign in failed");
+
+      if (result?.error) {
+        toast.error(result.error.message || "Sign in failed. Please try again.");
+        setBusy(false);
+        return;
       }
-      // If redirected, browser leaves the page; nothing to do.
+      // If result.redirected, the browser is navigating away — keep spinner.
+      if (!result?.redirected) {
+        setBusy(false);
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Sign in failed");
-    } finally {
       setBusy(false);
     }
   };
 
   const switchAccount = async () => {
-    await signOut();
-    await signInGoogle(true);
+    if (busy) return;
+    setBusy(true);
+    setOpen(false);
+    try {
+      await signOut();
+    } catch { /* ignore — we still want to re-auth */ }
+    await signInGoogle();
+  };
+
+  const handleSignOut = async () => {
+    setOpen(false);
+    try {
+      await signOut();
+      toast.success("Signed out");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Sign out failed");
+    }
+    navigate({ to: "/" }).catch(() => window.location.assign("/"));
   };
 
   const initial =
@@ -114,7 +143,7 @@ export function AccountMenu() {
                   <RefreshCcw className="h-4 w-4 text-muted-foreground" /> Switch account
                 </button>
                 <button
-                  onClick={async () => { await signOut(); navigate({ to: "/" }); }}
+                  onClick={handleSignOut}
                   className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-foreground hover:bg-accent"
                 >
                   <LogOut className="h-4 w-4 text-muted-foreground" /> Sign out
@@ -131,7 +160,7 @@ export function AccountMenu() {
               </div>
               <div className="px-3 pb-3">
                 <button
-                  onClick={() => signInGoogle()}
+                  onClick={signInGoogle}
                   disabled={busy}
                   className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
                 >
@@ -179,12 +208,19 @@ export function GuestSignInHint() {
   if (user) return null;
 
   const signIn = async () => {
+    if (busy) return;
     setBusy(true);
     try {
-      await lovable.auth.signInWithOAuth("google", {
+      const result = await lovable.auth.signInWithOAuth("google", {
         redirect_uri: window.location.origin,
+        extraParams: { prompt: "select_account" },
       });
-    } finally {
+      if (result?.error) {
+        toast.error(result.error.message || "Sign in failed");
+      }
+      if (!result?.redirected) setBusy(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Sign in failed");
       setBusy(false);
     }
   };
