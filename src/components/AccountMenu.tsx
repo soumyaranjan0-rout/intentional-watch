@@ -208,12 +208,19 @@ export function GuestSignInHint() {
   if (user) return null;
 
   const signIn = async () => {
+    if (busy) return;
     setBusy(true);
     try {
-      await lovable.auth.signInWithOAuth("google", {
+      const result = await lovable.auth.signInWithOAuth("google", {
         redirect_uri: window.location.origin,
+        extraParams: { prompt: "select_account" },
       });
-    } finally {
+      if (result?.error) {
+        toast.error(result.error.message || "Sign in failed");
+      }
+      if (!result?.redirected) setBusy(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Sign in failed");
       setBusy(false);
     }
   };
