@@ -98,7 +98,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
             <PrimaryNav />
 
-            <div className="ml-auto flex items-center gap-1">
+            <div className="ml-1 flex items-center gap-1">
               <AccountMenu />
             </div>
           </div>
@@ -116,7 +116,7 @@ function PrimaryNav() {
     "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground";
   const activeCls = "bg-accent text-foreground";
   return (
-    <nav className="ml-auto hidden items-center gap-1 lg:flex">
+    <nav className="ml-auto hidden items-center gap-0.5 lg:flex">
       <Link to="/dashboard" className={linkBase} activeProps={{ className: linkBase + " " + activeCls }}>
         <LayoutDashboard className="h-4 w-4" /> Insights
       </Link>
