@@ -198,7 +198,16 @@ export function SaveToLibraryModal({
                           : "text-foreground hover:bg-accent")
                       }
                     >
-                      <span className="min-w-0 truncate">{p.name}</span>
+                      <span className="flex min-w-0 items-center gap-2 truncate">
+                        {p.kind === "watch_later" ? (
+                          <Clock className="h-4 w-4 shrink-0 text-primary" />
+                        ) : p.kind === "liked" ? (
+                          <Heart className="h-4 w-4 shrink-0 text-primary" />
+                        ) : (
+                          <ListVideo className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        )}
+                        <span className="truncate">{p.name}</span>
+                      </span>
                       {busy ? (
                         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                       ) : already ? (
