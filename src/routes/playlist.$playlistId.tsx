@@ -257,8 +257,8 @@ function PlaylistViewer({
         <ArrowLeft className="h-4 w-4" /> Back
       </Link>
 
-      <div className="mt-4 grid gap-6 lg:grid-cols-[1fr_360px]">
-        {/* Player + metadata */}
+      <div className={"mt-4 grid gap-6 " + (isLearning ? "lg:grid-cols-[1fr_360px]" : "")}>
+        {/* LEFT: Player → metadata → playlist queue */}
         <div className="min-w-0">
           <Player
             ref={playerRef}
@@ -269,22 +269,27 @@ function PlaylistViewer({
 
           <h1 className="mt-4 text-xl font-semibold leading-snug text-foreground sm:text-2xl">{title}</h1>
 
-          {/* Channel row with avatar */}
-          <div className="mt-2 flex items-center gap-3">
+          {/* Metadata row: views · date · duration (YouTube-style) */}
+          {(meta?.viewCount || meta?.publishedAt || meta?.durationSeconds || fallbackDuration) ? (
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
+              {meta?.viewCount ? <span>{formatCount(meta.viewCount)} views</span> : null}
+              {meta?.publishedAt ? (<><span aria-hidden>·</span><span>{new Date(meta.publishedAt).toLocaleDateString()}</span></>) : null}
+              {(meta?.durationSeconds || fallbackDuration) ? (<><span aria-hidden>·</span><span>{formatDuration(meta?.durationSeconds || fallbackDuration)}</span></>) : null}
+            </div>
+          ) : null}
+
+          {/* Channel row */}
+          <div className="mt-3 flex items-center gap-3">
             {meta?.channelThumbnail ? (
-              <img src={meta.channelThumbnail} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" loading="lazy" />
-            ) : <div className="h-9 w-9 shrink-0 rounded-full bg-muted" />}
+              <img src={meta.channelThumbnail} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" loading="lazy" />
+            ) : <div className="h-10 w-10 shrink-0 rounded-full bg-muted" />}
             <div className="min-w-0 flex-1">
-              <div className="text-sm font-medium text-foreground">{channelName}</div>
-              <div className="text-xs text-muted-foreground">
-                {meta?.subscriberCount ? <>{formatCount(meta.subscriberCount)} subscribers</> : null}
-                {meta?.viewCount ? <> · {formatCount(meta.viewCount)} views</> : null}
-                {(meta?.durationSeconds || fallbackDuration) ? <> · {formatDuration(meta?.durationSeconds || fallbackDuration)}</> : null}
-              </div>
+              <div className="text-sm font-medium text-foreground sm:text-base">{channelName}</div>
+              {meta?.subscriberCount ? <div className="text-xs text-muted-foreground">{formatCount(meta.subscriberCount)} subscribers</div> : null}
             </div>
           </div>
 
-          {/* Intent badge */}
+          {/* Intent badge with change menu */}
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface/60 px-2.5 py-1 text-xs text-muted-foreground">
               {isLearning ? <Brain className="h-3 w-3 text-primary" /> :
@@ -293,6 +298,23 @@ function PlaylistViewer({
                 <Sparkles className="h-3 w-3 text-primary" />}
               This looks like: <span className="text-foreground">{MODES[finalIntent].label}</span>
             </span>
+            <details className="group relative">
+              <summary className="cursor-pointer list-none rounded-full border border-border bg-surface/60 px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground">
+                Change
+              </summary>
+              <div className="absolute left-0 top-full z-20 mt-1 w-44 overflow-hidden rounded-md border border-border bg-popover py-1 shadow-lg">
+                {(Object.keys(MODES) as Mode[]).map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => { setIntentOverride(m); toast.success(`Marked as ${MODES[m].label}`); }}
+                    className={"flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-accent " +
+                      (m === finalIntent ? "text-primary" : "text-foreground")}
+                  >
+                    <span aria-hidden>{MODES[m].emoji}</span> {MODES[m].label}
+                  </button>
+                ))}
+              </div>
+            </details>
             <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] text-primary">
               <ListVideo className="h-3 w-3" /> Playlist · {active + 1}/{items.length}
             </span>
@@ -300,24 +322,25 @@ function PlaylistViewer({
 
           {/* Action bar */}
           <div className="mt-4 flex flex-wrap items-center gap-2">
+            <ActionButton onClick={toggleLike} active={liked}
+              icon={<ThumbsUp className={"h-4 w-4 " + (liked ? "fill-primary text-primary" : "")} />}
+              label={liked ? "Liked" : "Like"} />
+            <ActionButton onClick={toggleWatchLater} active={watchLater}
+              icon={<Clock className={"h-4 w-4 " + (watchLater ? "text-primary" : "")} />}
+              label={watchLater ? "In Watch Later" : "Watch Later"} />
             <ActionButton onClick={toggleSave} active={saved}
               icon={saved ? <BookmarkCheck className="h-4 w-4" /> : <BookmarkPlus className="h-4 w-4" />}
               label={saved ? "Saved" : "Save"} />
             <ActionButton onClick={() => setSaveOpen(true)}
-              icon={<ListVideo className="h-4 w-4" />} label="Save to playlist" />
+              icon={<ListPlus className="h-4 w-4" />} label="Save to playlist" />
             <ActionButton onClick={share} icon={<Share2 className="h-4 w-4" />} label="Share" />
             <div className="mx-1 h-5 w-px bg-border" aria-hidden />
-            <ActionButton onClick={() => sendFeedback("helpful")} active={feedback === "helpful"}
-              icon={<ThumbsUp className={"h-4 w-4 " + (feedback === "helpful" ? "fill-primary" : "")} />}
-              label="Helpful" />
             <ActionButton onClick={() => sendFeedback("not_useful")} active={feedback === "not_useful"}
               icon={<ThumbsDown className="h-4 w-4" />} label="Not useful" />
           </div>
-        </div>
 
-        {/* Sidebar: queue + (notes if learning) */}
-        <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
-          <div className="zen-card overflow-hidden">
+          {/* Playlist queue BELOW metadata */}
+          <div className="zen-card mt-6 overflow-hidden">
             <div className="flex items-center gap-2 border-b border-border px-4 py-3">
               <ListVideo className="h-4 w-4 text-primary" />
               <div className="flex-1">
@@ -325,7 +348,7 @@ function PlaylistViewer({
                 <div className="text-xs text-muted-foreground">{active + 1} / {items.length}</div>
               </div>
             </div>
-            <ol className="max-h-[55vh] divide-y divide-border overflow-y-auto">
+            <ol className="max-h-[60vh] divide-y divide-border overflow-y-auto">
               {items.map((it, i) => {
                 const isActive = i === active;
                 return (
@@ -338,14 +361,14 @@ function PlaylistViewer({
                       <div className="w-6 shrink-0 pt-1.5 text-center text-xs tabular-nums text-muted-foreground">
                         {isActive ? <Play className="mx-auto h-3.5 w-3.5 text-primary" /> : i + 1}
                       </div>
-                      <div className="relative aspect-video w-28 shrink-0 overflow-hidden rounded bg-muted">
+                      <div className="relative aspect-video w-32 shrink-0 overflow-hidden rounded bg-muted">
                         {it.thumbnail && <img src={it.thumbnail} alt="" className="h-full w-full object-cover" loading="lazy" />}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className={"line-clamp-2 text-xs " + (isActive ? "text-foreground font-medium" : "text-foreground/90")}>
+                        <div className={"line-clamp-2 text-sm " + (isActive ? "text-foreground font-medium" : "text-foreground/90")}>
                           {it.title}
                         </div>
-                        <div className="mt-1 text-[11px] text-muted-foreground">
+                        <div className="mt-1 text-xs text-muted-foreground">
                           {it.channel}{it.durationSeconds ? ` · ${formatDuration(it.durationSeconds)}` : ""}
                         </div>
                       </div>
@@ -355,16 +378,19 @@ function PlaylistViewer({
               })}
             </ol>
           </div>
+        </div>
 
-          {isLearning && (
+        {/* RIGHT: Notes panel only for learn intent */}
+        {isLearning && (
+          <aside className="lg:sticky lg:top-20 lg:self-start">
             <NotesPanel
               videoId={videoId}
               videoTitle={title}
               getCurrentSeconds={() => watchSecondsRef.current}
               onJumpTo={(s) => playerRef.current?.seekTo(s)}
             />
-          )}
-        </aside>
+          </aside>
+        )}
       </div>
 
       {saveOpen && (
