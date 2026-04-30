@@ -201,27 +201,40 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
         </div>
       )}
 
-      {/* Mask the small YouTube logo in the bottom-right of the control bar.
-          Sits ABOVE iframe and BELOW our error overlay. Pointer-events disabled
-          so the underlying fullscreen / settings buttons still work. */}
+      {/* Branding masks. Sit ABOVE iframe and BELOW error overlay.
+          - Bottom-right strip just above the control bar covers the
+            "More videos" preview + small YouTube logo that appear when paused.
+            We capture the click and toggle play/pause instead of letting it
+            navigate to youtube.com.
+          - Top-right strip covers the "watch later / share" cluster YouTube
+            shows on hover at the top of the iframe.
+          The control bar itself (bottom ~48px) and center play button remain
+          fully interactive. */}
       {!unavailable && ready && (
         <>
-          {/* YouTube watermark logo (bottom-right of video) */}
+          {/* Bottom-right "More videos" + YouTube watermark mask */}
           <div
             aria-hidden
-            className="pointer-events-none absolute bottom-12 right-2 z-10 h-7 w-24 bg-black/0"
-            style={{ background: "transparent" }}
-          />
-          {/* Top-right cluster: "watch on youtube", playlist / watch later */}
-          <div
-            aria-hidden
-            className="pointer-events-auto absolute top-0 right-0 z-10 h-12 w-44"
+            className="absolute z-10 cursor-pointer"
+            style={{ right: 0, bottom: 48, height: 60, width: 320, background: "transparent" }}
             onClick={(e) => {
-              // Swallow clicks on the masked corner so they don't open youtube.com
               e.stopPropagation();
               const p = playerRef.current;
-              if (!p) return;
-              if (window.YT && p.getPlayerState() === window.YT.PlayerState.PLAYING) p.pauseVideo();
+              if (!p || !window.YT) return;
+              if (p.getPlayerState() === window.YT.PlayerState.PLAYING) p.pauseVideo();
+              else p.playVideo();
+            }}
+          />
+          {/* Top-right "watch later / share" cluster mask (only on hover area) */}
+          <div
+            aria-hidden
+            className="absolute right-0 top-0 z-10 cursor-pointer"
+            style={{ height: 48, width: 180, background: "transparent" }}
+            onClick={(e) => {
+              e.stopPropagation();
+              const p = playerRef.current;
+              if (!p || !window.YT) return;
+              if (p.getPlayerState() === window.YT.PlayerState.PLAYING) p.pauseVideo();
               else p.playVideo();
             }}
           />

@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { ensureSystemPlaylists } from "@/lib/systemPlaylists";
 import { toast } from "sonner";
-import { BookmarkIcon, Check, Loader2, Plus, X } from "lucide-react";
+import { BookmarkIcon, Check, Clock, Heart, ListVideo, Loader2, Plus, X } from "lucide-react";
 
 type SaveTarget = {
   videoId: string;
@@ -41,13 +42,20 @@ export function SaveToLibraryModal({
     enabled: !!user,
     queryFn: async () => {
       if (!user) return [];
+      // Make sure the two system playlists exist before listing
+      await ensureSystemPlaylists(user.id);
       const { data, error } = await supabase
         .from("playlists")
         .select("id, name, kind, created_at")
         .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: true });
       if (error) throw error;
-      return data ?? [];
+      // System playlists first, then user-created
+      const sys = (data ?? []).filter((p) => p.kind === "watch_later" || p.kind === "liked");
+      const rest = (data ?? []).filter((p) => p.kind !== "watch_later" && p.kind !== "liked");
+      const sysOrder = ["watch_later", "liked"];
+      sys.sort((a, b) => sysOrder.indexOf(a.kind) - sysOrder.indexOf(b.kind));
+      return [...sys, ...rest];
     },
   });
 
@@ -190,7 +198,16 @@ export function SaveToLibraryModal({
                           : "text-foreground hover:bg-accent")
                       }
                     >
-                      <span className="min-w-0 truncate">{p.name}</span>
+                      <span className="flex min-w-0 items-center gap-2 truncate">
+                        {p.kind === "watch_later" ? (
+                          <Clock className="h-4 w-4 shrink-0 text-primary" />
+                        ) : p.kind === "liked" ? (
+                          <Heart className="h-4 w-4 shrink-0 text-primary" />
+                        ) : (
+                          <ListVideo className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        )}
+                        <span className="truncate">{p.name}</span>
+                      </span>
                       {busy ? (
                         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                       ) : already ? (
