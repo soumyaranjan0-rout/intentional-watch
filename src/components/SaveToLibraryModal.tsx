@@ -42,13 +42,20 @@ export function SaveToLibraryModal({
     enabled: !!user,
     queryFn: async () => {
       if (!user) return [];
+      // Make sure the two system playlists exist before listing
+      await ensureSystemPlaylists(user.id);
       const { data, error } = await supabase
         .from("playlists")
         .select("id, name, kind, created_at")
         .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: true });
       if (error) throw error;
-      return data ?? [];
+      // System playlists first, then user-created
+      const sys = (data ?? []).filter((p) => p.kind === "watch_later" || p.kind === "liked");
+      const rest = (data ?? []).filter((p) => p.kind !== "watch_later" && p.kind !== "liked");
+      const sysOrder = ["watch_later", "liked"];
+      sys.sort((a, b) => sysOrder.indexOf(a.kind) - sysOrder.indexOf(b.kind));
+      return [...sys, ...rest];
     },
   });
 
