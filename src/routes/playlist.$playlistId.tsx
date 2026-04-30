@@ -230,6 +230,24 @@ function PlaylistViewer({
     else await supabase.from("video_feedback").upsert({ user_id: user.id, video_id: videoId, feedback: next }, { onConflict: "user_id,video_id" });
   };
 
+  const target = () => ({
+    videoId,
+    title: meta?.title || fallbackTitle || "Untitled",
+    channel: meta?.channel || fallbackChannel || "",
+    thumbnail: fallbackThumbnail,
+    durationSeconds: meta?.durationSeconds || fallbackDuration || 0,
+  });
+  const toggleLike = async () => {
+    if (!user) { toast.message("Sign in to like videos"); return; }
+    if (liked) { await removeFromSystemPlaylist(user.id, "liked", videoId); setLiked(false); toast.success("Removed from Liked Videos"); }
+    else { await addToSystemPlaylist(user.id, "liked", target()); setLiked(true); toast.success("Added to Liked Videos"); }
+  };
+  const toggleWatchLater = async () => {
+    if (!user) { toast.message("Sign in to use Watch Later"); return; }
+    if (watchLater) { await removeFromSystemPlaylist(user.id, "watch_later", videoId); setWatchLater(false); toast.success("Removed from Watch Later"); }
+    else { await addToSystemPlaylist(user.id, "watch_later", target()); setWatchLater(true); toast.success("Added to Watch Later"); }
+  };
+
   const title = meta?.title || fallbackTitle || "Untitled";
   const channelName = meta?.channel || fallbackChannel || "";
 
