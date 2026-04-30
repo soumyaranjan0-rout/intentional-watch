@@ -307,10 +307,19 @@ function WatchPage() {
     if (liked) {
       await removeFromSystemPlaylist(user.id, "liked", videoId);
       setLiked(false);
+      if (feedback === "helpful") {
+        setFeedback(null);
+        await supabase.from("video_feedback").delete().eq("user_id", user.id).eq("video_id", videoId);
+      }
       toast.success("Removed from Liked Videos");
     } else {
       await addToSystemPlaylist(user.id, "liked", target());
       setLiked(true);
+      setFeedback("helpful");
+      await supabase.from("video_feedback").upsert(
+        { user_id: user.id, video_id: videoId, feedback: "helpful" },
+        { onConflict: "user_id,video_id" },
+      );
       toast.success("Added to Liked Videos");
     }
   };
