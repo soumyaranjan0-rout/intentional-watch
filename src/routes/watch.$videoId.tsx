@@ -531,6 +531,19 @@ function WatchPage() {
           onExit={() => navigate({ to: "/" })}
         />
       )}
+
+      {saveOpen && (
+        <SaveToLibraryModal
+          target={{
+            videoId,
+            title,
+            channel: channelName,
+            thumbnail: search.thumbnail || meta?.channelThumbnail || "",
+            durationSeconds: meta?.durationSeconds || search.duration || 0,
+          }}
+          onClose={() => setSaveOpen(false)}
+        />
+      )}
     </div>
   );
 }
