@@ -111,6 +111,20 @@ function WatchPage() {
     return () => { cancelled = true; };
   }, [user, videoId]);
 
+  // Like / Watch Later state from system playlists
+  useEffect(() => {
+    if (!user) { setLiked(false); setWatchLater(false); return; }
+    let cancelled = false;
+    Promise.all([
+      isInSystemPlaylist(user.id, "liked", videoId),
+      isInSystemPlaylist(user.id, "watch_later", videoId),
+    ]).then(([l, w]) => {
+      if (!cancelled) { setLiked(l); setWatchLater(w); }
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [user, videoId]);
+
+
   // Session timer
   useEffect(() => {
     const id = window.setInterval(() => {
