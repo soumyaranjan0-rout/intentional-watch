@@ -21,6 +21,7 @@ import { Route as AuthenticatedNotesRouteImport } from './routes/_authenticated.
 import { Route as AuthenticatedLibraryRouteImport } from './routes/_authenticated.library'
 import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated.history'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated.dashboard'
+import { Route as AuthenticatedLibraryPlaylistIdRouteImport } from './routes/_authenticated.library.$playlistId'
 
 const ResultsRoute = ResultsRouteImport.update({
   id: '/results',
@@ -81,6 +82,12 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedLibraryPlaylistIdRoute =
+  AuthenticatedLibraryPlaylistIdRouteImport.update({
+    id: '/$playlistId',
+    path: '/$playlistId',
+    getParentRoute: () => AuthenticatedLibraryRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -88,12 +95,13 @@ export interface FileRoutesByFullPath {
   '/results': typeof ResultsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/history': typeof AuthenticatedHistoryRoute
-  '/library': typeof AuthenticatedLibraryRoute
+  '/library': typeof AuthenticatedLibraryRouteWithChildren
   '/notes': typeof AuthenticatedNotesRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/playlist/$playlistId': typeof PlaylistPlaylistIdRoute
   '/refine/$mode': typeof RefineModeRoute
   '/watch/$videoId': typeof WatchVideoIdRoute
+  '/library/$playlistId': typeof AuthenticatedLibraryPlaylistIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -101,12 +109,13 @@ export interface FileRoutesByTo {
   '/results': typeof ResultsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/history': typeof AuthenticatedHistoryRoute
-  '/library': typeof AuthenticatedLibraryRoute
+  '/library': typeof AuthenticatedLibraryRouteWithChildren
   '/notes': typeof AuthenticatedNotesRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/playlist/$playlistId': typeof PlaylistPlaylistIdRoute
   '/refine/$mode': typeof RefineModeRoute
   '/watch/$videoId': typeof WatchVideoIdRoute
+  '/library/$playlistId': typeof AuthenticatedLibraryPlaylistIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -116,12 +125,13 @@ export interface FileRoutesById {
   '/results': typeof ResultsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/history': typeof AuthenticatedHistoryRoute
-  '/_authenticated/library': typeof AuthenticatedLibraryRoute
+  '/_authenticated/library': typeof AuthenticatedLibraryRouteWithChildren
   '/_authenticated/notes': typeof AuthenticatedNotesRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/playlist/$playlistId': typeof PlaylistPlaylistIdRoute
   '/refine/$mode': typeof RefineModeRoute
   '/watch/$videoId': typeof WatchVideoIdRoute
+  '/_authenticated/library/$playlistId': typeof AuthenticatedLibraryPlaylistIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -137,6 +147,7 @@ export interface FileRouteTypes {
     | '/playlist/$playlistId'
     | '/refine/$mode'
     | '/watch/$videoId'
+    | '/library/$playlistId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -150,6 +161,7 @@ export interface FileRouteTypes {
     | '/playlist/$playlistId'
     | '/refine/$mode'
     | '/watch/$videoId'
+    | '/library/$playlistId'
   id:
     | '__root__'
     | '/'
@@ -164,6 +176,7 @@ export interface FileRouteTypes {
     | '/playlist/$playlistId'
     | '/refine/$mode'
     | '/watch/$videoId'
+    | '/_authenticated/library/$playlistId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -262,13 +275,31 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/library/$playlistId': {
+      id: '/_authenticated/library/$playlistId'
+      path: '/$playlistId'
+      fullPath: '/library/$playlistId'
+      preLoaderRoute: typeof AuthenticatedLibraryPlaylistIdRouteImport
+      parentRoute: typeof AuthenticatedLibraryRoute
+    }
   }
 }
+
+interface AuthenticatedLibraryRouteChildren {
+  AuthenticatedLibraryPlaylistIdRoute: typeof AuthenticatedLibraryPlaylistIdRoute
+}
+
+const AuthenticatedLibraryRouteChildren: AuthenticatedLibraryRouteChildren = {
+  AuthenticatedLibraryPlaylistIdRoute: AuthenticatedLibraryPlaylistIdRoute,
+}
+
+const AuthenticatedLibraryRouteWithChildren =
+  AuthenticatedLibraryRoute._addFileChildren(AuthenticatedLibraryRouteChildren)
 
 interface AuthenticatedRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
-  AuthenticatedLibraryRoute: typeof AuthenticatedLibraryRoute
+  AuthenticatedLibraryRoute: typeof AuthenticatedLibraryRouteWithChildren
   AuthenticatedNotesRoute: typeof AuthenticatedNotesRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
 }
@@ -276,7 +307,7 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
-  AuthenticatedLibraryRoute: AuthenticatedLibraryRoute,
+  AuthenticatedLibraryRoute: AuthenticatedLibraryRouteWithChildren,
   AuthenticatedNotesRoute: AuthenticatedNotesRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
 }
