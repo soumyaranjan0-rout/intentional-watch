@@ -42,6 +42,9 @@ function WatchPage() {
   const [saved, setSaved] = useState(false);
   const [feedback, setFeedback] = useState<"helpful" | "not_useful" | null>(null);
   const [sessionMinutes, setSessionMinutes] = useState(0);
+  const [liked, setLiked] = useState(false);
+  const [watchLater, setWatchLater] = useState(false);
+  const [saveOpen, setSaveOpen] = useState(false);
 
   // Intent: explicit override (from URL or user-set), inferred (from meta), session fallback.
   const [override, setOverride] = useState<Mode | null>(
