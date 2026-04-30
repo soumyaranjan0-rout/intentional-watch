@@ -328,6 +328,7 @@ function WatchPage() {
     }
   };
 
+  const setIntentOverride = async (m: Mode) => {
     setOverride(m);
     if (user && historyIdRef.current) {
       await supabase
