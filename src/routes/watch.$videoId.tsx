@@ -387,27 +387,44 @@ function WatchPage() {
             {title}
           </h1>
 
-          {/* Channel row with avatar */}
-          <div className="mt-2 flex items-center gap-3">
+          {/* Metadata row: views · upload date · duration (YouTube-style, BELOW title, ABOVE channel) */}
+          {(meta?.viewCount || meta?.publishedAt || meta?.durationSeconds || search.duration) ? (
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
+              {meta?.viewCount ? <span>{formatCount(meta.viewCount)} views</span> : null}
+              {meta?.publishedAt ? (
+                <>
+                  {meta?.viewCount ? <span aria-hidden>·</span> : null}
+                  <span>{new Date(meta.publishedAt).toLocaleDateString()}</span>
+                </>
+              ) : null}
+              {(meta?.durationSeconds || search.duration) ? (
+                <>
+                  <span aria-hidden>·</span>
+                  <span>{formatDuration(meta?.durationSeconds || search.duration)}</span>
+                </>
+              ) : null}
+            </div>
+          ) : null}
+
+          {/* Channel row with avatar (separate from metadata) */}
+          <div className="mt-3 flex items-center gap-3">
             {meta?.channelThumbnail ? (
               <img
                 src={meta.channelThumbnail}
                 alt=""
-                className="h-9 w-9 shrink-0 rounded-full object-cover"
+                className="h-10 w-10 shrink-0 rounded-full object-cover"
                 loading="lazy"
               />
             ) : (
-              <div className="h-9 w-9 shrink-0 rounded-full bg-muted" />
+              <div className="h-10 w-10 shrink-0 rounded-full bg-muted" />
             )}
             <div className="min-w-0 flex-1">
-              <div className="text-sm font-medium text-foreground">{channelName}</div>
-              <div className="text-xs text-muted-foreground">
-                {meta?.publishedAt && <>{new Date(meta.publishedAt).toLocaleDateString()}</>}
-                {meta?.viewCount ? <> · {formatCount(meta.viewCount)} views</> : null}
-                {(meta?.durationSeconds || search.duration) ? (
-                  <> · {formatDuration(meta?.durationSeconds || search.duration)}</>
-                ) : null}
-              </div>
+              <div className="text-sm font-medium text-foreground sm:text-base">{channelName}</div>
+              {meta?.subscriberCount ? (
+                <div className="text-xs text-muted-foreground">
+                  {formatCount(meta.subscriberCount)} subscribers
+                </div>
+              ) : null}
             </div>
           </div>
 
@@ -441,13 +458,30 @@ function WatchPage() {
             {isExplore && <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] text-muted-foreground">Part of curated set</span>}
           </div>
 
-          {/* MINIMAL ACTION BAR — Save · Share · Helpful · Not useful */}
+          {/* ACTION BAR — Like · Watch Later · Save · Share · Helpful · Not useful */}
           <div className="mt-4 flex flex-wrap items-center gap-2">
+            <ActionButton
+              onClick={toggleLike}
+              active={liked}
+              icon={<ThumbsUp className={"h-4 w-4 " + (liked ? "fill-primary text-primary" : "")} />}
+              label={liked ? "Liked" : "Like"}
+            />
+            <ActionButton
+              onClick={toggleWatchLater}
+              active={watchLater}
+              icon={<Clock className={"h-4 w-4 " + (watchLater ? "text-primary" : "")} />}
+              label={watchLater ? "In Watch Later" : "Watch Later"}
+            />
             <ActionButton
               onClick={toggleSave}
               active={saved}
               icon={saved ? <BookmarkCheck className="h-4 w-4" /> : <BookmarkPlus className="h-4 w-4" />}
               label={saved ? "Saved" : "Save"}
+            />
+            <ActionButton
+              onClick={() => setSaveOpen(true)}
+              icon={<ListPlus className="h-4 w-4" />}
+              label="Save to playlist"
             />
             <ActionButton
               onClick={share}
@@ -456,13 +490,6 @@ function WatchPage() {
             />
             <div className="mx-1 h-5 w-px bg-border" aria-hidden />
             <ActionButton
-              onClick={() => sendFeedback("helpful")}
-              active={feedback === "helpful"}
-              icon={<ThumbsUp className={"h-4 w-4 " + (feedback === "helpful" ? "fill-primary" : "")} />}
-              label="Helpful"
-              tone="primary"
-            />
-            <ActionButton
               onClick={() => sendFeedback("not_useful")}
               active={feedback === "not_useful"}
               icon={<ThumbsDown className={"h-4 w-4 " + (feedback === "not_useful" ? "fill-muted-foreground" : "")} />}
@@ -470,7 +497,11 @@ function WatchPage() {
               tone="muted"
             />
           </div>
-
+          {feedback === "helpful" && (
+            <div className="mt-2 text-xs text-muted-foreground">
+              Marked helpful — thanks, this improves your recommendations.
+            </div>
+          )}
 
           {ended && <EndScreen />}
         </div>
