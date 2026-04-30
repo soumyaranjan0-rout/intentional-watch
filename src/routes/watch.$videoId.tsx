@@ -294,7 +294,40 @@ function WatchPage() {
     }
   };
 
-  const setIntentOverride = async (m: Mode) => {
+  const target = () => ({
+    videoId,
+    title: meta?.title || search.title || "Untitled",
+    channel: meta?.channel || search.channel || "",
+    thumbnail: search.thumbnail || meta?.channelThumbnail || "",
+    durationSeconds: meta?.durationSeconds || search.duration || 0,
+  });
+
+  const toggleLike = async () => {
+    if (!user) { toast.message("Sign in to like videos"); return; }
+    if (liked) {
+      await removeFromSystemPlaylist(user.id, "liked", videoId);
+      setLiked(false);
+      toast.success("Removed from Liked Videos");
+    } else {
+      await addToSystemPlaylist(user.id, "liked", target());
+      setLiked(true);
+      toast.success("Added to Liked Videos");
+    }
+  };
+
+  const toggleWatchLater = async () => {
+    if (!user) { toast.message("Sign in to use Watch Later"); return; }
+    if (watchLater) {
+      await removeFromSystemPlaylist(user.id, "watch_later", videoId);
+      setWatchLater(false);
+      toast.success("Removed from Watch Later");
+    } else {
+      await addToSystemPlaylist(user.id, "watch_later", target());
+      setWatchLater(true);
+      toast.success("Added to Watch Later");
+    }
+  };
+
     setOverride(m);
     if (user && historyIdRef.current) {
       await supabase
