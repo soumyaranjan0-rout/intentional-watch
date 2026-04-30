@@ -137,6 +137,9 @@ function PlaylistViewer({
   const [saved, setSaved] = useState(false);
   const [feedback, setFeedback] = useState<"helpful" | "not_useful" | null>(null);
   const [saveOpen, setSaveOpen] = useState(false);
+  const [liked, setLiked] = useState(false);
+  const [watchLater, setWatchLater] = useState(false);
+  const [intentOverride, setIntentOverride] = useState<Mode | null>(null);
 
   const { data: metaData } = useQuery({
     queryKey: ["video-meta", videoId],
@@ -152,7 +155,7 @@ function PlaylistViewer({
     durationSeconds: meta?.durationSeconds || fallbackDuration,
     category: meta?.categoryId,
   });
-  const finalIntent: Mode = inferred ?? "explore";
+  const finalIntent: Mode = intentOverride ?? inferred ?? "explore";
   const isLearning = finalIntent === "learn";
   const isRelax = finalIntent === "relax";
   const isFind = finalIntent === "find";
@@ -163,6 +166,17 @@ function PlaylistViewer({
     let cancelled = false;
     supabase.from("saved_videos").select("id").eq("user_id", user.id).eq("video_id", videoId).maybeSingle()
       .then(({ data }) => { if (!cancelled) setSaved(!!data); });
+    return () => { cancelled = true; };
+  }, [user, videoId]);
+
+  // Like / Watch Later state
+  useEffect(() => {
+    if (!user) { setLiked(false); setWatchLater(false); return; }
+    let cancelled = false;
+    Promise.all([
+      isInSystemPlaylist(user.id, "liked", videoId),
+      isInSystemPlaylist(user.id, "watch_later", videoId),
+    ]).then(([l, w]) => { if (!cancelled) { setLiked(l); setWatchLater(w); } }).catch(() => {});
     return () => { cancelled = true; };
   }, [user, videoId]);
 
