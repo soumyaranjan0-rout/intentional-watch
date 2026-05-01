@@ -401,6 +401,13 @@ function PlaylistViewer({
             durationSeconds: meta?.durationSeconds || fallbackDuration,
           }}
           onClose={() => setSaveOpen(false)}
+          onSaved={() => {
+            if (!user) return;
+            Promise.all([
+              isInSystemPlaylist(user.id, "liked", videoId),
+              isInSystemPlaylist(user.id, "watch_later", videoId),
+            ]).then(([l, w]) => { setLiked(l); setWatchLater(w); setSaved(true); }).catch(() => {});
+          }}
         />
       )}
     </div>
