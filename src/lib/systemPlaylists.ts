@@ -23,21 +23,26 @@ export async function ensureSystemPlaylists(userId: string): Promise<Record<Syst
   }
 
   const toCreate = (Object.keys(SYSTEM_KINDS) as SystemKind[]).filter((k) => !out[k]);
-  if (toCreate.length) {
-    const { data: created } = await supabase
+  for (const k of toCreate) {
+    // Insert one at a time and tolerate the unique-index race (another
+    // concurrent caller may have just inserted the same system playlist).
+    const { data: created, error } = await supabase
       .from("playlists")
-      .insert(
-        toCreate.map((k) => ({
-          user_id: userId,
-          kind: SYSTEM_KINDS[k].kind,
-          name: SYSTEM_KINDS[k].name,
-        })),
-      )
-      .select("id, kind");
-    for (const row of created ?? []) {
-      if (row.kind === "watch_later" || row.kind === "liked") {
-        out[row.kind as SystemKind] = row.id;
-      }
+      .insert({ user_id: userId, kind: SYSTEM_KINDS[k].kind, name: SYSTEM_KINDS[k].name })
+      .select("id, kind")
+      .maybeSingle();
+    if (created) {
+      out[k] = created.id;
+    } else {
+      // Either duplicate-key conflict or RLS hiccup — re-fetch to find it.
+      const { data: row } = await supabase
+        .from("playlists")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("kind", SYSTEM_KINDS[k].kind)
+        .maybeSingle();
+      if (row) out[k] = row.id;
+      else if (error) throw error;
     }
   }
 

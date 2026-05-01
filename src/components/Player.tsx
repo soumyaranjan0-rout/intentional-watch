@@ -201,42 +201,22 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
         </div>
       )}
 
-      {/* Branding masks. Sit ABOVE iframe and BELOW error overlay.
-          - Bottom-right strip just above the control bar covers the
-            "More videos" preview + small YouTube logo that appear when paused.
-            We capture the click and toggle play/pause instead of letting it
-            navigate to youtube.com.
-          - Top-right strip covers the "watch later / share" cluster YouTube
-            shows on hover at the top of the iframe.
-          The control bar itself (bottom ~48px) and center play button remain
-          fully interactive. */}
+      {/* Branding masks — intentionally TINY so they never cover the native
+          control bar (settings cog, CC, fullscreen sit on the bottom-right of
+          the control bar, ~0–48px from bottom). The YouTube watermark sits
+          just above that, around 50–80px from the bottom-right corner.
+          We block ONLY that watermark area, and a small pause-overlay
+          "More videos" tile area in the center-bottom region.
+          The full control bar and all of YouTube's native menus remain fully
+          interactive. */}
       {!unavailable && ready && (
         <>
-          {/* Bottom-right "More videos" + YouTube watermark mask */}
+          {/* YouTube watermark mask (small, just above the control bar) */}
           <div
             aria-hidden
-            className="absolute z-10 cursor-pointer"
-            style={{ right: 0, bottom: 48, height: 60, width: 320, background: "transparent" }}
-            onClick={(e) => {
-              e.stopPropagation();
-              const p = playerRef.current;
-              if (!p || !window.YT) return;
-              if (p.getPlayerState() === window.YT.PlayerState.PLAYING) p.pauseVideo();
-              else p.playVideo();
-            }}
-          />
-          {/* Top-right "watch later / share" cluster mask (only on hover area) */}
-          <div
-            aria-hidden
-            className="absolute right-0 top-0 z-10 cursor-pointer"
-            style={{ height: 48, width: 180, background: "transparent" }}
-            onClick={(e) => {
-              e.stopPropagation();
-              const p = playerRef.current;
-              if (!p || !window.YT) return;
-              if (p.getPlayerState() === window.YT.PlayerState.PLAYING) p.pauseVideo();
-              else p.playVideo();
-            }}
+            className="pointer-events-auto absolute z-10 cursor-default"
+            style={{ right: 8, bottom: 52, height: 22, width: 90, background: "transparent" }}
+            onClick={(e) => e.stopPropagation()}
           />
         </>
       )}

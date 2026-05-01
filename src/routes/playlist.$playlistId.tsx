@@ -320,19 +320,19 @@ function PlaylistViewer({
             </span>
           </div>
 
-          {/* Action bar */}
+          {/* Action bar — Like · Save (modal) · Share · Not useful */}
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <ActionButton onClick={toggleLike} active={liked}
               icon={<ThumbsUp className={"h-4 w-4 " + (liked ? "fill-primary text-primary" : "")} />}
               label={liked ? "Liked" : "Like"} />
-            <ActionButton onClick={toggleWatchLater} active={watchLater}
-              icon={<Clock className={"h-4 w-4 " + (watchLater ? "text-primary" : "")} />}
-              label={watchLater ? "In Watch Later" : "Watch Later"} />
-            <ActionButton onClick={toggleSave} active={saved}
-              icon={saved ? <BookmarkCheck className="h-4 w-4" /> : <BookmarkPlus className="h-4 w-4" />}
-              label={saved ? "Saved" : "Save"} />
-            <ActionButton onClick={() => setSaveOpen(true)}
-              icon={<ListPlus className="h-4 w-4" />} label="Save to playlist" />
+            <ActionButton
+              onClick={() => {
+                if (!user) { toast.message("Sign in to save videos"); return; }
+                setSaveOpen(true);
+              }}
+              active={saved || watchLater}
+              icon={(saved || watchLater) ? <BookmarkCheck className="h-4 w-4" /> : <BookmarkPlus className="h-4 w-4" />}
+              label={(saved || watchLater) ? "Saved" : "Save"} />
             <ActionButton onClick={share} icon={<Share2 className="h-4 w-4" />} label="Share" />
             <div className="mx-1 h-5 w-px bg-border" aria-hidden />
             <ActionButton onClick={() => sendFeedback("not_useful")} active={feedback === "not_useful"}
@@ -401,6 +401,13 @@ function PlaylistViewer({
             durationSeconds: meta?.durationSeconds || fallbackDuration,
           }}
           onClose={() => setSaveOpen(false)}
+          onSaved={() => {
+            if (!user) return;
+            Promise.all([
+              isInSystemPlaylist(user.id, "liked", videoId),
+              isInSystemPlaylist(user.id, "watch_later", videoId),
+            ]).then(([l, w]) => { setLiked(l); setWatchLater(w); setSaved(true); }).catch(() => {});
+          }}
         />
       )}
     </div>
