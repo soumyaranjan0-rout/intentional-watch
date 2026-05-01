@@ -4,8 +4,7 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { ensureSystemPlaylists } from "@/lib/systemPlaylists";
-import { formatDuration } from "@/lib/intent";
-import { Clock, Heart, ListVideo, Plus, Trash2, BookmarkIcon } from "lucide-react";
+import { Clock, Heart, ListVideo, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/library")({
