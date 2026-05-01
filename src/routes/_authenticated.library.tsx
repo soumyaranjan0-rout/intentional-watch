@@ -190,50 +190,12 @@ function LibraryPage() {
         )}
       </section>
 
-      {/* Saved videos (legacy) */}
-      <section className="mt-12">
-        <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
-          Recently saved
-        </h2>
-        <div className="mt-4 space-y-3">
-          {!savedFlat || savedFlat.length === 0 ? (
-            <div className="zen-card p-6 text-sm text-muted-foreground">
-              Nothing saved yet. Use the <BookmarkIcon className="inline h-3.5 w-3.5 align-text-bottom" /> Save button on any video.
-            </div>
-          ) : (
-            savedFlat.map((it) => (
-              <div key={it.id} className="zen-card zen-card-hover group flex items-center gap-4 p-3 sm:p-4">
-                <Link
-                  to="/watch/$videoId"
-                  params={{ videoId: it.video_id }}
-                  search={{ title: it.title || "", channel: it.channel || "", duration: it.duration_seconds || 0, thumbnail: it.thumbnail || "", t: 0, intent: "" }}
-                  className="flex flex-1 items-center gap-4"
-                >
-                  <div className="aspect-video w-32 shrink-0 overflow-hidden rounded bg-muted sm:w-44">
-                    {it.thumbnail && <img src={it.thumbnail} alt="" className="h-full w-full object-cover" />}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="line-clamp-2 text-sm font-medium text-foreground sm:text-base">{it.title || "Untitled"}</div>
-                    <div className="mt-1 text-xs text-muted-foreground">
-                      {it.channel}{it.duration_seconds ? ` · ${formatDuration(it.duration_seconds)}` : ""}
-                    </div>
-                  </div>
-                </Link>
-                <button
-                  onClick={() => removeSaved(it.id)}
-                  aria-label="Remove"
-                  className="p-2 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            ))
-          )}
-        </div>
-      </section>
     </div>
   );
 }
+
+// (Removed legacy "Recently saved" flat list — saves now live inside their
+// chosen playlists, so showing them again here was duplicate UX.)
 
 function PlaylistTile({ p, onDelete }: { p: PlaylistRow; onDelete: () => void }) {
   const isSystem = p.kind === "watch_later" || p.kind === "liked";
