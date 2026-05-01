@@ -16,16 +16,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Listener first
+    let cancelled = false;
+    // Listener first — fires synchronously on init with the cached session
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+      if (cancelled) return;
       setSession(s);
       setLoading(false);
     });
+    // Also resolve immediately so the UI doesn't sit in "loading" if the
+    // listener hasn't fired yet.
     supabase.auth.getSession().then(({ data }) => {
+      if (cancelled) return;
       setSession(data.session);
       setLoading(false);
+    }).catch(() => {
+      if (!cancelled) setLoading(false);
     });
-    return () => sub.subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {

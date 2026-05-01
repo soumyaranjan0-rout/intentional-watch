@@ -57,7 +57,7 @@ function UserPlaylistPage() {
     else { toast.success("Removed"); refetch(); }
   };
 
-  if (isLoading) {
+  if (isLoading || !user) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center text-muted-foreground">
         <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading…
@@ -65,7 +65,16 @@ function UserPlaylistPage() {
     );
   }
 
-  if (!data) return null;
+  if (!data) {
+    return (
+      <div className="zen-container py-16 text-center">
+        <p className="text-sm text-muted-foreground">This playlist could not be loaded.</p>
+        <Link to="/library" className="mt-4 inline-flex rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90">
+          Back to library
+        </Link>
+      </div>
+    );
+  }
   const { playlist, items } = data;
   const Icon = playlist.kind === "watch_later" ? Clock : playlist.kind === "liked" ? Heart : ListVideo;
 
