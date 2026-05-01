@@ -211,12 +211,32 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
           interactive. */}
       {!unavailable && ready && (
         <>
-          {/* YouTube watermark mask (small, just above the control bar) */}
+          {/* Mask the YouTube logo + "More videos" cluster that sits in the
+              bottom-right of the control bar. The fullscreen button is the
+              right-most ~48px so we leave that area untouched. Settings/CC/
+              volume sit on the LEFT side of the control bar and remain
+              fully interactive. */}
           <div
             aria-hidden
             className="pointer-events-auto absolute z-10 cursor-default"
-            style={{ right: 8, bottom: 52, height: 22, width: 90, background: "transparent" }}
-            onClick={(e) => e.stopPropagation()}
+            style={{ right: 48, bottom: 0, height: 48, width: 200, background: "transparent" }}
+            onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
+          />
+          {/* Mask the small YouTube watermark that sometimes appears above
+              the control bar on hover/pause. */}
+          <div
+            aria-hidden
+            className="pointer-events-auto absolute z-10 cursor-default"
+            style={{ right: 8, bottom: 50, height: 28, width: 110, background: "transparent" }}
+            onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
+          />
+          {/* Mask the "More videos" pause-screen overlay tiles that show
+              when a video is paused (center area). */}
+          <div
+            aria-hidden
+            className="pointer-events-auto absolute z-10 cursor-default"
+            style={{ left: "10%", right: "10%", top: "12%", height: "55%", background: "transparent" }}
+            onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
           />
         </>
       )}
