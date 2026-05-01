@@ -69,20 +69,6 @@ function LibraryPage() {
     },
   });
 
-  const { data: savedFlat } = useQuery({
-    queryKey: ["library-saved-videos", user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      if (!user) return [];
-      const { data } = await supabase
-        .from("saved_videos")
-        .select("id, video_id, title, channel, thumbnail, duration_seconds, created_at")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(24);
-      return data ?? [];
-    },
-  });
 
   const createPlaylist = async () => {
     if (!user) return;
@@ -108,12 +94,6 @@ function LibraryPage() {
     }
     if (!confirm(`Delete "${p.name}" and all its items?`)) return;
     await supabase.from("playlists").delete().eq("id", p.id);
-    refetch();
-  };
-
-  const removeSaved = async (id: string) => {
-    await supabase.from("saved_videos").delete().eq("id", id);
-    // refetch via query invalidation: simplest = refetch by query key
     refetch();
   };
 
