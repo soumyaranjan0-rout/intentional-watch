@@ -230,14 +230,6 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
             style={{ right: 8, bottom: 50, height: 28, width: 110, background: "transparent" }}
             onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
           />
-          {/* Mask the "More videos" pause-screen overlay tiles that show
-              when a video is paused (center area). */}
-          <div
-            aria-hidden
-            className="pointer-events-auto absolute z-10 cursor-default"
-            style={{ left: "10%", right: "10%", top: "12%", height: "55%", background: "transparent" }}
-            onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
-          />
         </>
       )}
 
