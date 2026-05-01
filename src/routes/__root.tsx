@@ -96,6 +96,8 @@ function AppShell({ children }: { children: React.ReactNode }) {
               <span className="font-semibold tracking-tight">ZenTube</span>
             </Link>
 
+            <BackToVideoButton />
+
             <NavSearch />
 
             <PrimaryNav />
@@ -108,6 +110,47 @@ function AppShell({ children }: { children: React.ReactNode }) {
       )}
       <main className="zen-fade-in">{children}</main>
     </div>
+  );
+}
+
+/** Shows a "Back to video" pill in the nav when the user navigated away
+ *  from a watch page into Insights/Library/Notes/History/Settings. */
+function BackToVideoButton() {
+  const { location } = useRouterState();
+  const [last, setLast] = useState<LastWatched | null>(null);
+
+  useEffect(() => {
+    const sync = () => setLast(getLastWatched());
+    sync();
+    window.addEventListener("zentube:lastWatched", sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener("zentube:lastWatched", sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, []);
+
+  const SECONDARY = ["/history", "/library", "/notes", "/dashboard", "/settings"];
+  const onSecondary = SECONDARY.some((p) => location.pathname.startsWith(p));
+  if (!onSecondary || !last) return null;
+
+  return (
+    <Link
+      to="/watch/$videoId"
+      params={{ videoId: last.videoId }}
+      search={{
+        title: last.title,
+        channel: last.channel,
+        duration: last.duration,
+        thumbnail: last.thumbnail,
+        t: last.t,
+        intent: "",
+      }}
+      className="hidden items-center gap-1.5 rounded-full border border-border/60 bg-surface/60 px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-primary/50 hover:bg-surface md:inline-flex"
+      title={`Back to: ${last.title}`}
+    >
+      <ArrowLeft className="h-3.5 w-3.5" /> Back to video
+    </Link>
   );
 }
 
