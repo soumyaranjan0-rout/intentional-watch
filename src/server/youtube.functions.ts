@@ -345,7 +345,62 @@ export const searchVideos = createServerFn({ method: "POST" })
           fitScore(bucket, a.durationSeconds, a.viewCount),
       );
 
-      const trimmed = results.slice(0, limit);
+      let trimmed = results.slice(0, limit);
+
+      // Fallback: if strict filters wiped out everything, retry once with
+      // relaxed constraints so the user always gets *something* relevant
+      // instead of a "no results" / "couldn't search" dead end.
+      if (trimmed.length === 0 && !data.pageToken) {
+        const fbParams = new URLSearchParams({
+          part: "snippet",
+          q: data.query,           // raw user query, no rewrites
+          maxResults: "15",
+          type: "video",
+          safeSearch: "moderate",
+          order: "relevance",
+          key: apiKey,
+        });
+        const fbRes = await fetch(`${YT_BASE}/search?${fbParams.toString()}`);
+        if (fbRes.ok) {
+          const fbJson = (await fbRes.json()) as typeof sJson;
+          const fbIds = fbJson.items.map((i) => i.id.videoId).filter(Boolean);
+          if (fbIds.length) {
+            const fbDParams = new URLSearchParams({
+              part: "contentDetails,statistics",
+              id: fbIds.join(","),
+              key: apiKey,
+            });
+            const fbDRes = await fetch(`${YT_BASE}/videos?${fbDParams.toString()}`);
+            const fbDJson = fbDRes.ok
+              ? ((await fbDRes.json()) as typeof dJson)
+              : { items: [] };
+            const fbDetail = new Map(fbDJson.items.map((it) => [it.id, it]));
+            trimmed = fbJson.items
+              .map((it) => {
+                const d = fbDetail.get(it.id.videoId);
+                const durationSeconds = d ? parseISODuration(d.contentDetails.duration) : 0;
+                const viewCount = d ? parseInt(d.statistics.viewCount || "0", 10) : 0;
+                const v = {
+                  videoId: it.id.videoId,
+                  title: it.snippet.title,
+                  channel: it.snippet.channelTitle,
+                  channelId: it.snippet.channelId,
+                  description: it.snippet.description,
+                  thumbnail:
+                    it.snippet.thumbnails.high?.url || it.snippet.thumbnails.medium?.url || "",
+                  publishedAt: it.snippet.publishedAt,
+                  durationSeconds,
+                  viewCount,
+                  reason: "Closest match for your search",
+                } as ResultVideo;
+                return v;
+              })
+              .filter((v) => v.durationSeconds > 60 && !/#shorts?\b/i.test(v.title))
+              .slice(0, limit);
+          }
+        }
+      }
+
       if (trimmed[0] && !data.pageToken) trimmed[0].primary = true;
 
       return { error: null, results: trimmed, playlists, effectiveQuery: q, hint, nextPageToken: sJson.nextPageToken ?? null };
