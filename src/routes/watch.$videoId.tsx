@@ -467,7 +467,7 @@ function WatchPage() {
             {isExplore && <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] text-muted-foreground">Part of curated set</span>}
           </div>
 
-          {/* ACTION BAR — Like · Watch Later · Save · Share · Helpful · Not useful */}
+          {/* ACTION BAR — Like · Save (opens library modal) · Share · Not useful */}
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <ActionButton
               onClick={toggleLike}
@@ -476,21 +476,17 @@ function WatchPage() {
               label={liked ? "Liked" : "Like"}
             />
             <ActionButton
-              onClick={toggleWatchLater}
-              active={watchLater}
-              icon={<Clock className={"h-4 w-4 " + (watchLater ? "text-primary" : "")} />}
-              label={watchLater ? "In Watch Later" : "Watch Later"}
-            />
-            <ActionButton
-              onClick={toggleSave}
-              active={saved}
-              icon={saved ? <BookmarkCheck className="h-4 w-4" /> : <BookmarkPlus className="h-4 w-4" />}
-              label={saved ? "Saved" : "Save"}
-            />
-            <ActionButton
-              onClick={() => setSaveOpen(true)}
-              icon={<ListPlus className="h-4 w-4" />}
-              label="Save to playlist"
+              onClick={() => {
+                if (!user) {
+                  toast.message("Sign in to save videos");
+                  navigate({ to: "/login", search: { redirect: window.location.pathname } });
+                  return;
+                }
+                setSaveOpen(true);
+              }}
+              active={saved || watchLater}
+              icon={(saved || watchLater) ? <BookmarkCheck className="h-4 w-4" /> : <BookmarkPlus className="h-4 w-4" />}
+              label={(saved || watchLater) ? "Saved" : "Save"}
             />
             <ActionButton
               onClick={share}
@@ -542,6 +538,14 @@ function WatchPage() {
             durationSeconds: meta?.durationSeconds || search.duration || 0,
           }}
           onClose={() => setSaveOpen(false)}
+          onSaved={() => {
+            // refresh system-playlist membership badges
+            if (!user) return;
+            Promise.all([
+              isInSystemPlaylist(user.id, "liked", videoId),
+              isInSystemPlaylist(user.id, "watch_later", videoId),
+            ]).then(([l, w]) => { setLiked(l); setWatchLater(w); setSaved(true); }).catch(() => {});
+          }}
         />
       )}
     </div>
