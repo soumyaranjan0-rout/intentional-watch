@@ -154,6 +154,7 @@ export interface FileRouteTypes {
     | '/notes'
     | '/settings'
     | '/playlist/$playlistId'
+    | '/channel/$channelId'
     | '/refine/$mode'
     | '/watch/$videoId'
     | '/library/$playlistId'
@@ -168,6 +169,7 @@ export interface FileRouteTypes {
     | '/notes'
     | '/settings'
     | '/playlist/$playlistId'
+    | '/channel/$channelId'
     | '/refine/$mode'
     | '/watch/$videoId'
     | '/library/$playlistId'
@@ -183,6 +185,7 @@ export interface FileRouteTypes {
     | '/_authenticated/notes'
     | '/_authenticated/settings'
     | '/playlist/$playlistId'
+    | '/channel/$channelId'
     | '/refine/$mode'
     | '/watch/$videoId'
     | '/_authenticated/library/$playlistId'
@@ -194,6 +197,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ResultsRoute: typeof ResultsRoute
   PlaylistPlaylistIdRoute: typeof PlaylistPlaylistIdRoute
+  ChannelChannelIdRoute: typeof ChannelChannelIdRoute
   RefineModeRoute: typeof RefineModeRoute
   WatchVideoIdRoute: typeof WatchVideoIdRoute
 }
