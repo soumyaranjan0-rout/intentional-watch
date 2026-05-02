@@ -201,37 +201,10 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
         </div>
       )}
 
-      {/* Branding masks — intentionally TINY so they never cover the native
-          control bar (settings cog, CC, fullscreen sit on the bottom-right of
-          the control bar, ~0–48px from bottom). The YouTube watermark sits
-          just above that, around 50–80px from the bottom-right corner.
-          We block ONLY that watermark area, and a small pause-overlay
-          "More videos" tile area in the center-bottom region.
-          The full control bar and all of YouTube's native menus remain fully
-          interactive. */}
-      {!unavailable && ready && (
-        <>
-          {/* Mask the YouTube logo + "More videos" cluster that sits in the
-              bottom-right of the control bar. The fullscreen button is the
-              right-most ~48px so we leave that area untouched. Settings/CC/
-              volume sit on the LEFT side of the control bar and remain
-              fully interactive. */}
-          <div
-            aria-hidden
-            className="pointer-events-auto absolute z-10 cursor-default"
-            style={{ right: 48, bottom: 0, height: 48, width: 200, background: "transparent" }}
-            onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
-          />
-          {/* Mask the small YouTube watermark that sometimes appears above
-              the control bar on hover/pause. */}
-          <div
-            aria-hidden
-            className="pointer-events-auto absolute z-10 cursor-default"
-            style={{ right: 8, bottom: 50, height: 28, width: 110, background: "transparent" }}
-            onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
-          />
-        </>
-      )}
+      {/* Note: with modestbranding=1 + rel=0, YouTube already hides the
+          large logo and limits "More videos" to same-channel suggestions.
+          We deliberately do NOT add overlays here — they would interfere
+          with native controls (settings, CC, fullscreen). */}
 
       {/* Embed disabled / unavailable overlay */}
       {unavailable && (
