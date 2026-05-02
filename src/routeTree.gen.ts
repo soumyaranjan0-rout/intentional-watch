@@ -342,6 +342,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ResultsRoute: ResultsRoute,
   PlaylistPlaylistIdRoute: PlaylistPlaylistIdRoute,
+  ChannelChannelIdRoute: ChannelChannelIdRoute,
   RefineModeRoute: RefineModeRoute,
   WatchVideoIdRoute: WatchVideoIdRoute,
 }
