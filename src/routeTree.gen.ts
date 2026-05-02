@@ -16,6 +16,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as WatchVideoIdRouteImport } from './routes/watch.$videoId'
 import { Route as RefineModeRouteImport } from './routes/refine.$mode'
 import { Route as PlaylistPlaylistIdRouteImport } from './routes/playlist.$playlistId'
+import { Route as ChannelChannelIdRouteImport } from './routes/channel.$channelId'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated.settings'
 import { Route as AuthenticatedNotesRouteImport } from './routes/_authenticated.notes'
 import { Route as AuthenticatedLibraryRouteImport } from './routes/_authenticated.library'
@@ -55,6 +56,11 @@ const RefineModeRoute = RefineModeRouteImport.update({
 const PlaylistPlaylistIdRoute = PlaylistPlaylistIdRouteImport.update({
   id: '/playlist/$playlistId',
   path: '/playlist/$playlistId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChannelChannelIdRoute = ChannelChannelIdRouteImport.update({
+  id: '/channel/$channelId',
+  path: '/channel/$channelId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
@@ -99,6 +105,7 @@ export interface FileRoutesByFullPath {
   '/notes': typeof AuthenticatedNotesRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/playlist/$playlistId': typeof PlaylistPlaylistIdRoute
+  '/channel/$channelId': typeof ChannelChannelIdRoute
   '/refine/$mode': typeof RefineModeRoute
   '/watch/$videoId': typeof WatchVideoIdRoute
   '/library/$playlistId': typeof AuthenticatedLibraryPlaylistIdRoute
@@ -113,6 +120,7 @@ export interface FileRoutesByTo {
   '/notes': typeof AuthenticatedNotesRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/playlist/$playlistId': typeof PlaylistPlaylistIdRoute
+  '/channel/$channelId': typeof ChannelChannelIdRoute
   '/refine/$mode': typeof RefineModeRoute
   '/watch/$videoId': typeof WatchVideoIdRoute
   '/library/$playlistId': typeof AuthenticatedLibraryPlaylistIdRoute
@@ -129,6 +137,7 @@ export interface FileRoutesById {
   '/_authenticated/notes': typeof AuthenticatedNotesRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/playlist/$playlistId': typeof PlaylistPlaylistIdRoute
+  '/channel/$channelId': typeof ChannelChannelIdRoute
   '/refine/$mode': typeof RefineModeRoute
   '/watch/$videoId': typeof WatchVideoIdRoute
   '/_authenticated/library/$playlistId': typeof AuthenticatedLibraryPlaylistIdRoute
@@ -145,6 +154,7 @@ export interface FileRouteTypes {
     | '/notes'
     | '/settings'
     | '/playlist/$playlistId'
+    | '/channel/$channelId'
     | '/refine/$mode'
     | '/watch/$videoId'
     | '/library/$playlistId'
@@ -159,6 +169,7 @@ export interface FileRouteTypes {
     | '/notes'
     | '/settings'
     | '/playlist/$playlistId'
+    | '/channel/$channelId'
     | '/refine/$mode'
     | '/watch/$videoId'
     | '/library/$playlistId'
@@ -174,6 +185,7 @@ export interface FileRouteTypes {
     | '/_authenticated/notes'
     | '/_authenticated/settings'
     | '/playlist/$playlistId'
+    | '/channel/$channelId'
     | '/refine/$mode'
     | '/watch/$videoId'
     | '/_authenticated/library/$playlistId'
@@ -185,6 +197,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ResultsRoute: typeof ResultsRoute
   PlaylistPlaylistIdRoute: typeof PlaylistPlaylistIdRoute
+  ChannelChannelIdRoute: typeof ChannelChannelIdRoute
   RefineModeRoute: typeof RefineModeRoute
   WatchVideoIdRoute: typeof WatchVideoIdRoute
 }
@@ -238,6 +251,13 @@ declare module '@tanstack/react-router' {
       path: '/playlist/$playlistId'
       fullPath: '/playlist/$playlistId'
       preLoaderRoute: typeof PlaylistPlaylistIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/channel/$channelId': {
+      id: '/channel/$channelId'
+      path: '/channel/$channelId'
+      fullPath: '/channel/$channelId'
+      preLoaderRoute: typeof ChannelChannelIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/settings': {
@@ -322,6 +342,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ResultsRoute: ResultsRoute,
   PlaylistPlaylistIdRoute: PlaylistPlaylistIdRoute,
+  ChannelChannelIdRoute: ChannelChannelIdRoute,
   RefineModeRoute: RefineModeRoute,
   WatchVideoIdRoute: WatchVideoIdRoute,
 }

@@ -1,29 +1,40 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { memo, useEffect, useMemo, useState } from "react";
-import { searchVideos, getPlaylistItems, type ResultPlaylist } from "@/server/youtube.functions";
+import { searchVideos, getPlaylistItems, type ResultPlaylist, type ResultChannel } from "@/server/youtube.functions";
 import { useSessionState } from "@/contexts/SessionStateContext";
-import { formatDuration, MODES, detectMismatch, type Mode, type ResultVideo } from "@/lib/intent";
+import { formatCount, formatDuration, MODES, detectMismatch, type Mode, type ResultVideo } from "@/lib/intent";
 import { ResumeBanner } from "@/components/ResumeBanner";
-import { ArrowLeft, Loader2, Sliders, Search as SearchIcon, AlertCircle, ListVideo, ChevronDown, Play, RefreshCw } from "lucide-react";
+import { ArrowLeft, Loader2, Search as SearchIcon, AlertCircle, ListVideo, ChevronDown, Play, ChevronRight, Users } from "lucide-react";
 
 export const Route = createFileRoute("/results")({
   head: () => ({ meta: [{ title: "Results — ZenTube" }] }),
   component: ResultsPage,
 });
 
+type Page = {
+  results: ResultVideo[];
+  playlists: ResultPlaylist[];
+  channel: ResultChannel | null;
+  hint: string | null;
+  effectiveQuery: string;
+  nextPageToken: string | null;
+};
+
 function ResultsPage() {
   const { mode, refinement, query, setMode } = useSessionState();
   const navigate = useNavigate();
-  const [refineText, setRefineText] = useState("");
-  // Forward-only "Show more": we track the chain of tokens we've used so we
-  // can advance one page at a time but always render only the latest page.
-  const [tokenChain, setTokenChain] = useState<(string | undefined)[]>([undefined]);
-  const currentToken = tokenChain[tokenChain.length - 1];
 
-  // Reset paging when the underlying search changes
+  // Accumulated pages — append on "Show more" so user can scroll back.
+  const [pages, setPages] = useState<Page[]>([]);
+  const [pageToken, setPageToken] = useState<string | undefined>(undefined);
+  const [endReached, setEndReached] = useState(false);
+
+  // Reset when underlying search changes
   useEffect(() => {
-    setTokenChain([undefined]);
+    setPages([]);
+    setPageToken(undefined);
+    setEndReached(false);
   }, [mode, query, refinement?.chips, refinement?.freeform]);
 
   useEffect(() => {
@@ -31,7 +42,7 @@ function ResultsPage() {
   }, [mode, query, navigate]);
 
   const { data, isLoading, isFetching, error, refetch } = useQuery({
-    queryKey: ["search", mode, query, refinement?.chips, refinement?.freeform, currentToken ?? "first"],
+    queryKey: ["search", mode, query, refinement?.chips, refinement?.freeform, pageToken ?? "first"],
     enabled: !!mode && !!query,
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
@@ -42,32 +53,68 @@ function ResultsPage() {
           query,
           mode: mode!,
           chips: refinement?.chips ?? [],
-          freeform: [refinement?.freeform ?? "", refineText].filter(Boolean).join(" "),
-          pageToken: currentToken,
+          freeform: refinement?.freeform ?? "",
+          pageToken,
         },
       }),
   });
 
-  const view = useMemo(() => ({
-    results: (data?.results ?? []) as ResultVideo[],
-    playlists: (data?.playlists ?? []) as ResultPlaylist[],
-    hint: data?.hint ?? null,
-    effectiveQuery: data?.effectiveQuery ?? "",
-    firstError: data?.error ?? null,
-    nextPageToken: data?.nextPageToken ?? null,
-  }), [data]);
+  // Append fresh pages, dedupe across pages
+  useEffect(() => {
+    if (!data) return;
+    const newPage: Page = {
+      results: data.results ?? [],
+      playlists: data.playlists ?? [],
+      channel: data.channel ?? null,
+      hint: data.hint ?? null,
+      effectiveQuery: data.effectiveQuery ?? "",
+      nextPageToken: data.nextPageToken ?? null,
+    };
+    setPages((prev) => {
+      // If this is the first page (token undefined), reset.
+      if (!pageToken) return [newPage];
+      // Avoid double-append if React re-runs this effect with the same data
+      const last = prev[prev.length - 1];
+      if (last && last.nextPageToken === newPage.nextPageToken && last.results[0]?.videoId === newPage.results[0]?.videoId) {
+        return prev;
+      }
+      return [...prev, newPage];
+    });
+    if (!data.nextPageToken && (data.results?.length ?? 0) === 0 && pageToken) {
+      setEndReached(true);
+    }
+    if (!data.nextPageToken) setEndReached((e) => e || pages.length > 0 || (data.results?.length ?? 0) === 0);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, pageToken]);
+
+  const allResults = useMemo(() => {
+    const seen = new Set<string>();
+    const out: ResultVideo[] = [];
+    for (const p of pages) {
+      for (const r of p.results) {
+        if (seen.has(r.videoId)) continue;
+        seen.add(r.videoId);
+        out.push(r);
+      }
+    }
+    return out;
+  }, [pages]);
+
+  const firstPage = pages[0];
+  const lastPage = pages[pages.length - 1];
+  const nextToken = lastPage?.nextPageToken ?? null;
 
   const showMore = () => {
-    if (!view.nextPageToken) return;
-    setTokenChain((c) => [...c, view.nextPageToken!]);
-    // Scroll to top so the user clearly sees the swap
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    if (!nextToken || isFetching) return;
+    setPageToken(nextToken);
   };
 
   if (!mode || !query) return null;
   const cfg = MODES[mode];
   const mismatch = detectMismatch(mode, query);
-  const pageNumber = tokenChain.length;
+
+  const firstError = data && pages.length === 0 ? data.error : null;
+  const noResultsAtAll = !isLoading && !error && !firstError && pages.length > 0 && allResults.length === 0 && !(firstPage?.channel) && !(firstPage?.playlists.length);
 
   return (
     <div className="zen-container py-8 sm:py-12">
@@ -77,24 +124,13 @@ function ResultsPage() {
           <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-4 w-4" /> New search
           </Link>
-          {view.nextPageToken && view.results.length > 0 && (
-            <button
-              onClick={showMore}
-              disabled={isFetching}
-              className="zen-show-more inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-4 py-1.5 text-xs font-medium text-primary transition-all hover:bg-primary/20 hover:shadow-[0_0_0_3px_color-mix(in_oklab,var(--primary)_15%,transparent)] disabled:opacity-50"
-              title="Show different relevant videos"
-            >
-              {isFetching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-              Show more
-            </button>
-          )}
         </div>
 
         <div className="mt-6">
           <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-surface/60 px-2.5 py-0.5 text-xs text-muted-foreground">
             <span aria-hidden>{cfg.emoji}</span>
             {cfg.label}
-            {pageNumber > 1 && <span className="text-muted-foreground/70">· page {pageNumber}</span>}
+            {pages.length > 1 && <span className="text-muted-foreground/70">· {pages.length} pages</span>}
           </div>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">"{query}"</h1>
           {refinement?.chips && refinement.chips.length > 0 && (
@@ -105,16 +141,16 @@ function ResultsPage() {
             </div>
           )}
 
-          {(view.effectiveQuery || view.hint) && (
+          {(firstPage?.effectiveQuery || firstPage?.hint) && (
             <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-              {view.hint && (
+              {firstPage?.hint && (
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-primary">
-                  <SearchIcon className="h-3 w-3" /> {view.hint}
+                  <SearchIcon className="h-3 w-3" /> {firstPage.hint}
                 </span>
               )}
-              {view.effectiveQuery && view.effectiveQuery !== query && (
+              {firstPage?.effectiveQuery && firstPage.effectiveQuery !== query && (
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-surface/60 px-2.5 py-1 text-muted-foreground">
-                  Searching: <span className="text-foreground">{view.effectiveQuery}</span>
+                  Searching: <span className="text-foreground">{firstPage.effectiveQuery}</span>
                 </span>
               )}
             </div>
@@ -134,25 +170,6 @@ function ResultsPage() {
               </div>
             </div>
           )}
-
-          <div className="mt-3 flex items-center gap-2 rounded-full border border-border bg-surface/60 px-4 py-2 focus-within:border-primary/50">
-            <Sliders className="h-4 w-4 text-muted-foreground" />
-            <input
-              value={refineText}
-              onChange={(e) => setRefineText(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") refetch(); }}
-              placeholder="Refine — add more context (e.g. 'in Hindi', 'beginner')"
-              className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-            />
-            {refineText && (
-              <button
-                onClick={() => refetch()}
-                className="rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground hover:opacity-90"
-              >
-                Apply
-              </button>
-            )}
-          </div>
         </div>
 
         {isLoading ? (
@@ -162,16 +179,43 @@ function ResultsPage() {
             Something went wrong fetching results.{" "}
             <button onClick={() => refetch()} className="text-primary hover:underline">Try again</button>
           </div>
-        ) : view.firstError ? (
-          <div className="mt-12 zen-card p-6 text-sm text-muted-foreground">{view.firstError}</div>
-        ) : !view.results.length && !view.playlists.length ? (
+        ) : firstError ? (
+          <div className="mt-12 zen-card p-6 text-sm text-muted-foreground">{firstError}</div>
+        ) : noResultsAtAll ? (
           <div className="mt-12 zen-card p-6 text-sm text-muted-foreground">
-            No good matches. Try different phrasing.
+            No results yet. Try a different keyword or simpler phrasing.
           </div>
         ) : (
-          <div className={isFetching ? "opacity-60 transition-opacity" : "transition-opacity"}>
-            <ResultsList results={view.results} playlists={view.playlists} mode={mode} />
-          </div>
+          <>
+            {firstPage?.channel && <ChannelCard channel={firstPage.channel} />}
+
+            <ResultsList
+              results={allResults}
+              playlists={firstPage?.playlists ?? []}
+              mode={mode}
+            />
+
+            {/* Pagination footer */}
+            <div className="mt-8 flex flex-col items-center gap-2">
+              {nextToken ? (
+                <button
+                  onClick={showMore}
+                  disabled={isFetching}
+                  className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-5 py-2 text-sm font-medium text-primary transition-all hover:bg-primary/20 disabled:opacity-50"
+                >
+                  {isFetching ? <Loader2 className="h-4 w-4 animate-spin" /> : <ChevronDown className="h-4 w-4" />}
+                  {isFetching ? "Loading…" : "Show more"}
+                </button>
+              ) : (
+                <div className="text-xs text-muted-foreground">
+                  {endReached || pages.length > 1 ? "No more results available" : "End of results"}
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Showing {allResults.length} {allResults.length === 1 ? "video" : "videos"}
+              </p>
+            </div>
+          </>
         )}
       </div>
     </div>
@@ -197,6 +241,31 @@ function ResultsSkeleton() {
   );
 }
 
+function ChannelCard({ channel }: { channel: ResultChannel }) {
+  return (
+    <Link
+      to="/channel/$channelId"
+      params={{ channelId: channel.channelId }}
+      className="zen-card zen-card-hover mt-6 flex items-center gap-4 p-4 sm:p-5"
+    >
+      <img src={channel.thumbnail} alt="" className="h-16 w-16 shrink-0 rounded-full object-cover ring-2 ring-border sm:h-20 sm:w-20" />
+      <div className="min-w-0 flex-1">
+        <div className="mb-1 inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wider text-primary">
+          <Users className="h-3 w-3" /> Channel
+        </div>
+        <div className="truncate text-base font-semibold text-foreground sm:text-lg">{channel.title}</div>
+        <div className="mt-0.5 text-xs text-muted-foreground">
+          {formatCount(channel.subscriberCount)} subscribers · {formatCount(channel.videoCount)} videos
+        </div>
+        {channel.description && (
+          <p className="mt-1.5 line-clamp-2 text-sm text-muted-foreground">{channel.description}</p>
+        )}
+      </div>
+      <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
+    </Link>
+  );
+}
+
 function ResultsList({
   results, playlists, mode,
 }: { results: ResultVideo[]; playlists: ResultPlaylist[]; mode: Mode }) {
@@ -218,16 +287,13 @@ function ResultsList({
       {rest.length > 0 && (
         <>
           <div className="pt-2 text-xs uppercase tracking-wider text-muted-foreground">
-            Alternatives
+            More videos
           </div>
           {rest.map((r) => (
             <ResultCard key={r.videoId} v={r} />
           ))}
         </>
       )}
-      <p className="pt-6 text-center text-xs text-muted-foreground">
-        Showing {results.length} curated picks. Use "Show more" for different ones.
-      </p>
     </div>
   );
 }
@@ -236,46 +302,60 @@ const ResultCard = memo(function ResultCard({
   v, highlighted,
 }: { v: ResultVideo; highlighted?: boolean }) {
   return (
-    <Link
-      to="/watch/$videoId"
-      params={{ videoId: v.videoId }}
-      search={{ title: v.title, channel: v.channel, duration: v.durationSeconds, thumbnail: v.thumbnail, t: 0, intent: "" }}
-      className={
-        "zen-card zen-card-hover block overflow-hidden " +
-        (highlighted ? "border-primary/40 ring-1 ring-primary/15" : "")
-      }
-    >
-      <div className="flex flex-col gap-4 p-4 sm:flex-row sm:p-5">
-        <div className="relative shrink-0 overflow-hidden rounded-md bg-muted sm:w-64">
-          <div className="aspect-video w-full">
-            {v.thumbnail ? (
-              <img src={v.thumbnail} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
-            ) : null}
-          </div>
-          <div className="absolute bottom-2 right-2 rounded bg-background/85 px-1.5 py-0.5 text-xs text-foreground">
-            {formatDuration(v.durationSeconds)}
-          </div>
-        </div>
-        <div className="flex-1">
-          {highlighted && (
-            <div className="mb-1 inline-flex rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wider text-primary">
-              Best match
+    <div className={"zen-card zen-card-hover overflow-hidden " + (highlighted ? "border-primary/40 ring-1 ring-primary/15" : "")}>
+      <Link
+        to="/watch/$videoId"
+        params={{ videoId: v.videoId }}
+        search={{ title: v.title, channel: v.channel, duration: v.durationSeconds, thumbnail: v.thumbnail, t: 0, intent: "" }}
+        className="block"
+      >
+        <div className="flex flex-col gap-4 p-4 sm:flex-row sm:p-5">
+          <div className="relative shrink-0 overflow-hidden rounded-md bg-muted sm:w-64">
+            <div className="aspect-video w-full">
+              {v.thumbnail ? (
+                <img src={v.thumbnail} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
+              ) : null}
             </div>
-          )}
-          <h3 className="text-base font-medium leading-snug text-foreground sm:text-lg">{v.title}</h3>
-          <div className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
-            <span>{v.channel}</span>
-            {v.publishedAt && (
-              <>
-                <span aria-hidden>·</span>
-                <span className="text-xs">{new Date(v.publishedAt).toLocaleDateString()}</span>
-              </>
-            )}
+            <div className="absolute bottom-2 right-2 rounded bg-background/85 px-1.5 py-0.5 text-xs text-foreground">
+              {formatDuration(v.durationSeconds)}
+            </div>
           </div>
-          <p className="mt-3 border-l-2 border-primary/40 pl-3 text-sm text-muted-foreground">{v.reason}</p>
+          <div className="flex-1">
+            {highlighted && (
+              <div className="mb-1 inline-flex rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wider text-primary">
+                Best match
+              </div>
+            )}
+            <h3 className="text-base font-medium leading-snug text-foreground sm:text-lg">{v.title}</h3>
+            <div className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
+              <span>{v.channel}</span>
+              {v.publishedAt && (
+                <>
+                  <span aria-hidden>·</span>
+                  <span className="text-xs">{new Date(v.publishedAt).toLocaleDateString()}</span>
+                </>
+              )}
+              {v.viewCount > 0 && (
+                <>
+                  <span aria-hidden>·</span>
+                  <span className="text-xs">{formatCount(v.viewCount)} views</span>
+                </>
+              )}
+            </div>
+            <p className="mt-3 border-l-2 border-primary/40 pl-3 text-sm text-muted-foreground">{v.reason}</p>
+          </div>
         </div>
-      </div>
-    </Link>
+      </Link>
+      {v.channelId && (
+        <Link
+          to="/channel/$channelId"
+          params={{ channelId: v.channelId }}
+          className="block border-t border-border/40 px-4 py-2 text-xs text-muted-foreground transition-colors hover:bg-accent/30 hover:text-primary sm:px-5"
+        >
+          Visit channel: <span className="text-foreground">{v.channel}</span>
+        </Link>
+      )}
+    </div>
   );
 });
 
