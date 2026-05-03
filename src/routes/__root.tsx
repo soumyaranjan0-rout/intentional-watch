@@ -6,7 +6,6 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { SessionStateProvider } from "@/contexts/SessionStateContext";
 import { AccountMenu } from "@/components/AccountMenu";
 import { ZenLogo } from "@/components/ZenLogo";
-import { NavSearch } from "@/components/NavSearch";
 import { getLastWatched, type LastWatched } from "@/lib/lastWatched";
 import { ArrowLeft, LayoutDashboard, BookmarkIcon, StickyNote } from "lucide-react";
 
