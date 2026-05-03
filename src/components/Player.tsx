@@ -201,10 +201,28 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
         </div>
       )}
 
-      {/* Note: with modestbranding=1 + rel=0, YouTube already hides the
-          large logo and limits "More videos" to same-channel suggestions.
-          We deliberately do NOT add overlays here — they would interfere
-          with native controls (settings, CC, fullscreen). */}
+      {/* Distraction blockers — placed ABOVE the iframe but only over zones
+          that are NOT the native control bar. We block:
+            • the top title bar (clicking the title opens youtube.com)
+            • the top-right channel watermark
+            • the pause/end-screen "More videos" grid area (center of player)
+          We deliberately leave the BOTTOM control strip (~48px) and the
+          progress bar fully clickable so volume / CC / settings / quality /
+          fullscreen / seeking all behave like native YouTube. */}
+      {ready && !unavailable && (
+        <>
+          {/* Top bar mask: blocks title click + watermark + pause "More videos" header */}
+          <div className="pointer-events-auto absolute left-0 right-0 top-0 z-10 h-14" aria-hidden />
+          {/* Center mask: blocks the pause-screen related-video grid that appears mid-player.
+              Sits between the top bar mask and the bottom control strip so play/pause-on-click
+              still works around the edges, while related-video tiles in the middle are inert. */}
+          <div className="pointer-events-auto absolute left-0 right-0 z-10" style={{ top: 56, bottom: 56 }} aria-hidden onClick={(e) => {
+            // Allow play/pause toggle by forwarding click to iframe area is non-trivial;
+            // instead we let users use the spacebar / control bar play button.
+            e.preventDefault();
+          }} />
+        </>
+      )}
 
       {/* Embed disabled / unavailable overlay */}
       {unavailable && (
