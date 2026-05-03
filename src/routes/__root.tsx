@@ -112,6 +112,31 @@ function AppShell({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** Persistent Back button on every non-home page. Falls back to "/" when
+ *  there is no history (e.g. opened in a new tab). */
+function BackButton() {
+  const { location } = useRouterState();
+  const onHome = location.pathname === "/";
+  if (onHome) return null;
+  const goBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      window.history.back();
+    } else {
+      window.location.href = "/";
+    }
+  };
+  return (
+    <button
+      onClick={goBack}
+      className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-surface/60 px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-primary/50 hover:bg-surface"
+      aria-label="Go back"
+      title="Go back"
+    >
+      <ArrowLeft className="h-3.5 w-3.5" /> Back
+    </button>
+  );
+}
+
 /** Shows a "Back to video" pill in the nav when the user navigated away
  *  from a watch page into Insights/Library/Notes/History/Settings. */
 function BackToVideoButton() {
