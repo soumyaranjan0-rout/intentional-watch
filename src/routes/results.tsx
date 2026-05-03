@@ -121,6 +121,15 @@ function ResultsPage() {
           <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-4 w-4" /> New search
           </Link>
+          <button
+            onClick={showMore}
+            disabled={isFetching || isLoading}
+            className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary transition-colors hover:bg-primary/20 disabled:opacity-50"
+            aria-label="Show new results"
+          >
+            {isFetching ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            {isFetching ? "Loading…" : "Show new results"}
+          </button>
         </div>
 
         <div className="mt-6">
