@@ -124,6 +124,7 @@ function ChannelPage() {
                   key={p.playlistId}
                   to="/playlist/$playlistId"
                   params={{ playlistId: p.playlistId }}
+                  search={{ index: 0 }}
                   className="zen-card zen-card-hover overflow-hidden"
                 >
                   <div className="aspect-video w-full bg-muted">
