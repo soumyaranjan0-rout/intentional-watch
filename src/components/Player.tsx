@@ -201,22 +201,24 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
         </div>
       )}
 
-      {/* Distraction blockers — only mask non-control zones that link out to
-          youtube.com. The bottom control strip (volume / CC / settings /
-          quality / fullscreen) and the progress bar remain fully native. */}
+      {/* Distraction blockers — mask only non-control zones that link out to
+          youtube.com. The entire bottom control strip (volume, CC, settings,
+          quality, fullscreen) and the progress bar are fully native and
+          interactive. */}
       {ready && !unavailable && (
         <>
-          {/* Top title bar: clicking the video title opens youtube.com. */}
+          {/* Top title bar — clicking the video title or "Watch later" /
+              "Share" pills (top-right on hover) opens youtube.com. */}
           <div className="pointer-events-auto absolute left-0 right-0 top-0 z-10 h-12" aria-hidden />
-          {/* Bottom-right: "Watch on YouTube" logo / "More videos" pill that
-              appears on hover or at end-screen. Sits ABOVE the control bar
-              area so we keep it short (44px from bottom) and narrow so it
-              never overlaps fullscreen / settings buttons (which are inside
-              the bottom 44px control strip). */}
+          {/* End-screen "More videos" cards. They appear in a centered grid
+              roughly in the middle of the player when playback ends. Sized
+              and positioned to avoid the bottom 56px control strip and the
+              top title bar. */}
           <div
             className="pointer-events-auto absolute z-10"
-            style={{ right: 0, bottom: 44, width: 220, height: 56 }}
+            style={{ left: "8%", right: "8%", top: "12%", bottom: 64 }}
             aria-hidden
+            data-zen-endscreen-block
           />
         </>
       )}
