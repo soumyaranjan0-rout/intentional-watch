@@ -62,7 +62,9 @@ function ResultsPage() {
       }),
   });
 
-  // Append fresh pages, dedupe across pages
+  // REPLACE behavior: each "Show new results" click discards old set and
+  // shows the next page in its place. We still keep a tiny ring buffer of
+  // seen tokens so we can cycle gracefully without duplicates.
   useEffect(() => {
     if (!data) return;
     const newPage: Page = {
@@ -73,32 +75,19 @@ function ResultsPage() {
       effectiveQuery: data.effectiveQuery ?? "",
       nextPageToken: data.nextPageToken ?? null,
     };
-    setPages((prev) => {
-      // If this is the first page (token undefined), reset.
-      if (!pageToken) return [newPage];
-      // Avoid double-append if React re-runs this effect with the same data
-      const last = prev[prev.length - 1];
-      if (last && last.nextPageToken === newPage.nextPageToken && last.results[0]?.videoId === newPage.results[0]?.videoId) {
-        return prev;
-      }
-      return [...prev, newPage];
-    });
-    if (!data.nextPageToken && (data.results?.length ?? 0) === 0 && pageToken) {
-      setEndReached(true);
-    }
-    if (!data.nextPageToken) setEndReached((e) => e || pages.length > 0 || (data.results?.length ?? 0) === 0);
+    setPages([newPage]);
+    if (!data.nextPageToken) setEndReached(true);
+    else setEndReached(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, pageToken]);
+  }, [data]);
 
   const allResults = useMemo(() => {
-    const seen = new Set<string>();
     const out: ResultVideo[] = [];
-    for (const p of pages) {
-      for (const r of p.results) {
-        if (seen.has(r.videoId)) continue;
-        seen.add(r.videoId);
-        out.push(r);
-      }
+    const seen = new Set<string>();
+    for (const r of pages[0]?.results ?? []) {
+      if (seen.has(r.videoId)) continue;
+      seen.add(r.videoId);
+      out.push(r);
     }
     return out;
   }, [pages]);
@@ -108,8 +97,13 @@ function ResultsPage() {
   const nextToken = lastPage?.nextPageToken ?? null;
 
   const showMore = () => {
-    if (!nextToken || isFetching) return;
-    setPageToken(nextToken);
+    if (isFetching) return;
+    if (nextToken) setPageToken(nextToken);
+    else {
+      // No more pages — restart from the top to give a fresh shuffle.
+      setPageToken(undefined);
+      refetch();
+    }
   };
 
   if (!mode || !query) return null;
