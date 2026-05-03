@@ -79,6 +79,7 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
 
   const [unavailable, setUnavailable] = useState(false);
   const [ready, setReady] = useState(false);
+  const [ended, setEnded] = useState(false);
 
   useImperativeHandle(ref, () => ({
     seekTo: (sec: number) => {
