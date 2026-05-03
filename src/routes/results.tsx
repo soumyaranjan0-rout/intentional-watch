@@ -3,9 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import { memo, useEffect, useMemo, useState } from "react";
 import { searchVideos, getPlaylistItems, type ResultPlaylist, type ResultChannel } from "@/server/youtube.functions";
 import { useSessionState } from "@/contexts/SessionStateContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { addToSystemPlaylist } from "@/lib/systemPlaylists";
 import { formatCount, formatDuration, MODES, detectMismatch, type Mode, type ResultVideo } from "@/lib/intent";
 import { ResumeBanner } from "@/components/ResumeBanner";
-import { ArrowLeft, Loader2, Search as SearchIcon, AlertCircle, ListVideo, ChevronDown, Play, ChevronRight, Users } from "lucide-react";
+import { ArrowLeft, Loader2, Search as SearchIcon, AlertCircle, ListVideo, ChevronDown, Play, ChevronRight, Users, Clock, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/results")({
   head: () => ({ meta: [{ title: "Results — ZenTube" }] }),
@@ -59,7 +62,9 @@ function ResultsPage() {
       }),
   });
 
-  // Append fresh pages, dedupe across pages
+  // REPLACE behavior: each "Show new results" click discards old set and
+  // shows the next page in its place. We still keep a tiny ring buffer of
+  // seen tokens so we can cycle gracefully without duplicates.
   useEffect(() => {
     if (!data) return;
     const newPage: Page = {
@@ -70,32 +75,19 @@ function ResultsPage() {
       effectiveQuery: data.effectiveQuery ?? "",
       nextPageToken: data.nextPageToken ?? null,
     };
-    setPages((prev) => {
-      // If this is the first page (token undefined), reset.
-      if (!pageToken) return [newPage];
-      // Avoid double-append if React re-runs this effect with the same data
-      const last = prev[prev.length - 1];
-      if (last && last.nextPageToken === newPage.nextPageToken && last.results[0]?.videoId === newPage.results[0]?.videoId) {
-        return prev;
-      }
-      return [...prev, newPage];
-    });
-    if (!data.nextPageToken && (data.results?.length ?? 0) === 0 && pageToken) {
-      setEndReached(true);
-    }
-    if (!data.nextPageToken) setEndReached((e) => e || pages.length > 0 || (data.results?.length ?? 0) === 0);
+    setPages([newPage]);
+    if (!data.nextPageToken) setEndReached(true);
+    else setEndReached(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, pageToken]);
+  }, [data]);
 
   const allResults = useMemo(() => {
-    const seen = new Set<string>();
     const out: ResultVideo[] = [];
-    for (const p of pages) {
-      for (const r of p.results) {
-        if (seen.has(r.videoId)) continue;
-        seen.add(r.videoId);
-        out.push(r);
-      }
+    const seen = new Set<string>();
+    for (const r of pages[0]?.results ?? []) {
+      if (seen.has(r.videoId)) continue;
+      seen.add(r.videoId);
+      out.push(r);
     }
     return out;
   }, [pages]);
@@ -105,8 +97,13 @@ function ResultsPage() {
   const nextToken = lastPage?.nextPageToken ?? null;
 
   const showMore = () => {
-    if (!nextToken || isFetching) return;
-    setPageToken(nextToken);
+    if (isFetching) return;
+    if (nextToken) setPageToken(nextToken);
+    else {
+      // No more pages — restart from the top to give a fresh shuffle.
+      setPageToken(undefined);
+      refetch();
+    }
   };
 
   if (!mode || !query) return null;
@@ -124,6 +121,15 @@ function ResultsPage() {
           <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-4 w-4" /> New search
           </Link>
+          <button
+            onClick={showMore}
+            disabled={isFetching || isLoading}
+            className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary transition-colors hover:bg-primary/20 disabled:opacity-50"
+            aria-label="Show new results"
+          >
+            {isFetching ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            {isFetching ? "Loading…" : "Show new results"}
+          </button>
         </div>
 
         <div className="mt-6">
@@ -197,22 +203,9 @@ function ResultsPage() {
 
             {/* Pagination footer */}
             <div className="mt-8 flex flex-col items-center gap-2">
-              {nextToken ? (
-                <button
-                  onClick={showMore}
-                  disabled={isFetching}
-                  className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-5 py-2 text-sm font-medium text-primary transition-all hover:bg-primary/20 disabled:opacity-50"
-                >
-                  {isFetching ? <Loader2 className="h-4 w-4 animate-spin" /> : <ChevronDown className="h-4 w-4" />}
-                  {isFetching ? "Loading…" : "Show more"}
-                </button>
-              ) : (
-                <div className="text-xs text-muted-foreground">
-                  {endReached || pages.length > 1 ? "No more results available" : "End of results"}
-                </div>
-              )}
               <p className="text-xs text-muted-foreground">
                 Showing {allResults.length} {allResults.length === 1 ? "video" : "videos"}
+                {endReached && nextToken === null && " · click \"Show new results\" to refresh"}
               </p>
             </div>
           </>
@@ -301,6 +294,36 @@ function ResultsList({
 const ResultCard = memo(function ResultCard({
   v, highlighted,
 }: { v: ResultVideo; highlighted?: boolean }) {
+  const { user } = useAuth();
+  const [savingWL, setSavingWL] = useState(false);
+  const [savedWL, setSavedWL] = useState(false);
+
+  const saveToWatchLater = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) {
+      toast.error("Sign in to save videos");
+      return;
+    }
+    if (savingWL || savedWL) return;
+    setSavingWL(true);
+    try {
+      const added = await addToSystemPlaylist(user.id, "watch_later", {
+        videoId: v.videoId,
+        title: v.title,
+        channel: v.channel,
+        thumbnail: v.thumbnail,
+        durationSeconds: v.durationSeconds,
+      });
+      setSavedWL(true);
+      toast.success(added ? "Added to Watch Later" : "Already in Watch Later");
+    } catch {
+      toast.error("Could not save");
+    } finally {
+      setSavingWL(false);
+    }
+  };
+
   return (
     <div className={"zen-card zen-card-hover overflow-hidden " + (highlighted ? "border-primary/40 ring-1 ring-primary/15" : "")}>
       <Link
@@ -319,6 +342,15 @@ const ResultCard = memo(function ResultCard({
             <div className="absolute bottom-2 right-2 rounded bg-background/85 px-1.5 py-0.5 text-xs text-foreground">
               {formatDuration(v.durationSeconds)}
             </div>
+            <button
+              onClick={saveToWatchLater}
+              disabled={savingWL || savedWL}
+              className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-background/90 px-2 py-1 text-[11px] font-medium text-foreground shadow-sm transition-colors hover:bg-primary hover:text-primary-foreground disabled:opacity-70"
+              aria-label="Add to Watch Later"
+            >
+              {savingWL ? <Loader2 className="h-3 w-3 animate-spin" /> : <Clock className="h-3 w-3" />}
+              {savedWL ? "Saved" : "Watch later"}
+            </button>
           </div>
           <div className="flex-1">
             {highlighted && (

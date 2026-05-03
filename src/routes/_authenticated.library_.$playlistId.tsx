@@ -7,7 +7,7 @@ import { formatDuration } from "@/lib/intent";
 import { ArrowLeft, Clock, Heart, ListVideo, Loader2, Play, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/library/$playlistId")({
+export const Route = createFileRoute("/_authenticated/library_/$playlistId")({
   head: () => ({ meta: [{ title: "Playlist — ZenTube" }] }),
   component: UserPlaylistPage,
   errorComponent: ({ error }) => (

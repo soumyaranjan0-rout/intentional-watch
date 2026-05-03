@@ -201,10 +201,25 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
         </div>
       )}
 
-      {/* Note: with modestbranding=1 + rel=0, YouTube already hides the
-          large logo and limits "More videos" to same-channel suggestions.
-          We deliberately do NOT add overlays here — they would interfere
-          with native controls (settings, CC, fullscreen). */}
+      {/* Distraction blockers — only mask non-control zones that link out to
+          youtube.com. The bottom control strip (volume / CC / settings /
+          quality / fullscreen) and the progress bar remain fully native. */}
+      {ready && !unavailable && (
+        <>
+          {/* Top title bar: clicking the video title opens youtube.com. */}
+          <div className="pointer-events-auto absolute left-0 right-0 top-0 z-10 h-12" aria-hidden />
+          {/* Bottom-right: "Watch on YouTube" logo / "More videos" pill that
+              appears on hover or at end-screen. Sits ABOVE the control bar
+              area so we keep it short (44px from bottom) and narrow so it
+              never overlaps fullscreen / settings buttons (which are inside
+              the bottom 44px control strip). */}
+          <div
+            className="pointer-events-auto absolute z-10"
+            style={{ right: 0, bottom: 44, width: 220, height: 56 }}
+            aria-hidden
+          />
+        </>
+      )}
 
       {/* Embed disabled / unavailable overlay */}
       {unavailable && (
