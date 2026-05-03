@@ -1,8 +1,10 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { getChannelDetail } from "@/server/youtube.functions";
-import { formatCount, formatDuration } from "@/lib/intent";
+import { useMemo, useState } from "react";
+import { getChannelDetail, getChannelPlaylists } from "@/server/youtube.functions";
+import { formatCount, formatDuration, type ResultVideo } from "@/lib/intent";
 import { ArrowLeft, Loader2, Users, Video as VideoIcon } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/channel/$channelId")({
   head: () => ({ meta: [{ title: "Channel — ZenTube" }] }),
@@ -12,12 +14,25 @@ export const Route = createFileRoute("/channel/$channelId")({
 function ChannelPage() {
   const { channelId } = Route.useParams();
   const router = useRouter();
+  const [tab, setTab] = useState<"home" | "videos" | "playlists">("home");
 
   const { data, isLoading } = useQuery({
     queryKey: ["channel", channelId],
     queryFn: () => getChannelDetail({ data: { channelId } }),
     staleTime: 5 * 60 * 1000,
   });
+
+  const { data: playlistData } = useQuery({
+    queryKey: ["channel-playlists", channelId],
+    queryFn: () => getChannelPlaylists({ data: { channelId } }),
+    enabled: tab === "playlists",
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const popular = useMemo(() => {
+    if (!data?.videos) return [];
+    return [...data.videos].sort((a, b) => b.viewCount - a.viewCount).slice(0, 6);
+  }, [data?.videos]);
 
   if (isLoading) {
     return (
@@ -43,15 +58,8 @@ function ChannelPage() {
 
   return (
     <div className="zen-container py-6 sm:py-8">
-      <button
-        onClick={() => router.history.back()}
-        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="h-4 w-4" /> Back
-      </button>
-
       {ch.banner && (
-        <div className="mt-4 aspect-[6/1] w-full overflow-hidden rounded-2xl bg-muted">
+        <div className="aspect-[6/1] w-full overflow-hidden rounded-2xl bg-muted">
           <img src={ch.banner} alt="" className="h-full w-full object-cover" />
         </div>
       )}
@@ -78,45 +86,92 @@ function ChannelPage() {
         </div>
       </div>
 
-      <div className="mt-8">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+      <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="mt-8">
+        <TabsList>
+          <TabsTrigger value="home">Home</TabsTrigger>
+          <TabsTrigger value="videos">Videos</TabsTrigger>
+          <TabsTrigger value="playlists">Playlists</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="home" className="mt-6">
+          <h2 className="mb-3 text-sm font-medium uppercase tracking-wider text-muted-foreground">
+            Popular uploads
+          </h2>
+          <VideoGrid videos={popular} />
+        </TabsContent>
+
+        <TabsContent value="videos" className="mt-6">
+          <h2 className="mb-3 text-sm font-medium uppercase tracking-wider text-muted-foreground">
             Latest videos
           </h2>
-          <span className="text-xs text-muted-foreground">Sorted by newest</span>
-        </div>
+          <VideoGrid videos={videos} />
+        </TabsContent>
 
-        {videos.length === 0 ? (
-          <div className="zen-card mt-4 p-6 text-sm text-muted-foreground">
-            No public videos available.
-          </div>
-        ) : (
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {videos.map((v) => (
-              <Link
-                key={v.videoId}
-                to="/watch/$videoId"
-                params={{ videoId: v.videoId }}
-                search={{ title: v.title, channel: v.channel, duration: v.durationSeconds, thumbnail: v.thumbnail, t: 0, intent: "" }}
-                className="zen-card zen-card-hover overflow-hidden"
-              >
-                <div className="relative aspect-video w-full bg-muted">
-                  {v.thumbnail && <img src={v.thumbnail} alt="" loading="lazy" className="h-full w-full object-cover" />}
-                  <div className="absolute bottom-2 right-2 rounded bg-background/85 px-1.5 py-0.5 text-xs">
-                    {formatDuration(v.durationSeconds)}
+        <TabsContent value="playlists" className="mt-6">
+          <h2 className="mb-3 text-sm font-medium uppercase tracking-wider text-muted-foreground">
+            Playlists
+          </h2>
+          {!playlistData ? (
+            <div className="flex items-center justify-center py-10 text-muted-foreground">
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading…
+            </div>
+          ) : playlistData.playlists.length === 0 ? (
+            <div className="zen-card p-6 text-sm text-muted-foreground">No public playlists.</div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {playlistData.playlists.map((p) => (
+                <Link
+                  key={p.playlistId}
+                  to="/playlist/$playlistId"
+                  params={{ playlistId: p.playlistId }}
+                  search={{ index: 0 }}
+                  className="zen-card zen-card-hover overflow-hidden"
+                >
+                  <div className="aspect-video w-full bg-muted">
+                    {p.thumbnail && <img src={p.thumbnail} alt="" loading="lazy" className="h-full w-full object-cover" />}
                   </div>
-                </div>
-                <div className="p-3">
-                  <div className="line-clamp-2 text-sm font-medium text-foreground">{v.title}</div>
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    {formatCount(v.viewCount)} views · {new Date(v.publishedAt).toLocaleDateString()}
+                  <div className="p-3">
+                    <div className="line-clamp-2 text-sm font-medium text-foreground">{p.title}</div>
+                    <div className="mt-1 text-xs text-muted-foreground">{p.itemCount} videos</div>
                   </div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+function VideoGrid({ videos }: { videos: ResultVideo[] }) {
+  if (videos.length === 0) {
+    return <div className="zen-card p-6 text-sm text-muted-foreground">No videos available.</div>;
+  }
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {videos.map((v) => (
+        <Link
+          key={v.videoId}
+          to="/watch/$videoId"
+          params={{ videoId: v.videoId }}
+          search={{ title: v.title, channel: v.channel, duration: v.durationSeconds, thumbnail: v.thumbnail, t: 0, intent: "" }}
+          className="zen-card zen-card-hover overflow-hidden"
+        >
+          <div className="relative aspect-video w-full bg-muted">
+            {v.thumbnail && <img src={v.thumbnail} alt="" loading="lazy" className="h-full w-full object-cover" />}
+            <div className="absolute bottom-2 right-2 rounded bg-background/85 px-1.5 py-0.5 text-xs">
+              {formatDuration(v.durationSeconds)}
+            </div>
           </div>
-        )}
-      </div>
+          <div className="p-3">
+            <div className="line-clamp-2 text-sm font-medium text-foreground">{v.title}</div>
+            <div className="mt-1 text-xs text-muted-foreground">
+              {formatCount(v.viewCount)} views · {new Date(v.publishedAt).toLocaleDateString()}
+            </div>
+          </div>
+        </Link>
+      ))}
     </div>
   );
 }

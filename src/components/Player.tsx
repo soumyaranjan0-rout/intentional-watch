@@ -79,6 +79,7 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
 
   const [unavailable, setUnavailable] = useState(false);
   const [ready, setReady] = useState(false);
+  const [ended, setEnded] = useState(false);
 
   useImperativeHandle(ref, () => ({
     seekTo: (sec: number) => {
@@ -139,6 +140,7 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
             if (!p || !window.YT) return;
             if (st === window.YT.PlayerState.PLAYING) {
               playingRef.current = true;
+              setEnded(false);
               if (segmentStartRef.current == null) {
                 try { segmentStartRef.current = p.getCurrentTime(); } catch {}
               }
@@ -148,6 +150,7 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
             } else if (st === window.YT.PlayerState.ENDED) {
               playingRef.current = false;
               flushSegment();
+              setEnded(true);
               onEnded?.();
             }
           },
@@ -201,24 +204,25 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
         </div>
       )}
 
-      {/* Distraction blockers — only mask non-control zones that link out to
-          youtube.com. The bottom control strip (volume / CC / settings /
-          quality / fullscreen) and the progress bar remain fully native. */}
+      {/* Distraction blockers — mask only non-control zones that link out to
+          youtube.com. The entire bottom control strip (volume, CC, settings,
+          quality, fullscreen) and the progress bar are fully native and
+          interactive. */}
       {ready && !unavailable && (
         <>
-          {/* Top title bar: clicking the video title opens youtube.com. */}
+          {/* Top title bar — clicking the video title or "Watch later" /
+              "Share" pills (top-right on hover) opens youtube.com. */}
           <div className="pointer-events-auto absolute left-0 right-0 top-0 z-10 h-12" aria-hidden />
-          {/* Bottom-right: "Watch on YouTube" logo / "More videos" pill that
-              appears on hover or at end-screen. Sits ABOVE the control bar
-              area so we keep it short (44px from bottom) and narrow so it
-              never overlaps fullscreen / settings buttons (which are inside
-              the bottom 44px control strip). */}
-          <div
-            className="pointer-events-auto absolute z-10"
-            style={{ right: 0, bottom: 44, width: 220, height: 56 }}
-            aria-hidden
-          />
         </>
+      )}
+      {/* End-screen "More videos" cards appear only after playback ends.
+          Mask the center grid then; avoid the bottom 56px control strip. */}
+      {ready && !unavailable && ended && (
+        <div
+          className="pointer-events-auto absolute z-10"
+          style={{ left: "6%", right: "6%", top: "10%", bottom: 60 }}
+          aria-hidden
+        />
       )}
 
       {/* Embed disabled / unavailable overlay */}

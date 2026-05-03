@@ -6,7 +6,6 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { SessionStateProvider } from "@/contexts/SessionStateContext";
 import { AccountMenu } from "@/components/AccountMenu";
 import { ZenLogo } from "@/components/ZenLogo";
-import { NavSearch } from "@/components/NavSearch";
 import { getLastWatched, type LastWatched } from "@/lib/lastWatched";
 import { ArrowLeft, LayoutDashboard, BookmarkIcon, StickyNote } from "lucide-react";
 
@@ -96,9 +95,9 @@ function AppShell({ children }: { children: React.ReactNode }) {
               <span className="font-semibold tracking-tight">ZenTube</span>
             </Link>
 
-            <BackToVideoButton />
+            <BackButton />
 
-            <NavSearch />
+            <BackToVideoButton />
 
             <PrimaryNav />
 
@@ -110,6 +109,31 @@ function AppShell({ children }: { children: React.ReactNode }) {
       )}
       <main className="zen-fade-in">{children}</main>
     </div>
+  );
+}
+
+/** Persistent Back button on every non-home page. Falls back to "/" when
+ *  there is no history (e.g. opened in a new tab). */
+function BackButton() {
+  const { location } = useRouterState();
+  const onHome = location.pathname === "/";
+  if (onHome) return null;
+  const goBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      window.history.back();
+    } else {
+      window.location.href = "/";
+    }
+  };
+  return (
+    <button
+      onClick={goBack}
+      className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-surface/60 px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-primary/50 hover:bg-surface"
+      aria-label="Go back"
+      title="Go back"
+    >
+      <ArrowLeft className="h-3.5 w-3.5" /> Back
+    </button>
   );
 }
 
