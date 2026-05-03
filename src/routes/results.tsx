@@ -203,22 +203,9 @@ function ResultsPage() {
 
             {/* Pagination footer */}
             <div className="mt-8 flex flex-col items-center gap-2">
-              {nextToken ? (
-                <button
-                  onClick={showMore}
-                  disabled={isFetching}
-                  className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-5 py-2 text-sm font-medium text-primary transition-all hover:bg-primary/20 disabled:opacity-50"
-                >
-                  {isFetching ? <Loader2 className="h-4 w-4 animate-spin" /> : <ChevronDown className="h-4 w-4" />}
-                  {isFetching ? "Loading…" : "Show more"}
-                </button>
-              ) : (
-                <div className="text-xs text-muted-foreground">
-                  {endReached || pages.length > 1 ? "No more results available" : "End of results"}
-                </div>
-              )}
               <p className="text-xs text-muted-foreground">
                 Showing {allResults.length} {allResults.length === 1 ? "video" : "videos"}
+                {endReached && nextToken === null && " · click \"Show new results\" to refresh"}
               </p>
             </div>
           </>
