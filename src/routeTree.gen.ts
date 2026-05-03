@@ -104,8 +104,8 @@ export interface FileRoutesByFullPath {
   '/library': typeof AuthenticatedLibraryRouteWithChildren
   '/notes': typeof AuthenticatedNotesRoute
   '/settings': typeof AuthenticatedSettingsRoute
-  '/playlist/$playlistId': typeof PlaylistPlaylistIdRoute
   '/channel/$channelId': typeof ChannelChannelIdRoute
+  '/playlist/$playlistId': typeof PlaylistPlaylistIdRoute
   '/refine/$mode': typeof RefineModeRoute
   '/watch/$videoId': typeof WatchVideoIdRoute
   '/library/$playlistId': typeof AuthenticatedLibraryPlaylistIdRoute
@@ -119,8 +119,8 @@ export interface FileRoutesByTo {
   '/library': typeof AuthenticatedLibraryRouteWithChildren
   '/notes': typeof AuthenticatedNotesRoute
   '/settings': typeof AuthenticatedSettingsRoute
-  '/playlist/$playlistId': typeof PlaylistPlaylistIdRoute
   '/channel/$channelId': typeof ChannelChannelIdRoute
+  '/playlist/$playlistId': typeof PlaylistPlaylistIdRoute
   '/refine/$mode': typeof RefineModeRoute
   '/watch/$videoId': typeof WatchVideoIdRoute
   '/library/$playlistId': typeof AuthenticatedLibraryPlaylistIdRoute
@@ -136,8 +136,8 @@ export interface FileRoutesById {
   '/_authenticated/library': typeof AuthenticatedLibraryRouteWithChildren
   '/_authenticated/notes': typeof AuthenticatedNotesRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
-  '/playlist/$playlistId': typeof PlaylistPlaylistIdRoute
   '/channel/$channelId': typeof ChannelChannelIdRoute
+  '/playlist/$playlistId': typeof PlaylistPlaylistIdRoute
   '/refine/$mode': typeof RefineModeRoute
   '/watch/$videoId': typeof WatchVideoIdRoute
   '/_authenticated/library/$playlistId': typeof AuthenticatedLibraryPlaylistIdRoute
@@ -153,8 +153,8 @@ export interface FileRouteTypes {
     | '/library'
     | '/notes'
     | '/settings'
-    | '/playlist/$playlistId'
     | '/channel/$channelId'
+    | '/playlist/$playlistId'
     | '/refine/$mode'
     | '/watch/$videoId'
     | '/library/$playlistId'
@@ -168,8 +168,8 @@ export interface FileRouteTypes {
     | '/library'
     | '/notes'
     | '/settings'
-    | '/playlist/$playlistId'
     | '/channel/$channelId'
+    | '/playlist/$playlistId'
     | '/refine/$mode'
     | '/watch/$videoId'
     | '/library/$playlistId'
@@ -184,8 +184,8 @@ export interface FileRouteTypes {
     | '/_authenticated/library'
     | '/_authenticated/notes'
     | '/_authenticated/settings'
-    | '/playlist/$playlistId'
     | '/channel/$channelId'
+    | '/playlist/$playlistId'
     | '/refine/$mode'
     | '/watch/$videoId'
     | '/_authenticated/library/$playlistId'
@@ -196,8 +196,8 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   LoginRoute: typeof LoginRoute
   ResultsRoute: typeof ResultsRoute
-  PlaylistPlaylistIdRoute: typeof PlaylistPlaylistIdRoute
   ChannelChannelIdRoute: typeof ChannelChannelIdRoute
+  PlaylistPlaylistIdRoute: typeof PlaylistPlaylistIdRoute
   RefineModeRoute: typeof RefineModeRoute
   WatchVideoIdRoute: typeof WatchVideoIdRoute
 }
@@ -341,8 +341,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   LoginRoute: LoginRoute,
   ResultsRoute: ResultsRoute,
-  PlaylistPlaylistIdRoute: PlaylistPlaylistIdRoute,
   ChannelChannelIdRoute: ChannelChannelIdRoute,
+  PlaylistPlaylistIdRoute: PlaylistPlaylistIdRoute,
   RefineModeRoute: RefineModeRoute,
   WatchVideoIdRoute: WatchVideoIdRoute,
 }
