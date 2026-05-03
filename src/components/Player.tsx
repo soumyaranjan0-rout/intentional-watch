@@ -140,6 +140,7 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
             if (!p || !window.YT) return;
             if (st === window.YT.PlayerState.PLAYING) {
               playingRef.current = true;
+              setEnded(false);
               if (segmentStartRef.current == null) {
                 try { segmentStartRef.current = p.getCurrentTime(); } catch {}
               }
@@ -149,6 +150,7 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
             } else if (st === window.YT.PlayerState.ENDED) {
               playingRef.current = false;
               flushSegment();
+              setEnded(true);
               onEnded?.();
             }
           },
