@@ -213,17 +213,16 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
           {/* Top title bar — clicking the video title or "Watch later" /
               "Share" pills (top-right on hover) opens youtube.com. */}
           <div className="pointer-events-auto absolute left-0 right-0 top-0 z-10 h-12" aria-hidden />
-          {/* End-screen "More videos" cards. They appear in a centered grid
-              roughly in the middle of the player when playback ends. Sized
-              and positioned to avoid the bottom 56px control strip and the
-              top title bar. */}
-          <div
-            className="pointer-events-auto absolute z-10"
-            style={{ left: "8%", right: "8%", top: "12%", bottom: 64 }}
-            aria-hidden
-            data-zen-endscreen-block
-          />
         </>
+      )}
+      {/* End-screen "More videos" cards appear only after playback ends.
+          Mask the center grid then; avoid the bottom 56px control strip. */}
+      {ready && !unavailable && ended && (
+        <div
+          className="pointer-events-auto absolute z-10"
+          style={{ left: "6%", right: "6%", top: "10%", bottom: 60 }}
+          aria-hidden
+        />
       )}
 
       {/* Embed disabled / unavailable overlay */}
