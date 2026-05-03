@@ -54,13 +54,15 @@ export function IntentSearchModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-3 backdrop-blur-sm sm:p-6"
+      className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm"
       onClick={onClose}
+      role="presentation"
     >
       <div
-        className="zen-card zen-fade-in w-full max-w-2xl overflow-hidden p-0 shadow-2xl"
+        className="zen-card zen-fade-in relative my-auto w-full max-w-2xl overflow-hidden p-0 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
+        aria-modal="true"
         aria-label="Choose intent"
       >
         {/* Header */}
