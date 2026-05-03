@@ -294,6 +294,36 @@ function ResultsList({
 const ResultCard = memo(function ResultCard({
   v, highlighted,
 }: { v: ResultVideo; highlighted?: boolean }) {
+  const { user } = useAuth();
+  const [savingWL, setSavingWL] = useState(false);
+  const [savedWL, setSavedWL] = useState(false);
+
+  const saveToWatchLater = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) {
+      toast.error("Sign in to save videos");
+      return;
+    }
+    if (savingWL || savedWL) return;
+    setSavingWL(true);
+    try {
+      const added = await addToSystemPlaylist(user.id, "watch_later", {
+        videoId: v.videoId,
+        title: v.title,
+        channel: v.channel,
+        thumbnail: v.thumbnail,
+        durationSeconds: v.durationSeconds,
+      });
+      setSavedWL(true);
+      toast.success(added ? "Added to Watch Later" : "Already in Watch Later");
+    } catch {
+      toast.error("Could not save");
+    } finally {
+      setSavingWL(false);
+    }
+  };
+
   return (
     <div className={"zen-card zen-card-hover overflow-hidden " + (highlighted ? "border-primary/40 ring-1 ring-primary/15" : "")}>
       <Link
@@ -312,6 +342,15 @@ const ResultCard = memo(function ResultCard({
             <div className="absolute bottom-2 right-2 rounded bg-background/85 px-1.5 py-0.5 text-xs text-foreground">
               {formatDuration(v.durationSeconds)}
             </div>
+            <button
+              onClick={saveToWatchLater}
+              disabled={savingWL || savedWL}
+              className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-background/90 px-2 py-1 text-[11px] font-medium text-foreground shadow-sm transition-colors hover:bg-primary hover:text-primary-foreground disabled:opacity-70"
+              aria-label="Add to Watch Later"
+            >
+              {savingWL ? <Loader2 className="h-3 w-3 animate-spin" /> : <Clock className="h-3 w-3" />}
+              {savedWL ? "Saved" : "Watch later"}
+            </button>
           </div>
           <div className="flex-1">
             {highlighted && (
