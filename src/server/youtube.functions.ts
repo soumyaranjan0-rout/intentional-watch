@@ -734,3 +734,44 @@ export const getChannelDetail = createServerFn({ method: "POST" })
       return { channel: null as ChannelDetail | null, videos: [] as ResultVideo[], error: "Failed to fetch" };
     }
   });
+
+// --- Channel playlists -----------------------------------------------------
+
+export const getChannelPlaylists = createServerFn({ method: "POST" })
+  .inputValidator((input: { channelId: string }) => ChannelInput.parse(input))
+  .handler(async ({ data }) => {
+    const apiKey = process.env.YOUTUBE_API_KEY;
+    if (!apiKey) return { playlists: [] as ResultPlaylist[], error: "API key missing" };
+    try {
+      const params = new URLSearchParams({
+        part: "snippet,contentDetails", channelId: data.channelId,
+        maxResults: "25", key: apiKey,
+      });
+      const res = await fetch(`${YT_BASE}/playlists?${params.toString()}`);
+      if (!res.ok) return { playlists: [], error: `playlists ${res.status}` };
+      const json = (await res.json()) as {
+        items: Array<{
+          id: string;
+          snippet: {
+            title: string; channelTitle: string; channelId: string; description: string;
+            thumbnails: { medium?: { url: string }; high?: { url: string } };
+          };
+          contentDetails: { itemCount: number };
+        }>;
+      };
+      const playlists: ResultPlaylist[] = json.items.map((it) => ({
+        playlistId: it.id,
+        title: it.snippet.title,
+        channel: it.snippet.channelTitle,
+        channelId: it.snippet.channelId,
+        description: it.snippet.description,
+        thumbnail: it.snippet.thumbnails.high?.url || it.snippet.thumbnails.medium?.url || "",
+        itemCount: it.contentDetails.itemCount,
+        reason: `${it.contentDetails.itemCount} videos`,
+      }));
+      return { playlists, error: null as string | null };
+    } catch (err) {
+      console.error("getChannelPlaylists error", err);
+      return { playlists: [] as ResultPlaylist[], error: "Failed to fetch" };
+    }
+  });
