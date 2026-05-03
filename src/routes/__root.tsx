@@ -95,9 +95,9 @@ function AppShell({ children }: { children: React.ReactNode }) {
               <span className="font-semibold tracking-tight">ZenTube</span>
             </Link>
 
-            <BackToVideoButton />
+            <BackButton />
 
-            <NavSearch />
+            <BackToVideoButton />
 
             <PrimaryNav />
 
