@@ -7,7 +7,7 @@ import { SessionStateProvider } from "@/contexts/SessionStateContext";
 import { AccountMenu } from "@/components/AccountMenu";
 import { ZenLogo } from "@/components/ZenLogo";
 import { getLastWatched, type LastWatched } from "@/lib/lastWatched";
-import { ArrowLeft, LayoutDashboard, BookmarkIcon, StickyNote } from "lucide-react";
+import { ArrowLeft, LayoutDashboard, BookmarkIcon, StickyNote, Home as HomeIcon, User as UserIcon } from "lucide-react";
 
 import appCss from "../styles.css?url";
 
@@ -35,7 +35,11 @@ export const Route = createRootRouteWithContext<RouterContext>()({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+      { name: "theme-color", content: "#0b1118" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-title", content: "ZenTube" },
       { title: "ZenTube — Watch with intent" },
       { name: "description", content: "A calm, intent-driven way to discover YouTube videos. No infinite scroll. No autoplay. Just what you came for." },
       { name: "author", content: "ZenTube" },
@@ -44,7 +48,12 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
-    links: [{ rel: "stylesheet", href: appCss }],
+    links: [
+      { rel: "stylesheet", href: appCss },
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "apple-touch-icon", href: "/icon-512.png" },
+      { rel: "icon", type: "image/png", href: "/icon-512.png" },
+    ],
   }),
   shellComponent: RootShell,
   component: RootComponent,
@@ -86,10 +95,10 @@ function AppShell({ children }: { children: React.ReactNode }) {
   const onAuthPage = location.pathname.startsWith("/login");
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background pb-16 text-foreground lg:pb-0">
       {!onAuthPage && (
         <header className="sticky top-0 z-30 border-b border-border/40 bg-background/75 backdrop-blur-xl">
-          <div className="zen-container-wide flex h-14 items-center gap-3">
+          <div className="zen-container-wide flex h-14 items-center gap-2 px-3 sm:gap-3 sm:px-6">
             <Link to="/" className="flex items-center gap-2 text-foreground transition-opacity hover:opacity-80">
               <ZenLogo size={26} />
               <span className="font-semibold tracking-tight">ZenTube</span>
@@ -101,14 +110,58 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
             <PrimaryNav />
 
-            <div className="ml-1 flex items-center gap-1">
+            <div className="ml-auto flex items-center gap-1 lg:ml-1">
               <AccountMenu />
             </div>
           </div>
         </header>
       )}
       <main className="zen-fade-in">{children}</main>
+      {!onAuthPage && <MobileTabBar />}
     </div>
+  );
+}
+
+/** Bottom tab bar for mobile / PWA — shows Home, Insights, Library, Notes, Account.
+ *  Hidden on desktop (lg+) where the top nav is used instead. */
+function MobileTabBar() {
+  const { user } = useAuth();
+  const { location } = useRouterState();
+  const path = location.pathname;
+  const onAuthPage = path.startsWith("/login");
+  if (onAuthPage) return null;
+
+  const tab = (active: boolean) =>
+    "flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors " +
+    (active ? "text-primary" : "text-muted-foreground hover:text-foreground");
+
+  return (
+    <nav
+      className="fixed inset-x-0 bottom-0 z-40 flex items-stretch border-t border-border/60 bg-background/95 backdrop-blur-xl lg:hidden"
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      aria-label="Primary"
+    >
+      <Link to="/" className={tab(path === "/")}>
+        <HomeIcon className="h-5 w-5" /> Home
+      </Link>
+      {user ? (
+        <>
+          <Link to="/dashboard" className={tab(path.startsWith("/dashboard"))}>
+            <LayoutDashboard className="h-5 w-5" /> Insights
+          </Link>
+          <Link to="/library" className={tab(path.startsWith("/library"))}>
+            <BookmarkIcon className="h-5 w-5" /> Library
+          </Link>
+          <Link to="/notes" className={tab(path.startsWith("/notes"))}>
+            <StickyNote className="h-5 w-5" /> Notes
+          </Link>
+        </>
+      ) : (
+        <Link to="/login" search={{ redirect: path }} className={tab(path.startsWith("/login"))}>
+          <UserIcon className="h-5 w-5" /> Sign in
+        </Link>
+      )}
+    </nav>
   );
 }
 

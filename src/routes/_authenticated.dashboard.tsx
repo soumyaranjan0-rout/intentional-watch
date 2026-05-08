@@ -6,7 +6,7 @@ import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie, Cell,
   CartesianGrid, AreaChart, Area, Legend,
 } from "recharts";
-import { MODES, type Mode } from "@/lib/intent";
+import { MODES, type Mode, guessCategory, inferIntentFromVideo } from "@/lib/intent";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertTriangle, Clock, Brain, Coffee, TrendingUp, Eye, Target } from "lucide-react";
 
@@ -105,14 +105,30 @@ function Dashboard() {
       value: Math.round(((byMode[m] || 0) / 60) * 10) / 10,
     })).filter((d) => d.value > 0);
 
-    // Top categories from inferred category field
+    // Top categories — derive a useful label even when DB column is empty.
+    // Priority: explicit category → guessed from title/channel → intent label.
+    const labelForRow = (r: Row): string => {
+      if (r.category && r.category.toLowerCase() !== "uncategorized") return r.category;
+      const inferred = inferIntentFromVideo({ title: r.title || "", channel: r.channel || "" });
+      if (inferred === "learn") return "Learning";
+      if (inferred === "relax") return "Entertainment";
+      const g = guessCategory(`${r.title || ""} ${r.channel || ""}`);
+      if (g === "learn") return "Learning";
+      if (g === "relax") return "Entertainment";
+      const intent = (r.final_intent || r.mode || "").toLowerCase();
+      if (intent === "learn") return "Learning";
+      if (intent === "relax") return "Entertainment";
+      if (intent === "find") return "Quick lookup";
+      if (intent === "explore") return "Exploration";
+      return "Other";
+    };
     const catCount: Record<string, number> = {};
     for (const r of rows) {
-      const k = r.category || "uncategorized";
+      const k = labelForRow(r);
       catCount[k] = (catCount[k] || 0) + (r.effective_seconds || 0);
     }
     const topCategories = Object.entries(catCount)
-      .map(([name, sec]) => ({ name, min: Math.round(sec / 60) }))
+      .map(([name, sec]) => ({ name, min: Math.max(1, Math.round(sec / 60)) }))
       .sort((a, b) => b.min - a.min)
       .slice(0, 5);
 
@@ -299,7 +315,11 @@ function Dashboard() {
                   <XAxis type="number" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
                   <YAxis type="category" dataKey="name" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} width={90} />
                   <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, color: "var(--popover-foreground)" }} formatter={(v: number) => `${v} min`} />
-                  <Bar dataKey="min" fill={CHART_COLORS.primary} radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="min" radius={[0, 6, 6, 0]}>
+                    {stats.topCategories.map((_, i) => (
+                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
