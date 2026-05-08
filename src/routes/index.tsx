@@ -46,14 +46,14 @@ function HomePage() {
   };
 
   return (
-    <div className="zen-hero-bg relative overflow-hidden">
+    <div className="zen-hero-bg relative min-h-[calc(100vh-3.5rem)] overflow-hidden">
       <div
         aria-hidden
         className="pointer-events-none absolute left-1/2 top-[-10rem] h-[36rem] w-[36rem] -translate-x-1/2 rounded-full"
         style={{ background: "radial-gradient(closest-side, color-mix(in oklab, var(--primary) 16%, transparent), transparent 70%)" }}
       />
 
-      <div className="zen-container relative py-20 sm:py-28">
+      <div className="zen-container relative px-4 py-16 sm:py-24">
         <div className="mx-auto max-w-3xl text-center">
           <div className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-border/60 bg-surface/60 px-3 py-1 text-xs text-muted-foreground backdrop-blur">
             <ZenLogo size={14} />
