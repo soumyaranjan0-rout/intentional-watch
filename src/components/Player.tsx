@@ -204,19 +204,35 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
         </div>
       )}
 
-      {/* Distraction blockers — mask only non-control zones that link out to
-          youtube.com. The entire bottom control strip (volume, CC, settings,
-          quality, fullscreen) and the progress bar are fully native and
-          interactive. */}
+      {/* Distraction blockers — mask ONLY the YouTube-branding zones:
+          the small title-bar logo on top-LEFT, the bottom-LEFT chapter / share /
+          watch-later chip cluster, and the bottom-RIGHT "More videos" pill
+          + YouTube watermark. Top-RIGHT (volume / CC / settings) and the
+          full progress bar + center play remain native and clickable. */}
       {ready && !unavailable && (
         <>
-          {/* Top title bar — clicking the video title or "Watch later" /
-              "Share" pills (top-right on hover) opens youtube.com. */}
-          <div className="pointer-events-auto absolute left-0 right-0 top-0 z-10 h-12" aria-hidden />
+          {/* Top-LEFT title strip — channel avatar + title link out. Stop ~60% across
+              so the top-right control cluster (volume/CC/settings) stays clickable. */}
+          <div
+            className="pointer-events-auto absolute left-0 top-0 z-10"
+            style={{ width: "60%", height: 48 }}
+            aria-hidden
+          />
+          {/* Bottom-LEFT cluster — share / watch-later / chapter chip */}
+          <div
+            className="pointer-events-auto absolute left-0 bottom-0 z-10"
+            style={{ width: 150, height: 50 }}
+            aria-hidden
+          />
+          {/* Bottom-RIGHT pill — "More videos" + YouTube logo */}
+          <div
+            className="pointer-events-auto absolute right-0 bottom-0 z-10"
+            style={{ width: 240, height: 50 }}
+            aria-hidden
+          />
         </>
       )}
-      {/* End-screen "More videos" cards appear only after playback ends.
-          Mask the center grid then; avoid the bottom 56px control strip. */}
+      {/* End-screen "More videos" cards — only after playback ends */}
       {ready && !unavailable && ended && (
         <div
           className="pointer-events-auto absolute z-10"

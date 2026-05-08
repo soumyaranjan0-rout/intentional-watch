@@ -373,7 +373,7 @@ function WatchPage() {
         )}
       </div>
 
-      <div className={"grid gap-6 " + (isLearning ? "lg:grid-cols-[1fr_360px]" : "")}>
+      <div className="grid gap-6">
         <div className="min-w-0">
           <Player
             ref={playerRef}
@@ -508,17 +508,20 @@ function WatchPage() {
             </div>
           )}
 
+          {/* Timestamped notes — appear BELOW the video meta for "Learn" intent */}
+          {isLearning && (
+            <div className="mt-6">
+              <NotesPanel
+                videoId={videoId}
+                videoTitle={title}
+                getCurrentSeconds={() => watchSecondsRef.current}
+                onJumpTo={(s) => playerRef.current?.seekTo(s)}
+              />
+            </div>
+          )}
+
           {ended && <EndScreen />}
         </div>
-
-        {isLearning && (
-          <NotesPanel
-            videoId={videoId}
-            videoTitle={title}
-            getCurrentSeconds={() => watchSecondsRef.current}
-            onJumpTo={(s) => playerRef.current?.seekTo(s)}
-          />
-        )}
       </div>
 
       {showSessionPrompt && (
