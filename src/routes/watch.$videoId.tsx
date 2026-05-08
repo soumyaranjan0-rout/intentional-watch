@@ -415,27 +415,33 @@ function WatchPage() {
             </div>
           ) : null}
 
-          {/* Channel row with avatar (separate from metadata) */}
-          <div className="mt-3 flex items-center gap-3">
-            {meta?.channelThumbnail ? (
-              <img
-                src={meta.channelThumbnail}
-                alt=""
-                className="h-10 w-10 shrink-0 rounded-full object-cover"
-                loading="lazy"
-              />
-            ) : (
+          {/* Channel row with avatar (clickable → channel page) */}
+          {meta?.channelId ? (
+            <Link
+              to="/channel/$channelId"
+              params={{ channelId: meta.channelId }}
+              className="mt-3 -mx-2 flex items-center gap-3 rounded-xl px-2 py-1.5 transition-colors hover:bg-accent"
+            >
+              {meta?.channelThumbnail ? (
+                <img src={meta.channelThumbnail} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" loading="lazy" />
+              ) : (
+                <div className="h-10 w-10 shrink-0 rounded-full bg-muted" />
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-medium text-foreground sm:text-base">{channelName}</div>
+                {meta?.subscriberCount ? (
+                  <div className="text-xs text-muted-foreground">{formatCount(meta.subscriberCount)} subscribers</div>
+                ) : null}
+              </div>
+            </Link>
+          ) : (
+            <div className="mt-3 flex items-center gap-3">
               <div className="h-10 w-10 shrink-0 rounded-full bg-muted" />
-            )}
-            <div className="min-w-0 flex-1">
-              <div className="text-sm font-medium text-foreground sm:text-base">{channelName}</div>
-              {meta?.subscriberCount ? (
-                <div className="text-xs text-muted-foreground">
-                  {formatCount(meta.subscriberCount)} subscribers
-                </div>
-              ) : null}
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-medium text-foreground sm:text-base">{channelName}</div>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Intent badge + override */}
           <div className="mt-3 flex flex-wrap items-center gap-2">
