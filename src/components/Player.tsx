@@ -224,19 +224,13 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
             style={{ width: 150, height: 50 }}
             aria-hidden
           />
-          {/* Bottom-RIGHT pill — "More videos" + YouTube logo.
-              The "More videos" pill expands above the control bar; we mask
-              ~380px wide and 90px tall so both the pill and watermark are
-              swallowed without touching the fullscreen / settings buttons
-              that sit just to the left of it on the control row. */}
+          {/* Bottom-RIGHT "More videos" pill that pops up while playing.
+              It floats ABOVE the control bar (~44–96px from bottom) so we
+              mask only that strip — the fullscreen button on the control
+              row (bottom 0–40px) stays fully clickable. */}
           <div
             className="pointer-events-auto absolute right-0 z-10"
-            style={{ width: 380, height: 90, bottom: 36 }}
-            aria-hidden
-          />
-          <div
-            className="pointer-events-auto absolute right-0 bottom-0 z-10"
-            style={{ width: 140, height: 36 }}
+            style={{ right: 4, bottom: 44, width: 360, height: 70 }}
             aria-hidden
           />
         </>
