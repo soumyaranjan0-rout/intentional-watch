@@ -315,7 +315,11 @@ function Dashboard() {
                   <XAxis type="number" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
                   <YAxis type="category" dataKey="name" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} width={90} />
                   <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, color: "var(--popover-foreground)" }} formatter={(v: number) => `${v} min`} />
-                  <Bar dataKey="min" fill={CHART_COLORS.primary} radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="min" radius={[0, 6, 6, 0]}>
+                    {stats.topCategories.map((_, i) => (
+                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
