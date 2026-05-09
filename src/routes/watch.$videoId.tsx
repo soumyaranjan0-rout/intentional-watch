@@ -378,7 +378,7 @@ function WatchPage() {
           <Player
             ref={playerRef}
             videoId={videoId}
-            chapterLabel={meta?.title || search.title || ""}
+            chapterLabel=""
             onProgress={handleProgress}
             onEnded={handleEnded}
             onSegmentPlayed={handleSegment}
@@ -396,55 +396,90 @@ function WatchPage() {
             {title}
           </h1>
 
-          {/* Metadata row: views · upload date · duration (YouTube-style, BELOW title, ABOVE channel) */}
-          {(meta?.viewCount || meta?.publishedAt || meta?.durationSeconds || search.duration) ? (
-            <div className="mt-1.5 flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
-              {meta?.viewCount ? <span>{formatCount(meta.viewCount)} views</span> : null}
-              {meta?.publishedAt ? (
-                <>
-                  {meta?.viewCount ? <span aria-hidden>·</span> : null}
-                  <span>{new Date(meta.publishedAt).toLocaleDateString()}</span>
-                </>
-              ) : null}
-              {(meta?.durationSeconds || search.duration) ? (
-                <>
-                  <span aria-hidden>·</span>
-                  <span>{formatDuration(meta?.durationSeconds || search.duration)}</span>
-                </>
-              ) : null}
-            </div>
-          ) : null}
-
-          {/* Channel row with avatar (clickable → channel page) */}
-          {meta?.channelId ? (
-            <Link
-              to="/channel/$channelId"
-              params={{ channelId: meta.channelId }}
-              className="mt-3 -mx-2 flex items-center gap-3 rounded-xl px-2 py-1.5 transition-colors hover:bg-accent"
-            >
-              {meta?.channelThumbnail ? (
-                <img src={meta.channelThumbnail} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" loading="lazy" />
-              ) : (
+          {/* YouTube-style row: channel info LEFT + action pill cluster RIGHT */}
+          <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            {/* Channel info */}
+            {meta?.channelId ? (
+              <Link
+                to="/channel/$channelId"
+                params={{ channelId: meta.channelId }}
+                className="-mx-2 inline-flex items-center gap-3 rounded-xl px-2 py-1.5 transition-colors hover:bg-accent"
+              >
+                {meta?.channelThumbnail ? (
+                  <img src={meta.channelThumbnail} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" loading="lazy" />
+                ) : (
+                  <div className="h-10 w-10 shrink-0 rounded-full bg-muted" />
+                )}
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-foreground sm:text-base">{channelName}</div>
+                  {meta?.subscriberCount ? (
+                    <div className="text-xs text-muted-foreground">{formatCount(meta.subscriberCount)} subscribers</div>
+                  ) : null}
+                </div>
+              </Link>
+            ) : (
+              <div className="flex items-center gap-3">
                 <div className="h-10 w-10 shrink-0 rounded-full bg-muted" />
-              )}
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-medium text-foreground sm:text-base">{channelName}</div>
-                {meta?.subscriberCount ? (
-                  <div className="text-xs text-muted-foreground">{formatCount(meta.subscriberCount)} subscribers</div>
-                ) : null}
-              </div>
-            </Link>
-          ) : (
-            <div className="mt-3 flex items-center gap-3">
-              <div className="h-10 w-10 shrink-0 rounded-full bg-muted" />
-              <div className="min-w-0 flex-1">
                 <div className="text-sm font-medium text-foreground sm:text-base">{channelName}</div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Intent badge + override */}
-          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {/* YouTube-style pill action group */}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex items-center overflow-hidden rounded-full bg-secondary">
+                <button
+                  onClick={toggleLike}
+                  className={"inline-flex items-center gap-1.5 px-3.5 py-2 text-sm transition-colors hover:bg-accent " + (liked ? "text-primary" : "text-foreground")}
+                  aria-pressed={liked}
+                >
+                  <ThumbsUp className={"h-4 w-4 " + (liked ? "fill-primary text-primary" : "")} />
+                  <span>{liked ? "Liked" : "Like"}</span>
+                </button>
+                <div className="h-5 w-px bg-border" aria-hidden />
+                <button
+                  onClick={() => sendFeedback("not_useful")}
+                  className={"inline-flex items-center px-3.5 py-2 transition-colors hover:bg-accent " + (feedback === "not_useful" ? "text-foreground" : "text-muted-foreground")}
+                  aria-label="Not useful"
+                >
+                  <ThumbsDown className={"h-4 w-4 " + (feedback === "not_useful" ? "fill-muted-foreground" : "")} />
+                </button>
+              </div>
+              <button
+                onClick={share}
+                className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3.5 py-2 text-sm text-foreground transition-colors hover:bg-accent"
+              >
+                <Share2 className="h-4 w-4" /> Share
+              </button>
+              <button
+                onClick={() => {
+                  if (!user) {
+                    toast.message("Sign in to save videos");
+                    navigate({ to: "/login", search: { redirect: window.location.pathname } });
+                    return;
+                  }
+                  setSaveOpen(true);
+                }}
+                className={"inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-sm transition-colors " +
+                  ((saved || watchLater)
+                    ? "bg-primary/15 text-primary hover:bg-primary/20"
+                    : "bg-secondary text-foreground hover:bg-accent")}
+              >
+                {(saved || watchLater) ? <BookmarkCheck className="h-4 w-4" /> : <BookmarkPlus className="h-4 w-4" />}
+                <span>{(saved || watchLater) ? "Saved" : "Save"}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* YouTube-style description card: views · date · description */}
+          <DescriptionCard
+            viewCount={meta?.viewCount}
+            publishedAt={meta?.publishedAt}
+            duration={meta?.durationSeconds || search.duration}
+            description={meta?.description || ""}
+          />
+
+          {/* Intent badge + override (compact, BELOW description) */}
+          <div className="mt-4 flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface/60 px-2.5 py-1 text-xs text-muted-foreground">
               {isLearning ? <Brain className="h-3 w-3 text-primary" /> :
                 isRelax ? <Coffee className="h-3 w-3 text-primary" /> :
@@ -473,41 +508,6 @@ function WatchPage() {
             {isExplore && <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] text-muted-foreground">Part of curated set</span>}
           </div>
 
-          {/* ACTION BAR — Like · Save (opens library modal) · Share · Not useful */}
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <ActionButton
-              onClick={toggleLike}
-              active={liked}
-              icon={<ThumbsUp className={"h-4 w-4 " + (liked ? "fill-primary text-primary" : "")} />}
-              label={liked ? "Liked" : "Like"}
-            />
-            <ActionButton
-              onClick={() => {
-                if (!user) {
-                  toast.message("Sign in to save videos");
-                  navigate({ to: "/login", search: { redirect: window.location.pathname } });
-                  return;
-                }
-                setSaveOpen(true);
-              }}
-              active={saved || watchLater}
-              icon={(saved || watchLater) ? <BookmarkCheck className="h-4 w-4" /> : <BookmarkPlus className="h-4 w-4" />}
-              label={(saved || watchLater) ? "Saved" : "Save"}
-            />
-            <ActionButton
-              onClick={share}
-              icon={<Share2 className="h-4 w-4" />}
-              label="Share"
-            />
-            <div className="mx-1 h-5 w-px bg-border" aria-hidden />
-            <ActionButton
-              onClick={() => sendFeedback("not_useful")}
-              active={feedback === "not_useful"}
-              icon={<ThumbsDown className={"h-4 w-4 " + (feedback === "not_useful" ? "fill-muted-foreground" : "")} />}
-              label="Not useful"
-              tone="muted"
-            />
-          </div>
           {feedback === "helpful" && (
             <div className="mt-2 text-xs text-muted-foreground">
               Marked helpful — thanks, this improves your recommendations.
@@ -561,28 +561,54 @@ function WatchPage() {
   );
 }
 
-function ActionButton({
-  onClick, icon, label, active, tone,
+function DescriptionCard({
+  viewCount, publishedAt, duration, description,
 }: {
-  onClick: () => void;
-  icon: React.ReactNode;
-  label: string;
-  active?: boolean;
-  tone?: "primary" | "muted";
+  viewCount?: number;
+  publishedAt?: string;
+  duration?: number;
+  description?: string;
 }) {
-  const activeCls =
-    active && tone === "primary" ? "border-primary/50 bg-primary/10 text-primary" :
-    active && tone === "muted" ? "border-border bg-accent text-foreground" :
-    active ? "border-primary/50 bg-primary/10 text-primary" :
-    "border-border bg-surface text-foreground hover:bg-accent";
+  const [expanded, setExpanded] = useState(false);
+  const hasMeta = !!(viewCount || publishedAt || duration);
+  if (!hasMeta && !description) return null;
+  const dateStr = publishedAt
+    ? new Date(publishedAt).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
+    : "";
   return (
-    <button
-      onClick={onClick}
-      className={"inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm transition-colors " + activeCls}
+    <div
+      onClick={() => !expanded && setExpanded(true)}
+      className={"mt-4 rounded-xl bg-secondary/70 px-4 py-3 text-sm text-foreground transition-colors " + (!expanded ? "cursor-pointer hover:bg-secondary" : "")}
     >
-      {icon}
-      <span>{label}</span>
-    </button>
+      <div className="flex flex-wrap items-center gap-x-2 text-sm font-medium">
+        {viewCount ? <span>{formatCount(viewCount)} views</span> : null}
+        {dateStr ? (
+          <>
+            {viewCount ? <span aria-hidden>·</span> : null}
+            <span>{dateStr}</span>
+          </>
+        ) : null}
+        {duration ? (
+          <>
+            {(viewCount || dateStr) ? <span aria-hidden>·</span> : null}
+            <span>{formatDuration(duration)}</span>
+          </>
+        ) : null}
+      </div>
+      {description ? (
+        <div className={"mt-2 whitespace-pre-wrap text-sm leading-relaxed text-foreground/90 " + (expanded ? "" : "line-clamp-2")}>
+          {description}
+        </div>
+      ) : null}
+      {description && description.length > 120 && (
+        <button
+          onClick={(e) => { e.stopPropagation(); setExpanded((v) => !v); }}
+          className="mt-2 text-xs font-medium text-foreground hover:underline"
+        >
+          {expanded ? "Show less" : "…more"}
+        </button>
+      )}
+    </div>
   );
 }
 

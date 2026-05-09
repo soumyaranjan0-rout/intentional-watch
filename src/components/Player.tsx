@@ -204,42 +204,37 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
         </div>
       )}
 
-      {/* Distraction blockers — mask ONLY the YouTube-branding zones:
-          the small title-bar logo on top-LEFT, the bottom-LEFT chapter / share /
-          watch-later chip cluster, and the bottom-RIGHT "More videos" pill
-          + YouTube watermark. Top-RIGHT (volume / CC / settings) and the
-          full progress bar + center play remain native and clickable. */}
+      {/* Distraction blockers — mask only YouTube-branding & redirect zones.
+          The bottom 0–44px (control bar: play, volume, CC, settings, time,
+          fullscreen) and the progress bar stay fully native and clickable. */}
       {ready && !unavailable && (
         <>
-          {/* Top-LEFT title strip — channel avatar + title link out. Stop ~60% across
-              so the top-right control cluster (volume/CC/settings) stays clickable. */}
+          {/* Entire TOP strip — title, channel link, watch-later, queue, share. */}
           <div
-            className="pointer-events-auto absolute left-0 top-0 z-10"
-            style={{ width: "60%", height: 48 }}
+            className="pointer-events-auto absolute inset-x-0 top-0 z-10"
+            style={{ height: 56 }}
             aria-hidden
           />
-          {/* Bottom-LEFT cluster — share / watch-later / chapter chip */}
+          {/* Bottom-RIGHT "More videos" pop-up pill (sits above the control bar). */}
           <div
-            className="pointer-events-auto absolute left-0 bottom-0 z-10"
-            style={{ width: 150, height: 50 }}
+            className="pointer-events-auto absolute z-10"
+            style={{ right: 0, bottom: 46, width: "55%", height: 80 }}
             aria-hidden
           />
-          {/* Bottom-RIGHT "More videos" pill that pops up while playing.
-              It floats ABOVE the control bar (~44–96px from bottom) so we
-              mask only that strip — the fullscreen button on the control
-              row (bottom 0–40px) stays fully clickable. */}
+          {/* Bottom-LEFT chapter chip / share-on-pause area (above control bar). */}
           <div
-            className="pointer-events-auto absolute right-0 z-10"
-            style={{ right: 4, bottom: 44, width: 360, height: 70 }}
+            className="pointer-events-auto absolute z-10"
+            style={{ left: 0, bottom: 46, width: 170, height: 60 }}
             aria-hidden
           />
         </>
       )}
-      {/* End-screen "More videos" cards — only after playback ends */}
+      {/* End-screen "More videos" cards & pause-overlay share/youtube logo —
+          mask the full center area, leaving only the control bar exposed. */}
       {ready && !unavailable && ended && (
         <div
           className="pointer-events-auto absolute z-10"
-          style={{ left: "6%", right: "6%", top: "10%", bottom: 60 }}
+          style={{ left: 0, right: 0, top: 56, bottom: 46 }}
           aria-hidden
         />
       )}
