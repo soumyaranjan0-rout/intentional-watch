@@ -8,7 +8,7 @@ import {
 } from "recharts";
 import { MODES, type Mode, guessCategory, inferIntentFromVideo } from "@/lib/intent";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle, Clock, Brain, Coffee, TrendingUp, Eye, Target } from "lucide-react";
+import { AlertTriangle, Clock, Brain, Coffee, TrendingUp, Eye, Target, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Insights — ZenTube" }] }),
