@@ -561,28 +561,54 @@ function WatchPage() {
   );
 }
 
-function ActionButton({
-  onClick, icon, label, active, tone,
+function DescriptionCard({
+  viewCount, publishedAt, duration, description,
 }: {
-  onClick: () => void;
-  icon: React.ReactNode;
-  label: string;
-  active?: boolean;
-  tone?: "primary" | "muted";
+  viewCount?: number;
+  publishedAt?: string;
+  duration?: number;
+  description?: string;
 }) {
-  const activeCls =
-    active && tone === "primary" ? "border-primary/50 bg-primary/10 text-primary" :
-    active && tone === "muted" ? "border-border bg-accent text-foreground" :
-    active ? "border-primary/50 bg-primary/10 text-primary" :
-    "border-border bg-surface text-foreground hover:bg-accent";
+  const [expanded, setExpanded] = useState(false);
+  const hasMeta = !!(viewCount || publishedAt || duration);
+  if (!hasMeta && !description) return null;
+  const dateStr = publishedAt
+    ? new Date(publishedAt).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
+    : "";
   return (
-    <button
-      onClick={onClick}
-      className={"inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm transition-colors " + activeCls}
+    <div
+      onClick={() => !expanded && setExpanded(true)}
+      className={"mt-4 rounded-xl bg-secondary/70 px-4 py-3 text-sm text-foreground transition-colors " + (!expanded ? "cursor-pointer hover:bg-secondary" : "")}
     >
-      {icon}
-      <span>{label}</span>
-    </button>
+      <div className="flex flex-wrap items-center gap-x-2 text-sm font-medium">
+        {viewCount ? <span>{formatCount(viewCount)} views</span> : null}
+        {dateStr ? (
+          <>
+            {viewCount ? <span aria-hidden>·</span> : null}
+            <span>{dateStr}</span>
+          </>
+        ) : null}
+        {duration ? (
+          <>
+            {(viewCount || dateStr) ? <span aria-hidden>·</span> : null}
+            <span>{formatDuration(duration)}</span>
+          </>
+        ) : null}
+      </div>
+      {description ? (
+        <div className={"mt-2 whitespace-pre-wrap text-sm leading-relaxed text-foreground/90 " + (expanded ? "" : "line-clamp-2")}>
+          {description}
+        </div>
+      ) : null}
+      {description && description.length > 120 && (
+        <button
+          onClick={(e) => { e.stopPropagation(); setExpanded((v) => !v); }}
+          className="mt-2 text-xs font-medium text-foreground hover:underline"
+        >
+          {expanded ? "Show less" : "…more"}
+        </button>
+      )}
+    </div>
   );
 }
 
