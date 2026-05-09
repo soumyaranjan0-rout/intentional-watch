@@ -365,6 +365,104 @@ function Dashboard() {
           </ul>
         )}
       </div>
+
+      {/* A note from your ZenTube companion — written, human recommendations */}
+      <Recommendations stats={stats} />
+    </div>
+  );
+}
+
+type StatsShape = {
+  totalEff: number; totalRaw: number; skippedSec: number; totalSeeks: number;
+  learn: number; ent: number; learnPct: number; entPct: number;
+  topChannels: [string, { videos: number; min: number }][];
+  focusScore: number; avgCompletion: number; seeksPerVideo: number; videoCount: number;
+};
+
+function Recommendations({ stats }: { stats: StatsShape }) {
+  const tips: Array<{ tone: "good" | "warn" | "info"; title: string; body: string }> = [];
+  if (stats.learnPct >= 60) {
+    tips.push({
+      tone: "good",
+      title: "You're using YouTube as a learning tool — beautiful.",
+      body: `${stats.learnPct}% of your time is on tutorials and explainers. Keep this rhythm: pick one topic this week and go deep on it instead of jumping between many.`,
+    });
+  } else if (stats.entPct >= 60) {
+    tips.push({
+      tone: "warn",
+      title: "Most of your time is going to entertainment.",
+      body: `That's okay sometimes — but ${stats.entPct}% leans heavy. Try a 70/30 rhythm: every 30 entertainment minutes, give yourself one focused learning video.`,
+    });
+  } else {
+    tips.push({
+      tone: "info",
+      title: "Your mix is balanced — learning + downtime.",
+      body: "This is a healthy pattern. Notice which sessions leave you energized vs drained, and lean toward the energizing ones.",
+    });
+  }
+  if (stats.focusScore < 0.5) {
+    tips.push({
+      tone: "warn",
+      title: "Your attention is jumping around.",
+      body: `You skip ${stats.seeksPerVideo.toFixed(1)} times per video on average. Try this: open one video, put your phone face-down, and watch the first 5 minutes without seeking. Focus is a muscle.`,
+    });
+  } else if (stats.focusScore > 0.75) {
+    tips.push({
+      tone: "good",
+      title: "You watch with intention.",
+      body: `You finish ${Math.round(stats.avgCompletion * 100)}% of videos you start and rarely seek. That's rare — most people skim. Keep guarding this attention.`,
+    });
+  }
+  const skippedPct = stats.totalRaw ? Math.round((stats.skippedSec / stats.totalRaw) * 100) : 0;
+  if (skippedPct > 35) {
+    tips.push({
+      tone: "info",
+      title: "You skip a lot of what you open.",
+      body: `${skippedPct}% of opened video time goes unwatched. Before clicking, ask: "Am I curious, or just bored?" That tiny pause changes the next 10 minutes.`,
+    });
+  }
+  if (stats.topChannels.length > 0) {
+    const [topName, topInfo] = stats.topChannels[0];
+    tips.push({
+      tone: "info",
+      title: `${topName} is shaping your feed the most.`,
+      body: `You've spent ${topInfo.min} min there across ${topInfo.videos} ${topInfo.videos === 1 ? "video" : "videos"}. Make sure that's a creator who actually moves you forward — not just one you defaulted to.`,
+    });
+  }
+  if (stats.videoCount < 5) {
+    tips.push({
+      tone: "info",
+      title: "Still getting to know you.",
+      body: "Watch a few more videos and these reflections will get sharper. ZenTube learns from what you actually finish, not just what you click.",
+    });
+  }
+
+  return (
+    <div className="mt-6 overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-primary/10 via-card to-card p-6 sm:p-7">
+      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.14em] text-primary">
+        <Sparkles className="h-3.5 w-3.5" />
+        A note from your ZenTube companion
+      </div>
+      <h2 className="mt-2 text-lg font-semibold tracking-tight text-foreground sm:text-xl">
+        Here's what we noticed about how you watch.
+      </h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Honest, human reflections — not cold metrics. Take what's useful.
+      </p>
+      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        {tips.map((t, i) => {
+          const accent =
+            t.tone === "good" ? "border-primary/30 bg-primary/5" :
+            t.tone === "warn" ? "border-destructive/30 bg-destructive/5" :
+            "border-border bg-surface/60";
+          return (
+            <div key={i} className={"rounded-xl border p-4 " + accent}>
+              <div className="text-sm font-medium text-foreground">{t.title}</div>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{t.body}</p>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
