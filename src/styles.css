@@ -129,30 +129,51 @@
     0 4px 24px -8px color-mix(in oklab, var(--accent-violet) 20%, transparent);
 }
 
-/* Light theme — quiet neutral */
+/* Light theme — Deepnote / Snyk-inspired soft gradient surface */
 .light {
-  --background: oklch(0.985 0.005 150);
-  --foreground: oklch(0.18 0.010 165);
-  --surface: oklch(0.97 0.005 150);
-  --surface-2: oklch(0.94 0.006 150);
+  --background: oklch(0.985 0.012 250);
+  --foreground: oklch(0.20 0.018 260);
+  --surface: oklch(0.975 0.014 250);
+  --surface-2: oklch(0.95 0.018 255);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.010 165);
+  --card-foreground: oklch(0.20 0.018 260);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.010 165);
-  --primary: oklch(0.50 0.085 158);
-  --primary-foreground: oklch(0.98 0.005 150);
-  --primary-soft: oklch(0.60 0.065 158);
-  --secondary: oklch(0.93 0.008 150);
-  --secondary-foreground: oklch(0.20 0.010 165);
-  --muted: oklch(0.94 0.006 150);
-  --muted-foreground: oklch(0.45 0.012 158);
-  --accent: oklch(0.92 0.02 158);
-  --accent-foreground: oklch(0.20 0.010 165);
-  --destructive: oklch(0.55 0.20 25);
-  --destructive-foreground: oklch(0.98 0.005 150);
-  --border: oklch(0.90 0.008 150);
-  --input: oklch(0.93 0.008 150);
-  --ring: oklch(0.50 0.085 158);
+  --popover-foreground: oklch(0.20 0.018 260);
+
+  /* Primary: vivid indigo-violet */
+  --primary: oklch(0.55 0.20 275);
+  --primary-foreground: oklch(0.99 0.005 250);
+  --primary-soft: oklch(0.72 0.15 275);
+
+  /* Accent gradient pair: warm pink → cool teal (deepnote-ish) */
+  --accent-violet: oklch(0.66 0.20 330);
+
+  --secondary: oklch(0.94 0.012 250);
+  --secondary-foreground: oklch(0.22 0.018 260);
+  --muted: oklch(0.95 0.012 250);
+  --muted-foreground: oklch(0.48 0.020 260);
+  --accent: oklch(0.93 0.025 280);
+  --accent-foreground: oklch(0.22 0.018 260);
+  --destructive: oklch(0.58 0.22 25);
+  --destructive-foreground: oklch(0.99 0.005 250);
+  --border: oklch(0.91 0.012 250);
+  --input: oklch(0.94 0.012 250);
+  --ring: oklch(0.55 0.20 275);
+
+  --chart-1: oklch(0.55 0.20 275);
+  --chart-2: oklch(0.66 0.20 330);
+  --chart-3: oklch(0.65 0.16 195);
+  --chart-4: oklch(0.72 0.16 70);
+  --chart-5: oklch(0.60 0.18 145);
+
+  --gradient-hero:
+    radial-gradient(ellipse 90% 55% at 20% -10%, color-mix(in oklab, var(--primary) 18%, transparent), transparent 70%),
+    radial-gradient(ellipse 80% 50% at 90% 110%, color-mix(in oklab, var(--accent-violet) 20%, transparent), transparent 65%),
+    radial-gradient(ellipse 70% 50% at 50% 60%, color-mix(in oklab, oklch(0.85 0.16 195) 14%, transparent), transparent 70%);
+  --shadow-soft: 0 1px 2px rgb(15 23 42 / 0.04), 0 8px 30px -12px rgb(15 23 42 / 0.10);
+  --shadow-glow: 0 0 0 1px color-mix(in oklab, var(--primary) 25%, transparent),
+    0 12px 40px -10px color-mix(in oklab, var(--primary) 30%, transparent),
+    0 6px 24px -8px color-mix(in oklab, var(--accent-violet) 20%, transparent);
 }
 
 @layer base {
@@ -161,6 +182,9 @@
     color: var(--color-foreground);
     min-height: 100%;
   }
+  /* Smoother taps on mobile — kill 300ms tap delay & accidental zoom */
+  html { -webkit-tap-highlight-color: transparent; }
+  button, a, [role="button"], input, select, textarea, label { touch-action: manipulation; }
   /* Ensure YouTube IFrame fills its responsive container */
   .zen-yt-mount > iframe,
   iframe[src*="youtube.com/embed"],
