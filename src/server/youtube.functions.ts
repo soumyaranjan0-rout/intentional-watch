@@ -497,12 +497,12 @@ export const searchVideos = createServerFn({ method: "POST" })
 
 // --- Playlist items ---------------------------------------------------------
 
-const PlaylistItemsInput = z.object({ playlistId: z.string().min(5).max(64) });
+const PlaylistItemsInput = z.object({ playlistId: z.string().min(5).max(64), apiKey: z.string().max(200).optional() });
 
 export const getPlaylistItems = createServerFn({ method: "POST" })
   .inputValidator((input: { playlistId: string }) => PlaylistItemsInput.parse(input))
   .handler(async ({ data }) => {
-    const apiKey = process.env.YOUTUBE_API_KEY;
+    const apiKey = data.apiKey?.trim() || process.env.YOUTUBE_API_KEY;
     if (!apiKey) return { items: [] as Array<{ videoId: string; title: string; channel: string; thumbnail: string; durationSeconds: number; position: number }>, error: "API key missing" };
     try {
       const params = new URLSearchParams({
@@ -547,7 +547,7 @@ export const getPlaylistItems = createServerFn({ method: "POST" })
 
 // --- Video metadata --------------------------------------------------------
 
-const MetaInput = z.object({ videoId: z.string().min(5).max(20) });
+const MetaInput = z.object({ videoId: z.string().min(5).max(20), apiKey: z.string().max(200).optional() });
 
 export type VideoMeta = {
   videoId: string;
@@ -567,7 +567,7 @@ export type VideoMeta = {
 export const getVideoMeta = createServerFn({ method: "POST" })
   .inputValidator((input: { videoId: string }) => MetaInput.parse(input))
   .handler(async ({ data }) => {
-    const apiKey = process.env.YOUTUBE_API_KEY;
+    const apiKey = data.apiKey?.trim() || process.env.YOUTUBE_API_KEY;
     if (!apiKey) return { meta: null as VideoMeta | null, error: "API key missing" };
 
     try {
@@ -624,7 +624,7 @@ export const getVideoMeta = createServerFn({ method: "POST" })
 
 // --- Channel detail + latest videos ----------------------------------------
 
-const ChannelInput = z.object({ channelId: z.string().min(5).max(64) });
+const ChannelInput = z.object({ channelId: z.string().min(5).max(64), apiKey: z.string().max(200).optional() });
 
 export type ChannelDetail = {
   channelId: string;
@@ -640,7 +640,7 @@ export type ChannelDetail = {
 export const getChannelDetail = createServerFn({ method: "POST" })
   .inputValidator((input: { channelId: string }) => ChannelInput.parse(input))
   .handler(async ({ data }) => {
-    const apiKey = process.env.YOUTUBE_API_KEY;
+    const apiKey = data.apiKey?.trim() || process.env.YOUTUBE_API_KEY;
     if (!apiKey) {
       return { channel: null as ChannelDetail | null, videos: [] as ResultVideo[], error: "API key missing" };
     }
@@ -741,7 +741,7 @@ export const getChannelDetail = createServerFn({ method: "POST" })
 export const getChannelPlaylists = createServerFn({ method: "POST" })
   .inputValidator((input: { channelId: string }) => ChannelInput.parse(input))
   .handler(async ({ data }) => {
-    const apiKey = process.env.YOUTUBE_API_KEY;
+    const apiKey = data.apiKey?.trim() || process.env.YOUTUBE_API_KEY;
     if (!apiKey) return { playlists: [] as ResultPlaylist[], error: "API key missing" };
     try {
       const params = new URLSearchParams({
