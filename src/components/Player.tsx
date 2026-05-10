@@ -211,7 +211,7 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
         <>
           {/* TOP title/channel strip only; keep volume, CC and settings open. */}
           <div
-            className="pointer-events-auto absolute inset-x-0 top-0 z-10"
+            className="pointer-events-auto absolute inset-x-0 top-0 z-10 bg-black/90"
             style={{ height: 56, right: 148 }}
             aria-hidden
           />
