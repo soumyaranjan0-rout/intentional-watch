@@ -204,27 +204,35 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
         </div>
       )}
 
-      {/* Distraction blockers — mask only YouTube-branding & redirect zones.
-          The bottom 0–44px (control bar: play, volume, CC, settings, time,
-          fullscreen) and the progress bar stay fully native and clickable. */}
+      {/* Distraction blockers — top-right native controls stay clickable.
+          We only intercept redirect surfaces: top title/channel strip plus
+          bottom share/watch-later/more-videos/YouTube branding surfaces. */}
       {ready && !unavailable && (
         <>
-          {/* Entire TOP strip — title, channel link, watch-later, queue, share. */}
+          {/* TOP title/channel strip only; keep volume, CC and settings open. */}
           <div
-            className="pointer-events-auto absolute inset-x-0 top-0 z-10"
-            style={{ height: 56 }}
+            className="pointer-events-auto absolute inset-x-0 top-0 z-10 bg-black/90"
+            style={{ height: 56, right: 148 }}
             aria-hidden
           />
-          {/* Bottom-RIGHT "More videos" pop-up pill (sits above the control bar). */}
+          {/* Cover the full bottom distraction shelf shown above the timeline. */}
           <div
             className="pointer-events-auto absolute z-10"
-            style={{ right: 0, bottom: 46, width: "55%", height: 80 }}
+            style={{ left: 0, right: 0, bottom: 42, height: 58 }}
             aria-hidden
           />
-          {/* Bottom-LEFT chapter chip / share-on-pause area (above control bar). */}
+          {/* Block YouTube logo / more-videos labels inside the control row, while
+              leaving play, volume, time, CC, settings and fullscreen usable. */}
           <div
             className="pointer-events-auto absolute z-10"
-            style={{ left: 0, bottom: 46, width: 170, height: 60 }}
+            style={{ right: 54, bottom: 0, width: 178, height: 42 }}
+            aria-hidden
+          />
+          {/* Block share/watch-later shortcuts at the bottom-left hover shelf,
+              but start after the native play/volume cluster. */}
+          <div
+            className="pointer-events-auto absolute z-10"
+            style={{ left: 44, bottom: 0, width: 92, height: 42 }}
             aria-hidden
           />
         </>
