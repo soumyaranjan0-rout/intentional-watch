@@ -10,6 +10,7 @@ const SearchInput = z.object({
   maxResults: z.number().int().min(3).max(15).optional(),
   variation: z.number().int().min(0).max(20).optional(),
   pageToken: z.string().max(200).optional(),
+  apiKey: z.string().max(200).optional(),
 });
 
 type Input = z.infer<typeof SearchInput>;
@@ -292,7 +293,7 @@ async function fetchTopChannelMatch(apiKey: string, rawQuery: string): Promise<R
 export const searchVideos = createServerFn({ method: "POST" })
   .inputValidator((input: Input) => SearchInput.parse(input))
   .handler(async ({ data }) => {
-    const apiKey = process.env.YOUTUBE_API_KEY;
+    const apiKey = data.apiKey?.trim() || process.env.YOUTUBE_API_KEY;
     if (!apiKey) {
       return {
         error: "YouTube API key is not configured.",
