@@ -416,13 +416,13 @@ function Dashboard() {
             <div className="flex flex-col gap-[3px] pt-[17px] text-[9px] text-muted-foreground">
               {["M","T","W","T","F","S","S"].map((d, i) => <div key={i} className="h-3 leading-3">{d}</div>)}
             </div>
-            <div className="grid grid-cols-10 gap-[3px]">
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(10, 1fr)", gap: 3, width: "100%" }}>
               {Array.from({ length: 10 }).map((_, w) => (
-                <div key={w} className="flex flex-col gap-[3px]">
+                <div key={w} className="flex flex-col" style={{ gap: 3 }}>
                   <div className="h-[13px] text-center text-[9px] leading-[13px] text-muted-foreground">W{w + 1}</div>
                   {Array.from({ length: 7 }).map((_, d) => {
                     const v = data.heat[w * 7 + d] ?? 0;
-                    return <div key={d} className="aspect-square w-full rounded-sm" style={{ background: heatColor(v) }} title={`Focus: ${v}`} />;
+                    return <div key={d} style={{ width: "100%", aspectRatio: "1 / 1", borderRadius: 3, background: heatColor(v) }} title={`Focus: ${v}`} />;
                   })}
                 </div>
               ))}
