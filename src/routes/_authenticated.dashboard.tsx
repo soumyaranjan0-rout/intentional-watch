@@ -686,9 +686,9 @@ function StripItem({ label, value, sub, valueColor, subColor, labelColor, classN
       className={"flex flex-col gap-1 border-r border-border last:border-r-0 " + className}
       style={{ paddingTop: 16, paddingBottom: 16, paddingLeft: 16, paddingRight: 16 }}
     >
-      <div className="uppercase" style={{ color: labelColor || "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.08em" }}>{label}</div>
-      <div style={{ color: valueColor || "var(--foreground)", fontSize: 22, fontWeight: 500 }}>{value}</div>
-      <div style={{ color: subColor || "var(--muted-foreground)", fontSize: 12 }}>{sub}</div>
+      <div className="uppercase" style={{ color: labelColor || "var(--muted-foreground)", fontSize: 12, fontWeight: 600, letterSpacing: "0.06em" }}>{label}</div>
+      <div style={{ color: valueColor || "var(--foreground)", fontSize: 24, fontWeight: 600 }}>{value}</div>
+      <div style={{ color: subColor || "var(--muted-foreground)", fontSize: 13 }}>{sub}</div>
     </div>
   );
 }
