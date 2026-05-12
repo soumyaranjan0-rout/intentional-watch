@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { useAuth } from "@/contexts/AuthContext";
-import { lovable } from "@/integrations/lovable";
+import { signInWithGoogle } from "@/lib/auth";
 import { Loader2, Lock } from "lucide-react";
 import { useState } from "react";
 
@@ -24,9 +24,7 @@ function AuthGate() {
     const signIn = async () => {
       setBusy(true);
       try {
-        await lovable.auth.signInWithOAuth("google", {
-          redirect_uri: window.location.origin + window.location.pathname,
-        });
+        await signInWithGoogle(window.location.pathname + window.location.search);
       } finally {
         setBusy(false);
       }
