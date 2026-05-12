@@ -50,7 +50,11 @@ export function AccountMenu() {
       });
 
       if (result?.error) {
-        toast.error(result.error.message || "Sign in failed. Please try again.");
+        const msg = result.error.message || "";
+        // Suppress benign cancellations (popup closed, redirect aborted, etc.)
+        if (!/cancel|closed|aborted|user.*denied/i.test(msg)) {
+          toast.error(msg || "Sign in failed. Please try again.");
+        }
         setBusy(false);
         return;
       }
