@@ -19,10 +19,18 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/watch/$videoId")({
-  validateSearch: (s: Record<string, unknown>) => ({
+  validateSearch: (s: Record<string, unknown>): {
+    title: string;
+    channel: string;
+    channelId?: string;
+    duration: number;
+    thumbnail: string;
+    t: number;
+    intent: string;
+  } => ({
     title: typeof s.title === "string" ? s.title : "",
     channel: typeof s.channel === "string" ? s.channel : "",
-    channelId: typeof s.channelId === "string" ? s.channelId : "",
+    ...(typeof s.channelId === "string" ? { channelId: s.channelId } : {}),
     duration: typeof s.duration === "number" ? (s.duration as number) : 0,
     thumbnail: typeof s.thumbnail === "string" ? s.thumbnail : "",
     t: typeof s.t === "number" ? (s.t as number) : 0,
