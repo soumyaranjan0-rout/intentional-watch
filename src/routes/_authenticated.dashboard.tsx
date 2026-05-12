@@ -673,8 +673,8 @@ function Card({ children, className = "" }: { children: React.ReactNode; classNa
 function CardLabel({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="mb-2 uppercase text-muted-foreground"
-      style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.08em" }}
+      className="mb-3 uppercase text-muted-foreground"
+      style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.06em", lineHeight: 1.3, whiteSpace: "normal", overflowWrap: "break-word" }}
     >
       {children}
     </div>
