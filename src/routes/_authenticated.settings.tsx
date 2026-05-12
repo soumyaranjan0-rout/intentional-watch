@@ -223,6 +223,41 @@ function SettingsPage() {
           </Field>
         </SectionGroup>
 
+        {/* YouTube API Key */}
+        <SectionGroup icon={Key} title="YouTube API key" description="Use your own key for unlimited searches. Stored locally in your browser only.">
+          <Field label="API key">
+            <div className="flex gap-2">
+              <input
+                type={showKey ? "text" : "password"}
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="AIza…"
+                spellCheck={false}
+                autoComplete="off"
+                className="flex-1 rounded-md border border-border bg-input px-3 py-2 font-mono text-sm outline-none focus:border-primary"
+              />
+              <button
+                type="button"
+                onClick={() => setShowKey((s) => !s)}
+                className="rounded-md border border-border bg-surface px-3 text-xs hover:bg-accent"
+              >
+                {showKey ? "Hide" : "Show"}
+              </button>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Don't have one?{" "}
+              <a
+                href="https://console.cloud.google.com/apis/credentials"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 text-primary hover:underline"
+              >
+                Create a free YouTube Data API v3 key <ExternalLink className="h-3 w-3" />
+              </a>
+            </p>
+          </Field>
+        </SectionGroup>
+
         {/* Privacy */}
         <SectionGroup icon={Shield} title="Privacy" description="You control your data.">
           <Toggle
