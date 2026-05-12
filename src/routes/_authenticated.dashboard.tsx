@@ -471,7 +471,7 @@ function Dashboard() {
 
         <Card>
           <CardLabel>Behaviour radar</CardLabel>
-          <div className="h-44">
+          <div style={{ width: "100%", height: 200, overflow: "hidden" }}>
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart data={data.radar}>
                 <PolarGrid stroke="var(--border)" />
@@ -522,7 +522,7 @@ function Dashboard() {
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
         <Card>
           <CardLabel>Intent drift — 8 weeks</CardLabel>
-          <div className="h-32">
+          <div style={{ width: "100%", height: 160, overflow: "hidden" }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={data.drift} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
                 <CartesianGrid stroke="var(--border)" vertical={false} />
@@ -668,13 +668,13 @@ function Header({ monthLabel, prev, next, navBtn }: { monthLabel: string; prev: 
 }
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={"rounded-2xl border border-border bg-background " + className} style={{ padding: 20 }}>{children}</div>;
+  return <div className={"rounded-2xl border border-border bg-background overflow-hidden " + className} style={{ padding: 22, minWidth: 0 }}>{children}</div>;
 }
 function CardLabel({ children }: { children: React.ReactNode }) {
   return (
     <div
       className="mb-3 uppercase text-muted-foreground"
-      style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.06em", lineHeight: 1.3, whiteSpace: "normal", overflowWrap: "break-word" }}
+      style={{ fontSize: 13, fontWeight: 600, letterSpacing: "0.06em", lineHeight: 1.3, whiteSpace: "normal", overflowWrap: "break-word" }}
     >
       {children}
     </div>
@@ -683,24 +683,24 @@ function CardLabel({ children }: { children: React.ReactNode }) {
 function StripItem({ label, value, sub, valueColor, subColor, labelColor, className = "" }: { label: string; value: string; sub: string; valueColor?: string; subColor?: string; labelColor?: string; className?: string }) {
   return (
     <div
-      className={"flex flex-col gap-1 border-r border-border last:border-r-0 " + className}
-      style={{ paddingTop: 16, paddingBottom: 16, paddingLeft: 16, paddingRight: 16 }}
+      className={"flex flex-col gap-1 border-r border-border last:border-r-0 min-w-0 " + className}
+      style={{ paddingTop: 18, paddingBottom: 18, paddingLeft: 18, paddingRight: 18 }}
     >
-      <div className="uppercase" style={{ color: labelColor || "var(--muted-foreground)", fontSize: 12, fontWeight: 600, letterSpacing: "0.06em" }}>{label}</div>
-      <div style={{ color: valueColor || "var(--foreground)", fontSize: 24, fontWeight: 600 }}>{value}</div>
-      <div style={{ color: subColor || "var(--muted-foreground)", fontSize: 13 }}>{sub}</div>
+      <div className="uppercase truncate" style={{ color: labelColor || "var(--muted-foreground)", fontSize: 13, fontWeight: 600, letterSpacing: "0.06em" }}>{label}</div>
+      <div className="truncate" style={{ color: valueColor || "var(--foreground)", fontSize: 26, fontWeight: 600 }}>{value}</div>
+      <div className="truncate" style={{ color: subColor || "var(--muted-foreground)", fontSize: 14 }}>{sub}</div>
     </div>
   );
 }
 function Kpi({ border, label, value, sub, valueColor }: { border: string; label: string; value: string; sub: string; valueColor: string }) {
   return (
     <div
-      className="rounded-2xl bg-background text-center"
+      className="rounded-2xl bg-background text-center overflow-hidden min-w-0"
       style={{ padding: 20, borderTop: `3px solid ${border}`, borderRight: "1px solid var(--border)", borderBottom: "1px solid var(--border)", borderLeft: "1px solid var(--border)" }}
     >
-      <div className="uppercase text-muted-foreground" style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.06em" }}>{label}</div>
-      <div className="mt-1" style={{ color: valueColor, fontSize: 30, fontWeight: 600 }}>{value}</div>
-      <div className="mt-1 text-muted-foreground" style={{ fontSize: 13 }}>{sub}</div>
+      <div className="uppercase text-muted-foreground truncate" style={{ fontSize: 13, fontWeight: 600, letterSpacing: "0.06em" }}>{label}</div>
+      <div className="mt-1 truncate" style={{ color: valueColor, fontSize: 32, fontWeight: 600 }}>{value}</div>
+      <div className="mt-1 text-muted-foreground truncate" style={{ fontSize: 14 }}>{sub}</div>
     </div>
   );
 }
