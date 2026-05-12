@@ -212,28 +212,18 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
               "More videos" cards. */}
       {ready && !unavailable && (
         <>
-          {/* "Share / Watch later" chrome that appears top-right on hover.
-              Sits above the top-right control cluster (volume/CC/settings)
-              which lives inside the bottom control bar — these chrome buttons
-              are at the very top, away from settings. */}
+          {/* "More videos" hover shelf — sits ABOVE the control bar. */}
           <div
             className="pointer-events-auto absolute z-10"
-            style={{ right: 0, top: 0, width: 180, height: 56 }}
+            style={{ left: 0, right: 0, bottom: 60, height: 80 }}
             aria-hidden
           />
-          {/* "More videos" hover shelf — sits ABOVE the control bar.
-              Control bar is ~48px tall; shelf appears in the 56-130px band. */}
+          {/* Bottom strip — masks share / watch-later (left), YouTube logo
+              and fullscreen (right). Height kept at 32px so the progress bar
+              (which sits above this row) stays fully clickable. */}
           <div
             className="pointer-events-auto absolute z-10"
-            style={{ left: 0, right: 0, bottom: 56, height: 80 }}
-            aria-hidden
-          />
-          {/* YouTube logo at bottom-right (between time text and fullscreen).
-              Narrow strip; height kept under the progress bar (~6px) so the
-              scrub bar stays clickable across the full width. */}
-          <div
-            className="pointer-events-auto absolute z-10"
-            style={{ right: 48, bottom: 0, width: 90, height: 38 }}
+            style={{ left: 0, right: 0, bottom: 0, height: 32 }}
             aria-hidden
           />
         </>
