@@ -204,26 +204,29 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
         </div>
       )}
 
-      {/* Distraction blockers.
-          Goals:
-            - Top controls (volume, CC, settings) stay clickable (no top mask).
-            - Progress bar stays clickable (nothing covers bottom ~48px center).
-            - Block: YouTube logo, "Share / Watch later" chrome, end-screen
-              "More videos" cards. */}
+      {/* Distraction blockers — kept narrow & targeted so the rest of the
+          native player (play button, consent dialogs, captions, settings,
+          progress bar, fullscreen) stays fully clickable.
+          Blocked: top-right "Share / Watch later", "More videos" hover
+          shelf above the control bar, and the bottom-right YouTube logo. */}
       {ready && !unavailable && (
         <>
-          {/* "More videos" hover shelf — sits ABOVE the control bar. */}
+          {/* Top-right: "Share" + "Watch later" floating buttons */}
           <div
             className="pointer-events-auto absolute z-10"
-            style={{ left: 0, right: 0, bottom: 60, height: 80 }}
+            style={{ top: 0, right: 0, width: 140, height: 56 }}
             aria-hidden
           />
-          {/* Bottom strip — masks share / watch-later (left), YouTube logo
-              and fullscreen (right). Height kept at 32px so the progress bar
-              (which sits above this row) stays fully clickable. */}
+          {/* "More videos" hover shelf — sits ABOVE the control bar */}
           <div
             className="pointer-events-auto absolute z-10"
-            style={{ left: 0, right: 0, bottom: 0, height: 32 }}
+            style={{ left: 0, right: 0, bottom: 56, height: 80 }}
+            aria-hidden
+          />
+          {/* Bottom-right: YouTube logo only (fullscreen kept clickable) */}
+          <div
+            className="pointer-events-auto absolute z-10"
+            style={{ right: 48, bottom: 0, width: 90, height: 36 }}
             aria-hidden
           />
         </>
