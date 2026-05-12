@@ -500,7 +500,7 @@ export const searchVideos = createServerFn({ method: "POST" })
 const PlaylistItemsInput = z.object({ playlistId: z.string().min(5).max(64), apiKey: z.string().max(200).optional() });
 
 export const getPlaylistItems = createServerFn({ method: "POST" })
-  .inputValidator((input: { playlistId: string }) => PlaylistItemsInput.parse(input))
+  .inputValidator((input: { playlistId: string; apiKey?: string }) => PlaylistItemsInput.parse(input))
   .handler(async ({ data }) => {
     const apiKey = data.apiKey?.trim() || process.env.YOUTUBE_API_KEY;
     if (!apiKey) return { items: [] as Array<{ videoId: string; title: string; channel: string; thumbnail: string; durationSeconds: number; position: number }>, error: "API key missing" };
@@ -565,7 +565,7 @@ export type VideoMeta = {
 };
 
 export const getVideoMeta = createServerFn({ method: "POST" })
-  .inputValidator((input: { videoId: string }) => MetaInput.parse(input))
+  .inputValidator((input: { videoId: string; apiKey?: string }) => MetaInput.parse(input))
   .handler(async ({ data }) => {
     const apiKey = data.apiKey?.trim() || process.env.YOUTUBE_API_KEY;
     if (!apiKey) return { meta: null as VideoMeta | null, error: "API key missing" };
@@ -638,7 +638,7 @@ export type ChannelDetail = {
 };
 
 export const getChannelDetail = createServerFn({ method: "POST" })
-  .inputValidator((input: { channelId: string }) => ChannelInput.parse(input))
+  .inputValidator((input: { channelId: string; apiKey?: string }) => ChannelInput.parse(input))
   .handler(async ({ data }) => {
     const apiKey = data.apiKey?.trim() || process.env.YOUTUBE_API_KEY;
     if (!apiKey) {
@@ -739,7 +739,7 @@ export const getChannelDetail = createServerFn({ method: "POST" })
 // --- Channel playlists -----------------------------------------------------
 
 export const getChannelPlaylists = createServerFn({ method: "POST" })
-  .inputValidator((input: { channelId: string }) => ChannelInput.parse(input))
+  .inputValidator((input: { channelId: string; apiKey?: string }) => ChannelInput.parse(input))
   .handler(async ({ data }) => {
     const apiKey = data.apiKey?.trim() || process.env.YOUTUBE_API_KEY;
     if (!apiKey) return { playlists: [] as ResultPlaylist[], error: "API key missing" };

@@ -11,6 +11,7 @@ import { SessionPrompt } from "@/components/SessionPrompt";
 import { SaveToLibraryModal } from "@/components/SaveToLibraryModal";
 import { addToSystemPlaylist, isInSystemPlaylist, removeFromSystemPlaylist } from "@/lib/systemPlaylists";
 import { getVideoMeta } from "@/server/youtube.functions";
+import { getStoredYouTubeApiKey } from "@/lib/youtubeApiKey";
 import { toast } from "sonner";
 import {
   ArrowLeft, BookmarkPlus, BookmarkCheck, Share2, ThumbsUp, ThumbsDown,
@@ -64,7 +65,7 @@ function WatchPage() {
 
   const { data: metaData } = useQuery({
     queryKey: ["video-meta", videoId],
-    queryFn: () => getVideoMeta({ data: { videoId } }),
+    queryFn: () => getVideoMeta({ data: { videoId, apiKey: getStoredYouTubeApiKey() } }),
     staleTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
   });

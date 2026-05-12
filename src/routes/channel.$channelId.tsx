@@ -2,6 +2,7 @@ import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { getChannelDetail, getChannelPlaylists } from "@/server/youtube.functions";
+import { getStoredYouTubeApiKey } from "@/lib/youtubeApiKey";
 import { formatCount, formatDuration, type ResultVideo } from "@/lib/intent";
 import { ArrowLeft, Loader2, Users, Video as VideoIcon } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -18,13 +19,13 @@ function ChannelPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ["channel", channelId],
-    queryFn: () => getChannelDetail({ data: { channelId } }),
+    queryFn: () => getChannelDetail({ data: { channelId, apiKey: getStoredYouTubeApiKey() } }),
     staleTime: 5 * 60 * 1000,
   });
 
   const { data: playlistData } = useQuery({
     queryKey: ["channel-playlists", channelId],
-    queryFn: () => getChannelPlaylists({ data: { channelId } }),
+    queryFn: () => getChannelPlaylists({ data: { channelId, apiKey: getStoredYouTubeApiKey() } }),
     enabled: tab === "playlists",
     staleTime: 5 * 60 * 1000,
   });
