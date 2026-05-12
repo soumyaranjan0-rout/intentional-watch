@@ -212,7 +212,7 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
           progress bar, fullscreen) stays fully clickable.
           Blocked: top-right "Share / Watch later", "More videos" hover
           shelf above the control bar, and the bottom-right YouTube logo. */}
-      {ready && !unavailable && (
+      {ready && !unavailable && hasPlayed && (
         <>
           {/* Top-right: "Share" + "Watch later" floating buttons */}
           <div
@@ -220,20 +220,16 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
             style={{ top: 0, right: 0, width: 140, height: 56 }}
             aria-hidden
           />
-          {hasPlayed && (
-            <div
-              className="pointer-events-auto absolute z-10"
-              style={{ left: 0, right: 0, bottom: 56, height: 80 }}
-              aria-hidden
-            />
-          )}
-          {hasPlayed && (
-            <div
-              className="pointer-events-auto absolute z-10"
-              style={{ right: 48, bottom: 0, width: 90, height: 36 }}
-              aria-hidden
-            />
-          )}
+          <div
+            className="pointer-events-auto absolute z-10"
+            style={{ left: 0, right: 0, bottom: 56, height: 80 }}
+            aria-hidden
+          />
+          <div
+            className="pointer-events-auto absolute z-10"
+            style={{ right: 48, bottom: 0, width: 90, height: 36 }}
+            aria-hidden
+          />
         </>
       )}
       {/* End-screen "More videos" cards + share grid — mask the entire video
