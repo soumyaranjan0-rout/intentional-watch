@@ -80,6 +80,7 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
   const [unavailable, setUnavailable] = useState(false);
   const [ready, setReady] = useState(false);
   const [ended, setEnded] = useState(false);
+  const [hasPlayed, setHasPlayed] = useState(false);
 
   useImperativeHandle(ref, () => ({
     seekTo: (sec: number) => {
@@ -110,6 +111,7 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
     let destroyed = false;
     setReady(false);
     setUnavailable(false);
+    setHasPlayed(false);
     segmentStartRef.current = null;
     playingRef.current = false;
 
@@ -140,6 +142,7 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
             if (!p || !window.YT) return;
             if (st === window.YT.PlayerState.PLAYING) {
               playingRef.current = true;
+              setHasPlayed(true);
               setEnded(false);
               if (segmentStartRef.current == null) {
                 try { segmentStartRef.current = p.getCurrentTime(); } catch {}
@@ -217,12 +220,13 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
             style={{ top: 0, right: 0, width: 140, height: 56 }}
             aria-hidden
           />
-          {/* "More videos" hover shelf — sits ABOVE the control bar */}
-          <div
-            className="pointer-events-auto absolute z-10"
-            style={{ left: 0, right: 0, bottom: 56, height: 80 }}
-            aria-hidden
-          />
+          {hasPlayed && (
+            <div
+              className="pointer-events-auto absolute z-10"
+              style={{ left: 0, right: 0, bottom: 56, height: 80 }}
+              aria-hidden
+            />
+          )}
           {/* Bottom-right: YouTube logo only (fullscreen kept clickable) */}
           <div
             className="pointer-events-auto absolute z-10"
