@@ -673,8 +673,8 @@ function Card({ children, className = "" }: { children: React.ReactNode; classNa
 function CardLabel({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="mb-2 uppercase text-muted-foreground"
-      style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.08em" }}
+      className="mb-3 uppercase text-muted-foreground"
+      style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.06em", lineHeight: 1.3, whiteSpace: "normal", overflowWrap: "break-word" }}
     >
       {children}
     </div>
@@ -686,9 +686,9 @@ function StripItem({ label, value, sub, valueColor, subColor, labelColor, classN
       className={"flex flex-col gap-1 border-r border-border last:border-r-0 " + className}
       style={{ paddingTop: 16, paddingBottom: 16, paddingLeft: 16, paddingRight: 16 }}
     >
-      <div className="uppercase" style={{ color: labelColor || "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.08em" }}>{label}</div>
-      <div style={{ color: valueColor || "var(--foreground)", fontSize: 22, fontWeight: 500 }}>{value}</div>
-      <div style={{ color: subColor || "var(--muted-foreground)", fontSize: 12 }}>{sub}</div>
+      <div className="uppercase" style={{ color: labelColor || "var(--muted-foreground)", fontSize: 12, fontWeight: 600, letterSpacing: "0.06em" }}>{label}</div>
+      <div style={{ color: valueColor || "var(--foreground)", fontSize: 24, fontWeight: 600 }}>{value}</div>
+      <div style={{ color: subColor || "var(--muted-foreground)", fontSize: 13 }}>{sub}</div>
     </div>
   );
 }
@@ -698,9 +698,9 @@ function Kpi({ border, label, value, sub, valueColor }: { border: string; label:
       className="rounded-2xl bg-background text-center"
       style={{ padding: 20, borderTop: `3px solid ${border}`, borderRight: "1px solid var(--border)", borderBottom: "1px solid var(--border)", borderLeft: "1px solid var(--border)" }}
     >
-      <div className="uppercase text-muted-foreground" style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.08em" }}>{label}</div>
-      <div className="mt-1" style={{ color: valueColor, fontSize: 28, fontWeight: 500 }}>{value}</div>
-      <div className="mt-1 text-muted-foreground" style={{ fontSize: 12 }}>{sub}</div>
+      <div className="uppercase text-muted-foreground" style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.06em" }}>{label}</div>
+      <div className="mt-1" style={{ color: valueColor, fontSize: 30, fontWeight: 600 }}>{value}</div>
+      <div className="mt-1 text-muted-foreground" style={{ fontSize: 13 }}>{sub}</div>
     </div>
   );
 }
