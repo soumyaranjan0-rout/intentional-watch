@@ -383,13 +383,33 @@ function Dashboard() {
         <Kpi border={COLORS.mint} label="streak" value={`${data.streak} day${data.streak === 1 ? "" : "s"}`} sub="learn-something cadence" valueColor={COLORS.mint} />
       </div>
 
+      {/* Intent strip */}
+      <div
+        className="mt-5 grid grid-cols-2 overflow-hidden border border-border bg-background sm:grid-cols-5"
+        style={{ borderRadius: 14 }}
+      >
+        <StripItem label="All-time watched" value={fmtMin(data.totalAll)} sub="since you joined" />
+        <StripItem label="Learning" value={fmtMin(data.learn)} sub={`${data.learnPct}% of watch time`} valueColor={COLORS.learn} subColor="#0F6E56" labelColor="#085041" />
+        <StripItem label="Entertainment" value={fmtMin(data.ent)} sub={`${data.entPct}% of watch time`} valueColor={COLORS.ent} subColor="#993556" labelColor="#72243E" />
+        <StripItem label="Quick lookup" value={fmtMin(data.find)} sub={`${data.findPct}% of watch time`} valueColor={COLORS.amber} subColor="#854F0B" labelColor="#633806" />
+        <StripItem label="This month" value={fmtMin(data.monthEff)} sub={`${data.monthVideos} videos`} className="col-span-2 sm:col-span-1" />
+      </div>
+
+      {/* KPI tiles */}
+      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Kpi border={COLORS.learn} label="watched" value={fmtMin(data.monthEff)} sub={`of ${fmtMin(data.monthRaw)} opened`} valueColor={COLORS.learn} />
+        <Kpi border={COLORS.warn} label="completion" value={`${data.completionPct}%`} sub={`${data.finished} of ${data.monthVideos} finished`} valueColor={COLORS.warn} />
+        <Kpi border={COLORS.amber} label="focus score" value={String(data.focus)} sub={`/ 100 · ${data.focusLabel}`} valueColor={COLORS.amber} />
+        <Kpi border={COLORS.mint} label="streak" value={`${data.streak} day${data.streak === 1 ? "" : "s"}`} sub="learn-something cadence" valueColor={COLORS.mint} />
+      </div>
+
       {/* Stacked area + Heatmap */}
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
         <Card>
           <CardLabel>Stacked intent — daily minutes</CardLabel>
-          <div className="h-40">
+          <div style={{ width: "100%", height: 160, overflow: "hidden" }}>
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data.days14} margin={{ top: 6, right: 6, left: -24, bottom: 0 }}>
+              <AreaChart data={data.days14} margin={{ top: 5, right: 8, left: -20, bottom: 0 }}>
                 <CartesianGrid stroke="var(--border)" vertical={false} />
                 <XAxis dataKey="day" stroke="var(--muted-foreground)" fontSize={10} tickLine={false} axisLine={false} />
                 <YAxis stroke="var(--muted-foreground)" fontSize={10} tickLine={false} axisLine={false} width={32} />
