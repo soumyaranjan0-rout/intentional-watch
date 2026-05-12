@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useAuth } from "@/contexts/AuthContext";
-import { lovable } from "@/integrations/lovable";
+import { signInWithGoogle } from "@/lib/auth";
 import { toast } from "sonner";
 import {
   User as UserIcon, LogOut, History, Settings, RefreshCcw, LogIn,
@@ -38,16 +38,7 @@ export function AccountMenu() {
     setBusy(true);
     setOpen(false);
     try {
-      // Remember where to land after the OAuth round-trip.
-      try {
-        sessionStorage.setItem("zen:postLoginPath", location.pathname + location.search);
-      } catch { /* storage may be unavailable */ }
-
-      const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
-        // Always show the account chooser — users expect to pick the Gmail.
-        extraParams: { prompt: "select_account" },
-      });
+      const result = await signInWithGoogle(location.pathname + location.search);
 
       if (result?.error) {
         const msg = result.error.message || "";
@@ -215,10 +206,7 @@ export function GuestSignInHint() {
     if (busy) return;
     setBusy(true);
     try {
-      const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
-        extraParams: { prompt: "select_account" },
-      });
+      const result = await signInWithGoogle();
       if (result?.error) {
         toast.error(result.error.message || "Sign in failed");
       }
