@@ -715,7 +715,12 @@ function lastSevenDayLabels() {
   return out.reverse(); // streak counts back from today
 }
 
-function buildTips(d: NonNullable<ReturnType<typeof useDashboardDataDummy>>) {
+type TipShape = {
+  completionPct: number; monthVideos: number; finished: number;
+  peakIdx: number; learnDelta: number; seeksPerVideo: number;
+};
+
+function buildTips(d: TipShape) {
   const tips: { color: string; title: string; body: string }[] = [];
   if (d.completionPct < 30 && d.monthVideos >= 3) {
     tips.push({
@@ -753,12 +758,4 @@ function buildTips(d: NonNullable<ReturnType<typeof useDashboardDataDummy>>) {
     });
   }
   return tips.slice(0, 3);
-}
-
-// helper just to type buildTips off the inferred shape
-function useDashboardDataDummy() {
-  return null as unknown as {
-    completionPct: number; monthVideos: number; finished: number;
-    peakIdx: number; learnDelta: number; seeksPerVideo: number;
-  };
 }
