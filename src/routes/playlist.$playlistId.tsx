@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { getPlaylistItems, getVideoMeta } from "@/server/youtube.functions";
+import { getStoredYouTubeApiKey } from "@/lib/youtubeApiKey";
 import { Player, type PlayerHandle } from "@/components/Player";
 import { NotesPanel } from "@/components/NotesPanel";
 import { SaveToLibraryModal } from "@/components/SaveToLibraryModal";
@@ -61,7 +62,7 @@ function PlaylistPage() {
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["playlist-page", playlistId],
-    queryFn: () => getPlaylistItems({ data: { playlistId } }),
+    queryFn: () => getPlaylistItems({ data: { playlistId, apiKey: getStoredYouTubeApiKey() } }),
     staleTime: 10 * 60 * 1000,
     retry: 1,
   });
@@ -143,7 +144,7 @@ function PlaylistViewer({
 
   const { data: metaData } = useQuery({
     queryKey: ["video-meta", videoId],
-    queryFn: () => getVideoMeta({ data: { videoId } }),
+    queryFn: () => getVideoMeta({ data: { videoId, apiKey: getStoredYouTubeApiKey() } }),
     staleTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
