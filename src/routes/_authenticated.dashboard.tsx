@@ -624,11 +624,20 @@ function Dashboard() {
       {/* Three things */}
       <Card className="mt-3">
         <div className="mb-3 text-sm font-medium text-foreground">Three things your data is saying</div>
-        <div className="grid gap-2 sm:grid-cols-3">
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 12 }}>
           {tips.map((t, i) => (
-            <div key={i} className="rounded-xl bg-surface p-3 border-l-[3px]" style={{ borderLeftColor: t.color }}>
-              <div className="text-xs font-medium text-foreground">{t.title}</div>
-              <div className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{t.body}</div>
+            <div
+              key={i}
+              style={{
+                borderRadius: 10,
+                padding: 14,
+                background: t.bg || "var(--muted)",
+                borderLeft: `3px solid ${t.color}`,
+                minHeight: 100,
+              }}
+            >
+              <div className="text-xs font-medium" style={{ color: t.titleColor || "var(--foreground)" }}>{t.title}</div>
+              <div className="mt-1 text-[11px] leading-relaxed" style={{ color: t.bodyColor || "var(--muted-foreground)" }}>{t.body}</div>
             </div>
           ))}
         </div>
