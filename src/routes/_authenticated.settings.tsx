@@ -4,8 +4,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { MODES, type Mode } from "@/lib/intent";
 import { toast } from "sonner";
-import { User, Clock, Palette, Shield, LogOut, Trash2, Mail } from "lucide-react";
+import { User, Clock, Palette, Shield, LogOut, Trash2, Mail, Key, ExternalLink } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getStoredYouTubeApiKey, setStoredYouTubeApiKey } from "@/lib/youtubeApiKey";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({ meta: [{ title: "Settings — ZenTube" }] }),
@@ -25,6 +26,8 @@ function SettingsPage() {
   const [displayName, setDisplayName] = useState("");
   const [saving, setSaving] = useState(false);
   const [sessionReminders, setSessionReminders] = useState(true);
+  const [apiKey, setApiKey] = useState("");
+  const [showKey, setShowKey] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -56,6 +59,7 @@ function SettingsPage() {
 
     try {
       setSessionReminders(localStorage.getItem("zen.sessionReminders") !== "off");
+      setApiKey(getStoredYouTubeApiKey());
     } catch {}
   }, [user]);
 
@@ -92,6 +96,7 @@ function SettingsPage() {
     ]);
     try {
       localStorage.setItem("zen.sessionReminders", sessionReminders ? "on" : "off");
+      setStoredYouTubeApiKey(apiKey);
     } catch {}
     setSaving(false);
     if (pErr || pfErr) {
