@@ -397,7 +397,7 @@ function PlaylistCard({ p }: { p: ResultPlaylist }) {
   const [open, setOpen] = useState(false);
   const { data, isFetching } = useQuery({
     queryKey: ["playlist-items", p.playlistId],
-    queryFn: () => getPlaylistItems({ data: { playlistId: p.playlistId } }),
+    queryFn: () => getPlaylistItems({ data: { playlistId: p.playlistId, apiKey: getStoredYouTubeApiKey() } }),
     enabled: open,
     staleTime: 10 * 60 * 1000,
   });
