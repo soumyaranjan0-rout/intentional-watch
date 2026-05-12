@@ -227,12 +227,13 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
               aria-hidden
             />
           )}
-          {/* Bottom-right: YouTube logo only (fullscreen kept clickable) */}
-          <div
-            className="pointer-events-auto absolute z-10"
-            style={{ right: 48, bottom: 0, width: 90, height: 36 }}
-            aria-hidden
-          />
+          {hasPlayed && (
+            <div
+              className="pointer-events-auto absolute z-10"
+              style={{ right: 48, bottom: 0, width: 90, height: 36 }}
+              aria-hidden
+            />
+          )}
         </>
       )}
       {/* End-screen "More videos" cards + share grid — mask the entire video
