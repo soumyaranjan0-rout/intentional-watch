@@ -331,7 +331,7 @@ const ResultCard = memo(function ResultCard({
       <Link
         to="/watch/$videoId"
         params={{ videoId: v.videoId }}
-        search={{ title: v.title, channel: v.channel, duration: v.durationSeconds, thumbnail: v.thumbnail, t: 0, intent: "" }}
+        search={{ title: v.title, channel: v.channel, channelId: v.channelId, duration: v.durationSeconds, thumbnail: v.thumbnail, t: 0, intent: "" }}
         className="block"
       >
         <div className="flex flex-col gap-4 p-4 sm:flex-row sm:p-5">
