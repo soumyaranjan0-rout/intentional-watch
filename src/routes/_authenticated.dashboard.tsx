@@ -668,26 +668,39 @@ function Header({ monthLabel, prev, next, navBtn }: { monthLabel: string; prev: 
 }
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={"rounded-2xl border border-border bg-background p-4 sm:p-5 " + className}>{children}</div>;
+  return <div className={"rounded-2xl border border-border bg-background " + className} style={{ padding: 20 }}>{children}</div>;
 }
 function CardLabel({ children }: { children: React.ReactNode }) {
-  return <div className="mb-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{children}</div>;
+  return (
+    <div
+      className="mb-2 uppercase text-muted-foreground"
+      style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.08em" }}
+    >
+      {children}
+    </div>
+  );
 }
 function StripItem({ label, value, sub, valueColor, subColor, labelColor, className = "" }: { label: string; value: string; sub: string; valueColor?: string; subColor?: string; labelColor?: string; className?: string }) {
   return (
-    <div className={"flex flex-col gap-1 border-r border-border p-3 last:border-r-0 " + className}>
-      <div className="text-[10px] font-medium uppercase tracking-wider" style={{ color: labelColor || "var(--muted-foreground)" }}>{label}</div>
-      <div className="text-xl font-medium" style={{ color: valueColor || "var(--foreground)" }}>{value}</div>
-      <div className="text-[11px]" style={{ color: subColor || "var(--muted-foreground)" }}>{sub}</div>
+    <div
+      className={"flex flex-col gap-1 border-r border-border last:border-r-0 " + className}
+      style={{ paddingTop: 16, paddingBottom: 16, paddingLeft: 16, paddingRight: 16 }}
+    >
+      <div className="uppercase" style={{ color: labelColor || "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.08em" }}>{label}</div>
+      <div style={{ color: valueColor || "var(--foreground)", fontSize: 22, fontWeight: 500 }}>{value}</div>
+      <div style={{ color: subColor || "var(--muted-foreground)", fontSize: 12 }}>{sub}</div>
     </div>
   );
 }
 function Kpi({ border, label, value, sub, valueColor }: { border: string; label: string; value: string; sub: string; valueColor: string }) {
   return (
-    <div className="rounded-2xl bg-background p-4 text-center" style={{ borderTop: `3px solid ${border}`, borderRight: "1px solid var(--border)", borderBottom: "1px solid var(--border)", borderLeft: "1px solid var(--border)" }}>
-      <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{label}</div>
-      <div className="mt-1 text-2xl font-medium" style={{ color: valueColor }}>{value}</div>
-      <div className="mt-1 text-[11px] text-muted-foreground">{sub}</div>
+    <div
+      className="rounded-2xl bg-background text-center"
+      style={{ padding: 20, borderTop: `3px solid ${border}`, borderRight: "1px solid var(--border)", borderBottom: "1px solid var(--border)", borderLeft: "1px solid var(--border)" }}
+    >
+      <div className="uppercase text-muted-foreground" style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.08em" }}>{label}</div>
+      <div className="mt-1" style={{ color: valueColor, fontSize: 28, fontWeight: 500 }}>{value}</div>
+      <div className="mt-1 text-muted-foreground" style={{ fontSize: 12 }}>{sub}</div>
     </div>
   );
 }
