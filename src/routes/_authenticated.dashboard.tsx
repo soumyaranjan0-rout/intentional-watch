@@ -698,9 +698,9 @@ function Kpi({ border, label, value, sub, valueColor }: { border: string; label:
       className="rounded-2xl bg-background text-center"
       style={{ padding: 20, borderTop: `3px solid ${border}`, borderRight: "1px solid var(--border)", borderBottom: "1px solid var(--border)", borderLeft: "1px solid var(--border)" }}
     >
-      <div className="uppercase text-muted-foreground" style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.08em" }}>{label}</div>
-      <div className="mt-1" style={{ color: valueColor, fontSize: 28, fontWeight: 500 }}>{value}</div>
-      <div className="mt-1 text-muted-foreground" style={{ fontSize: 12 }}>{sub}</div>
+      <div className="uppercase text-muted-foreground" style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.06em" }}>{label}</div>
+      <div className="mt-1" style={{ color: valueColor, fontSize: 30, fontWeight: 600 }}>{value}</div>
+      <div className="mt-1 text-muted-foreground" style={{ fontSize: 13 }}>{sub}</div>
     </div>
   );
 }
