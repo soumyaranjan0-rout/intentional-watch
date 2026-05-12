@@ -204,34 +204,46 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
         </div>
       )}
 
-      {/* Distraction blockers — leave top fully visible (no black cover) and
-          keep the entire bottom control strip + progress bar clickable.
-          We only mask the YouTube logo and the "More videos" shelf that
-          appears above the control bar on hover. */}
+      {/* Distraction blockers.
+          Goals:
+            - Top controls (volume, CC, settings) stay clickable (no top mask).
+            - Progress bar stays clickable (nothing covers bottom ~48px center).
+            - Block: YouTube logo, "Share / Watch later" chrome, end-screen
+              "More videos" cards. */}
       {ready && !unavailable && (
         <>
-          {/* "More videos" hover shelf — sits above the progress bar.
-              Stop ~12px above the control bar so the progress bar stays clickable. */}
+          {/* "Share / Watch later" chrome that appears top-right on hover.
+              Sits above the top-right control cluster (volume/CC/settings)
+              which lives inside the bottom control bar — these chrome buttons
+              are at the very top, away from settings. */}
           <div
             className="pointer-events-auto absolute z-10"
-            style={{ left: 0, right: 0, bottom: 60, height: 40 }}
+            style={{ right: 0, top: 0, width: 180, height: 56 }}
             aria-hidden
           />
-          {/* YouTube logo cluster at bottom-right (between the time text and
-              the fullscreen button). Narrow band so it doesn't eat settings/CC. */}
+          {/* "More videos" hover shelf — sits ABOVE the control bar.
+              Control bar is ~48px tall; shelf appears in the 56-130px band. */}
           <div
             className="pointer-events-auto absolute z-10"
-            style={{ right: 54, bottom: 0, width: 90, height: 38 }}
+            style={{ left: 0, right: 0, bottom: 56, height: 80 }}
+            aria-hidden
+          />
+          {/* YouTube logo at bottom-right (between time text and fullscreen).
+              Narrow strip; height kept under the progress bar (~6px) so the
+              scrub bar stays clickable across the full width. */}
+          <div
+            className="pointer-events-auto absolute z-10"
+            style={{ right: 48, bottom: 0, width: 90, height: 38 }}
             aria-hidden
           />
         </>
       )}
-      {/* End-screen "More videos" cards — mask center, leave control bar +
-          progress bar exposed. */}
+      {/* End-screen "More videos" cards + share grid — mask the entire video
+          area but leave the bottom control bar (incl. progress bar) exposed. */}
       {ready && !unavailable && ended && (
         <div
           className="pointer-events-auto absolute z-10"
-          style={{ left: 0, right: 0, top: 0, bottom: 60 }}
+          style={{ left: 0, right: 0, top: 0, bottom: 48 }}
           aria-hidden
         />
       )}

@@ -313,8 +313,14 @@ function Dashboard() {
     const learn4w = drift[Math.max(0, drift.length - 5)]?.learn ?? 0;
     const learnDelta = learnNow - learn4w;
 
+    const videosFinished = rows.filter(
+      (r) => r.duration_seconds && (r.effective_seconds || 0) >= (r.duration_seconds || 0) * 0.85,
+    ).length;
+    const skippedSec = Math.max(0, monthRaw - monthEff);
+    const skippedPct = monthRaw ? Math.round((skippedSec / monthRaw) * 100) : 0;
+
     return {
-      totalAll, monthEff, monthRaw, monthVideos,
+      totalAll, monthEff, monthRaw, monthVideos, videoCount: monthVideos, videosFinished, skippedSec, skippedPct, totalEff: monthEff,
       learn, ent, find, learnPct, entPct, findPct,
       completionPct, finished, focus, focusLabel, streak, todayHasLearn,
       days14, heat, hourMin, hourLearnMin, peakIdx, focusWindow,
@@ -361,7 +367,10 @@ function Dashboard() {
       <Header monthLabel={monthLabel} prev={goPrev} next={goNext} navBtn={navBtn} />
 
       {/* Intent strip */}
-      <div className="mt-5 grid grid-cols-2 overflow-hidden rounded-2xl border border-border bg-background sm:grid-cols-5">
+      <div
+        className="mt-5 grid grid-cols-2 overflow-hidden border border-border bg-background sm:grid-cols-5"
+        style={{ borderRadius: 14 }}
+      >
         <StripItem label="All-time watched" value={fmtMin(data.totalAll)} sub="since you joined" />
         <StripItem label="Learning" value={fmtMin(data.learn)} sub={`${data.learnPct}% of watch time`} valueColor={COLORS.learn} subColor="#0F6E56" labelColor="#085041" />
         <StripItem label="Entertainment" value={fmtMin(data.ent)} sub={`${data.entPct}% of watch time`} valueColor={COLORS.ent} subColor="#993556" labelColor="#72243E" />
@@ -381,9 +390,9 @@ function Dashboard() {
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
         <Card>
           <CardLabel>Stacked intent — daily minutes</CardLabel>
-          <div className="h-40">
+          <div style={{ width: "100%", height: 160, overflow: "hidden" }}>
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data.days14} margin={{ top: 6, right: 6, left: -24, bottom: 0 }}>
+              <AreaChart data={data.days14} margin={{ top: 5, right: 8, left: -20, bottom: 0 }}>
                 <CartesianGrid stroke="var(--border)" vertical={false} />
                 <XAxis dataKey="day" stroke="var(--muted-foreground)" fontSize={10} tickLine={false} axisLine={false} />
                 <YAxis stroke="var(--muted-foreground)" fontSize={10} tickLine={false} axisLine={false} width={32} />
@@ -407,13 +416,13 @@ function Dashboard() {
             <div className="flex flex-col gap-[3px] pt-[17px] text-[9px] text-muted-foreground">
               {["M","T","W","T","F","S","S"].map((d, i) => <div key={i} className="h-3 leading-3">{d}</div>)}
             </div>
-            <div className="grid grid-cols-10 gap-[3px]">
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(10, 1fr)", gap: 3, width: "100%" }}>
               {Array.from({ length: 10 }).map((_, w) => (
-                <div key={w} className="flex flex-col gap-[3px]">
+                <div key={w} className="flex flex-col" style={{ gap: 3 }}>
                   <div className="h-[13px] text-center text-[9px] leading-[13px] text-muted-foreground">W{w + 1}</div>
                   {Array.from({ length: 7 }).map((_, d) => {
                     const v = data.heat[w * 7 + d] ?? 0;
-                    return <div key={d} className="aspect-square w-full rounded-sm" style={{ background: heatColor(v) }} title={`Focus: ${v}`} />;
+                    return <div key={d} style={{ width: "100%", aspectRatio: "1 / 1", borderRadius: 3, background: heatColor(v) }} title={`Focus: ${v}`} />;
                   })}
                 </div>
               ))}
@@ -615,11 +624,20 @@ function Dashboard() {
       {/* Three things */}
       <Card className="mt-3">
         <div className="mb-3 text-sm font-medium text-foreground">Three things your data is saying</div>
-        <div className="grid gap-2 sm:grid-cols-3">
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 12 }}>
           {tips.map((t, i) => (
-            <div key={i} className="rounded-xl bg-surface p-3 border-l-[3px]" style={{ borderLeftColor: t.color }}>
-              <div className="text-xs font-medium text-foreground">{t.title}</div>
-              <div className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{t.body}</div>
+            <div
+              key={i}
+              style={{
+                borderRadius: 10,
+                padding: 14,
+                background: t.bg || "var(--muted)",
+                borderLeft: `3px solid ${t.color}`,
+                minHeight: 100,
+              }}
+            >
+              <div className="text-xs font-medium" style={{ color: t.titleColor || "var(--foreground)" }}>{t.title}</div>
+              <div className="mt-1 text-[11px] leading-relaxed" style={{ color: t.bodyColor || "var(--muted-foreground)" }}>{t.body}</div>
             </div>
           ))}
         </div>
@@ -650,26 +668,39 @@ function Header({ monthLabel, prev, next, navBtn }: { monthLabel: string; prev: 
 }
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={"rounded-2xl border border-border bg-background p-4 sm:p-5 " + className}>{children}</div>;
+  return <div className={"rounded-2xl border border-border bg-background " + className} style={{ padding: 20 }}>{children}</div>;
 }
 function CardLabel({ children }: { children: React.ReactNode }) {
-  return <div className="mb-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{children}</div>;
+  return (
+    <div
+      className="mb-2 uppercase text-muted-foreground"
+      style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.08em" }}
+    >
+      {children}
+    </div>
+  );
 }
 function StripItem({ label, value, sub, valueColor, subColor, labelColor, className = "" }: { label: string; value: string; sub: string; valueColor?: string; subColor?: string; labelColor?: string; className?: string }) {
   return (
-    <div className={"flex flex-col gap-1 border-r border-border p-3 last:border-r-0 " + className}>
-      <div className="text-[10px] font-medium uppercase tracking-wider" style={{ color: labelColor || "var(--muted-foreground)" }}>{label}</div>
-      <div className="text-xl font-medium" style={{ color: valueColor || "var(--foreground)" }}>{value}</div>
-      <div className="text-[11px]" style={{ color: subColor || "var(--muted-foreground)" }}>{sub}</div>
+    <div
+      className={"flex flex-col gap-1 border-r border-border last:border-r-0 " + className}
+      style={{ paddingTop: 16, paddingBottom: 16, paddingLeft: 16, paddingRight: 16 }}
+    >
+      <div className="uppercase" style={{ color: labelColor || "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.08em" }}>{label}</div>
+      <div style={{ color: valueColor || "var(--foreground)", fontSize: 22, fontWeight: 500 }}>{value}</div>
+      <div style={{ color: subColor || "var(--muted-foreground)", fontSize: 12 }}>{sub}</div>
     </div>
   );
 }
 function Kpi({ border, label, value, sub, valueColor }: { border: string; label: string; value: string; sub: string; valueColor: string }) {
   return (
-    <div className="rounded-2xl bg-background p-4 text-center" style={{ borderTop: `3px solid ${border}`, borderRight: "1px solid var(--border)", borderBottom: "1px solid var(--border)", borderLeft: "1px solid var(--border)" }}>
-      <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{label}</div>
-      <div className="mt-1 text-2xl font-medium" style={{ color: valueColor }}>{value}</div>
-      <div className="mt-1 text-[11px] text-muted-foreground">{sub}</div>
+    <div
+      className="rounded-2xl bg-background text-center"
+      style={{ padding: 20, borderTop: `3px solid ${border}`, borderRight: "1px solid var(--border)", borderBottom: "1px solid var(--border)", borderLeft: "1px solid var(--border)" }}
+    >
+      <div className="uppercase text-muted-foreground" style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.08em" }}>{label}</div>
+      <div className="mt-1" style={{ color: valueColor, fontSize: 28, fontWeight: 500 }}>{value}</div>
+      <div className="mt-1 text-muted-foreground" style={{ fontSize: 12 }}>{sub}</div>
     </div>
   );
 }
@@ -716,46 +747,97 @@ function lastSevenDayLabels() {
 }
 
 type TipShape = {
-  completionPct: number; monthVideos: number; finished: number;
-  peakIdx: number; learnDelta: number; seeksPerVideo: number;
+  videoCount: number;
+  videosFinished: number;
+  avgCompletion: number;
+  seeksPerVideo: number;
+  entPct: number;
+  learnPct: number;
+  learn: number;
+  totalEff: number;
+  skippedSec: number;
+  skippedPct: number;
+  days14: { day: string; learn: number; ent: number; other: number }[];
 };
 
-function buildTips(d: TipShape) {
-  const tips: { color: string; title: string; body: string }[] = [];
-  if (d.completionPct < 30 && d.monthVideos >= 3) {
-    tips.push({
+type Tip = {
+  color: string;
+  title: string;
+  body: string;
+  bg?: string;
+  titleColor?: string;
+  bodyColor?: string;
+};
+
+function buildTips(d: TipShape): [Tip, Tip, Tip] {
+  // Card 1 — Watching pattern
+  let card1: Tip;
+  if (d.videoCount > 0 && d.avgCompletion < 0.25) {
+    card1 = {
       color: COLORS.warn,
       title: "You browse, not watch",
-      body: `${d.monthVideos} videos opened, ${d.finished} finished. Tomorrow: pick one, commit fully, then stop.`,
-    });
-  }
-  if (d.peakIdx >= 21 || d.peakIdx < 6) {
-    tips.push({
+      body: `${d.videoCount} videos opened, ${d.videosFinished} finished. Tomorrow: open one, commit fully, then stop.`,
+    };
+  } else if (d.avgCompletion < 0.6) {
+    card1 = {
       color: COLORS.amber,
-      title: `${fmtHour(d.peakIdx)} is your weak point`,
-      body: "Entertainment peaks late night when focus is lowest. A 9pm cutoff reclaims time for sleep.",
-    });
-  }
-  if (d.learnDelta > 0) {
-    tips.push({
+      title: "You're warming up",
+      body: `Finishing ${Math.round(d.avgCompletion * 100)}% of what you start. Getting better — aim for 60% this week.`,
+    };
+  } else {
+    card1 = {
       color: COLORS.learn,
-      title: "Learning is quietly growing",
-      body: `Up ${d.learnDelta}% over 4 weeks. Keep the streak alive and cross 50 focus by month end.`,
-    });
+      title: "Strong focus this period",
+      body: `You finish ${Math.round(d.avgCompletion * 100)}% of videos you start. That's genuinely rare. Keep it.`,
+    };
   }
-  if (d.seeksPerVideo > 6) {
-    tips.push({
-      color: COLORS.warn,
-      title: "Lots of skipping",
-      body: `You skip around ${d.seeksPerVideo.toFixed(1)} times per video. Try one full watch — even short — to reset attention.`,
-    });
-  }
-  if (tips.length === 0) {
-    tips.push({
+
+  // Card 2 — Time habit
+  let card2: Tip;
+  if (d.seeksPerVideo > 3) {
+    card2 = {
+      color: COLORS.amber,
+      title: "High skip rate",
+      body: `You seek ${d.seeksPerVideo.toFixed(1)} times per video on average. Try watching one video start to finish without seeking today.`,
+    };
+  } else if (d.entPct > 70) {
+    card2 = {
+      color: COLORS.amber,
+      title: "Entertainment-heavy week",
+      body: `${d.entPct}% of your time was entertainment. Try a 60/40 split — one learning video before relaxing.`,
+    };
+  } else {
+    card2 = {
       color: COLORS.learn,
-      title: "Quiet, balanced month",
-      body: "Nothing is screaming for change. Keep noticing what you watch and why.",
-    });
+      title: "Balanced watching",
+      body: `Good mix this period. ${d.learnPct}% learning, ${d.entPct}% entertainment. Maintain it.`,
+    };
   }
-  return tips.slice(0, 3);
+
+  // Card 3 — Positive signal (always teal)
+  let card3: Tip;
+  if (d.learn > 0) {
+    card3 = {
+      color: COLORS.learn,
+      title: "Learning is happening",
+      body: `${Math.round(d.learn / 60)} min of intentional learning this period. Small but real — every session builds the habit.`,
+    };
+  } else if (d.totalEff > 0 && d.skippedPct > 60) {
+    card3 = {
+      color: COLORS.learn,
+      title: "Lots of time reclaimed",
+      body: `You skipped ${Math.round(d.skippedSec / 60)} min of video you didn't need. That's time back in your day.`,
+    };
+  } else {
+    card3 = {
+      color: COLORS.learn,
+      title: "You showed up",
+      body: `${d.videoCount} videos watched this period. Consistent presence is the first step to intentional watching.`,
+    };
+  }
+  card3.bg = "#e1f5ee";
+  card3.titleColor = "#085041";
+  card3.bodyColor = "#0F6E56";
+
+  return [card1, card2, card3];
 }
