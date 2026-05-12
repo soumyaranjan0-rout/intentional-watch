@@ -19,9 +19,18 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/watch/$videoId")({
-  validateSearch: (s: Record<string, unknown>) => ({
+  validateSearch: (s: Record<string, unknown>): {
+    title: string;
+    channel: string;
+    channelId?: string;
+    duration: number;
+    thumbnail: string;
+    t: number;
+    intent: string;
+  } => ({
     title: typeof s.title === "string" ? s.title : "",
     channel: typeof s.channel === "string" ? s.channel : "",
+    ...(typeof s.channelId === "string" ? { channelId: s.channelId } : {}),
     duration: typeof s.duration === "number" ? (s.duration as number) : 0,
     thumbnail: typeof s.thumbnail === "string" ? s.thumbnail : "",
     t: typeof s.t === "number" ? (s.t as number) : 0,
@@ -351,6 +360,7 @@ function WatchPage() {
 
   const title = meta?.title || search.title || "Untitled";
   const channelName = meta?.channel || search.channel || "";
+  const channelId = meta?.channelId || search.channelId || "";
   const isLearning = finalIntent === "learn";
   const isRelax = finalIntent === "relax";
   const isFind = finalIntent === "find";
@@ -400,10 +410,10 @@ function WatchPage() {
           {/* YouTube-style row: channel info LEFT + action pill cluster RIGHT */}
           <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             {/* Channel info */}
-            {meta?.channelId ? (
+            {channelId ? (
               <Link
                 to="/channel/$channelId"
-                params={{ channelId: meta.channelId }}
+                params={{ channelId }}
                 className="-mx-2 inline-flex items-center gap-3 rounded-xl px-2 py-1.5 transition-colors hover:bg-accent"
               >
                 {meta?.channelThumbnail ? (

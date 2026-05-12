@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { consumePostLoginPath } from "@/lib/auth";
 
 type AuthContextValue = {
   user: User | null;
@@ -18,10 +19,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
     // Listener first — fires synchronously on init with the cached session
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       if (cancelled) return;
       setSession(s);
       setLoading(false);
+      if (event === "SIGNED_IN" && s) {
+        const target = consumePostLoginPath();
+        if (target && `${window.location.pathname}${window.location.search}` !== target) {
+          window.history.replaceState(null, "", target);
+          window.dispatchEvent(new PopStateEvent("popstate"));
+        }
+      }
     });
     // Also resolve immediately so the UI doesn't sit in "loading" if the
     // listener hasn't fired yet.

@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { lovable } from "@/integrations/lovable";
+import { signInWithGoogle } from "@/lib/auth";
 import { Loader2 } from "lucide-react";
 import { ZenLogo } from "@/components/ZenLogo";
 import { toast } from "sonner";
@@ -33,12 +33,10 @@ function LoginPage() {
     if (busy) return;
     setBusy(true);
     try {
-      const result = await lovable.auth.signInWithOAuth("google", {
-        // Per docs: redirect to origin only — the allowlist matches origins,
-        // not nested paths. We restore the intended path after sign-in.
-        redirect_uri: window.location.origin,
-        extraParams: { prompt: "select_account" },
-      });
+      const target = typeof search.redirect === "string" && search.redirect.startsWith("/")
+        ? search.redirect
+        : "/";
+      const result = await signInWithGoogle(target);
 
       if (result?.error) {
         toast.error(result.error.message || "Google sign-in failed. Please try again.");
@@ -51,9 +49,6 @@ function LoginPage() {
 
       // Tokens were returned directly (popup-style). Session is already set;
       // navigate to the intended destination.
-      const target = typeof search.redirect === "string" && search.redirect.startsWith("/")
-        ? search.redirect
-        : "/";
       navigate({ to: target as "/", replace: true }).catch(() => {
         window.location.replace(target);
       });
