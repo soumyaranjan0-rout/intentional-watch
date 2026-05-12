@@ -313,8 +313,14 @@ function Dashboard() {
     const learn4w = drift[Math.max(0, drift.length - 5)]?.learn ?? 0;
     const learnDelta = learnNow - learn4w;
 
+    const videosFinished = rows.filter(
+      (r) => r.duration_seconds && (r.effective_seconds || 0) >= (r.duration_seconds || 0) * 0.85,
+    ).length;
+    const skippedSec = Math.max(0, monthRaw - monthEff);
+    const skippedPct = monthRaw ? Math.round((skippedSec / monthRaw) * 100) : 0;
+
     return {
-      totalAll, monthEff, monthRaw, monthVideos,
+      totalAll, monthEff, monthRaw, monthVideos, videoCount: monthVideos, videosFinished, skippedSec, skippedPct, totalEff: monthEff,
       learn, ent, find, learnPct, entPct, findPct,
       completionPct, finished, focus, focusLabel, streak, todayHasLearn,
       days14, heat, hourMin, hourLearnMin, peakIdx, focusWindow,
