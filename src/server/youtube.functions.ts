@@ -405,23 +405,36 @@ export const searchVideos = createServerFn({ method: "POST" })
 
       const bucket = videoDuration ?? "any";
 
-      // Smart ranking: title match + channel match heavily boosted
-      const qNorm = data.query.toLowerCase();
+      // Smart ranking: title coverage > exact phrase > channel > popularity.
+      // Off-topic videos (no token overlap on multi-token queries) are
+      // demoted to keep them out of the top picks.
+      const qNorm = data.query.toLowerCase().trim();
       const qTokens = qNorm.split(/\s+/).filter((t) => t.length >= 3);
       const channelNameNorm = channel ? channel.title.toLowerCase() : null;
       results.sort((a, b) => {
         const score = (v: ResultVideo) => {
           let s = fitScore(bucket, v.durationSeconds, v.viewCount);
           const titleN = v.title.toLowerCase();
+          const descN = (v.description || "").toLowerCase();
           const chN = v.channel.toLowerCase();
-          // Title token coverage
+          // Title token coverage (0..1)
           const matched = qTokens.filter((t) => titleN.includes(t)).length;
-          s += matched * 6;
+          const coverage = qTokens.length ? matched / qTokens.length : 1;
+          s += matched * 8;
+          // Penalize off-topic results when the user gave a multi-word query
+          if (qTokens.length >= 2 && coverage < 0.5) s -= 30;
+          if (qTokens.length >= 2 && matched === 0) {
+            // tiny rescue if description carries the topic
+            const descMatched = qTokens.filter((t) => descN.includes(t)).length;
+            if (descMatched < 1) s -= 25;
+          }
           // Channel name match → very high weight
-          if (channelNameNorm && chN === channelNameNorm) s += 50;
-          else if (channelNameNorm && chN.includes(channelNameNorm)) s += 25;
-          // Direct query in title
-          if (titleN.includes(qNorm)) s += 10;
+          if (channelNameNorm && chN === channelNameNorm) s += 60;
+          else if (channelNameNorm && chN.includes(channelNameNorm)) s += 28;
+          // Direct query phrase in title — biggest signal of intent match
+          if (qNorm.length >= 4 && titleN.includes(qNorm)) s += 18;
+          // Title that starts with the query phrase is even stronger
+          if (qNorm.length >= 4 && titleN.startsWith(qNorm)) s += 10;
           return s;
         };
         return score(b) - score(a);

@@ -204,45 +204,34 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
         </div>
       )}
 
-      {/* Distraction blockers — top-right native controls stay clickable.
-          We only intercept redirect surfaces: top title/channel strip plus
-          bottom share/watch-later/more-videos/YouTube branding surfaces. */}
+      {/* Distraction blockers — leave top fully visible (no black cover) and
+          keep the entire bottom control strip + progress bar clickable.
+          We only mask the YouTube logo and the "More videos" shelf that
+          appears above the control bar on hover. */}
       {ready && !unavailable && (
         <>
-          {/* TOP title/channel strip only; keep volume, CC and settings open. */}
-          <div
-            className="pointer-events-auto absolute inset-x-0 top-0 z-10 bg-black/90"
-            style={{ height: 56, right: 148 }}
-            aria-hidden
-          />
-          {/* Cover the full bottom distraction shelf shown above the timeline. */}
+          {/* "More videos" hover shelf — sits above the progress bar.
+              Stop ~12px above the control bar so the progress bar stays clickable. */}
           <div
             className="pointer-events-auto absolute z-10"
-            style={{ left: 0, right: 0, bottom: 42, height: 58 }}
+            style={{ left: 0, right: 0, bottom: 60, height: 40 }}
             aria-hidden
           />
-          {/* Block YouTube logo / more-videos labels inside the control row, while
-              leaving play, volume, time, CC, settings and fullscreen usable. */}
+          {/* YouTube logo cluster at bottom-right (between the time text and
+              the fullscreen button). Narrow band so it doesn't eat settings/CC. */}
           <div
             className="pointer-events-auto absolute z-10"
-            style={{ right: 54, bottom: 0, width: 178, height: 42 }}
-            aria-hidden
-          />
-          {/* Block share/watch-later shortcuts at the bottom-left hover shelf,
-              but start after the native play/volume cluster. */}
-          <div
-            className="pointer-events-auto absolute z-10"
-            style={{ left: 44, bottom: 0, width: 92, height: 42 }}
+            style={{ right: 54, bottom: 0, width: 90, height: 38 }}
             aria-hidden
           />
         </>
       )}
-      {/* End-screen "More videos" cards & pause-overlay share/youtube logo —
-          mask the full center area, leaving only the control bar exposed. */}
+      {/* End-screen "More videos" cards — mask center, leave control bar +
+          progress bar exposed. */}
       {ready && !unavailable && ended && (
         <div
           className="pointer-events-auto absolute z-10"
-          style={{ left: 0, right: 0, top: 56, bottom: 46 }}
+          style={{ left: 0, right: 0, top: 0, bottom: 60 }}
           aria-hidden
         />
       )}

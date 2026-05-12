@@ -4,7 +4,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { MODES, type Mode } from "@/lib/intent";
 import { toast } from "sonner";
-import { User, Clock, Palette, Shield, LogOut, Trash2, Mail, Key, ExternalLink } from "lucide-react";
+import {
+  User, Clock, Palette, Shield, LogOut, Trash2, Mail, Key, ExternalLink,
+  HelpCircle, Sparkles, CheckCircle2,
+} from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getStoredYouTubeApiKey, setStoredYouTubeApiKey } from "@/lib/youtubeApiKey";
 
@@ -20,6 +23,17 @@ type Prefs = {
   data_tracking: boolean;
 };
 
+type TabKey = "account" | "preferences" | "usage" | "privacy" | "apikey" | "help";
+
+const TABS: { key: TabKey; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { key: "account", label: "Account", icon: User },
+  { key: "preferences", label: "Preferences", icon: Palette },
+  { key: "usage", label: "Usage", icon: Clock },
+  { key: "privacy", label: "Privacy", icon: Shield },
+  { key: "apikey", label: "API key", icon: Key },
+  { key: "help", label: "Help", icon: HelpCircle },
+];
+
 function SettingsPage() {
   const { user, signOut } = useAuth();
   const [prefs, setPrefs] = useState<Prefs | null>(null);
@@ -28,6 +42,7 @@ function SettingsPage() {
   const [sessionReminders, setSessionReminders] = useState(true);
   const [apiKey, setApiKey] = useState("");
   const [showKey, setShowKey] = useState(false);
+  const [tab, setTab] = useState<TabKey>("account");
 
   useEffect(() => {
     if (!user) return;
@@ -39,7 +54,6 @@ function SettingsPage() {
       .then(({ data }) => {
         if (data) {
           setPrefs(data as Prefs);
-          applyTheme(data.theme);
         } else {
           setPrefs({
             daily_watch_limit_min: 60,
@@ -48,6 +62,8 @@ function SettingsPage() {
             data_tracking: true,
           });
         }
+        // NOTE: do NOT call applyTheme here — visiting Settings must never
+        // change the active theme. Theme is only applied when the user saves.
       });
 
     supabase
@@ -133,148 +149,245 @@ function SettingsPage() {
       <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>
       <p className="mt-1 text-sm text-muted-foreground">Adjust ZenTube to your pace.</p>
 
-      <div className="mt-8 space-y-6">
-        {/* Account */}
-        <SectionGroup icon={User} title="Account" description="Your basic profile">
-          <Field label="Display name">
-            <input
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="Your name"
-              className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm outline-none focus:border-primary"
-            />
-          </Field>
-          <Field label="Email">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Mail className="h-4 w-4" />
-              {user?.email}
-            </div>
-          </Field>
-          <div className="pt-2">
+      {/* Tabs */}
+      <div
+        role="tablist"
+        aria-label="Settings sections"
+        className="mt-6 flex gap-1 overflow-x-auto rounded-xl border border-border bg-surface/50 p-1"
+      >
+        {TABS.map((t) => {
+          const Icon = t.icon;
+          const active = tab === t.key;
+          return (
             <button
-              onClick={() => signOut()}
-              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-surface px-3 py-1.5 text-sm hover:bg-accent"
-            >
-              <LogOut className="h-4 w-4" /> Sign out
-            </button>
-          </div>
-        </SectionGroup>
-
-        {/* Usage Control */}
-        <SectionGroup icon={Clock} title="Usage control" description="Gentle reminders, never blocks.">
-          <Field label={`Daily watch limit · ${prefs.daily_watch_limit_min} min`}>
-            <input
-              type="range"
-              min={10}
-              max={240}
-              step={5}
-              value={prefs.daily_watch_limit_min}
-              onChange={(e) =>
-                setPrefs({ ...prefs, daily_watch_limit_min: parseInt(e.target.value, 10) })
+              key={t.key}
+              role="tab"
+              aria-selected={active}
+              onClick={() => setTab(t.key)}
+              className={
+                "inline-flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-colors " +
+                (active
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground")
               }
-              className="w-full"
-            />
-            <div className="mt-1 flex justify-between text-xs text-muted-foreground">
-              <span>10 min</span>
-              <span>4 hours</span>
-            </div>
-          </Field>
-          <Toggle
-            label="Session reminders"
-            description="Ask if you're still watching with intent after 2 videos."
-            checked={sessionReminders}
-            onChange={setSessionReminders}
-          />
-        </SectionGroup>
+            >
+              <Icon className="h-4 w-4" /> {t.label}
+            </button>
+          );
+        })}
+      </div>
 
-        {/* Preferences */}
-        <SectionGroup icon={Palette} title="Preferences" description="How ZenTube behaves and looks">
-          <Field label="Default intent">
-            <div className="flex flex-wrap gap-2">
-              <Chip
-                active={prefs.default_mode === null}
-                onClick={() => setPrefs({ ...prefs, default_mode: null })}
-              >
-                Always ask
-              </Chip>
-              {(Object.keys(MODES) as Mode[]).map((m) => (
-                <Chip
-                  key={m}
-                  active={prefs.default_mode === m}
-                  onClick={() => setPrefs({ ...prefs, default_mode: m })}
-                >
-                  {MODES[m].emoji} {MODES[m].label}
-                </Chip>
-              ))}
-            </div>
-          </Field>
-          <Field label="Theme">
-            <div className="flex gap-2">
-              {(["dark", "light", "system"] as const).map((t) => (
-                <Chip
-                  key={t}
-                  active={prefs.theme === t}
-                  onClick={() => setPrefs({ ...prefs, theme: t })}
-                >
-                  {t[0].toUpperCase() + t.slice(1)}
-                </Chip>
-              ))}
-            </div>
-          </Field>
-        </SectionGroup>
-
-        {/* YouTube API Key */}
-        <SectionGroup icon={Key} title="YouTube API key" description="Use your own key for unlimited searches. Stored locally in your browser only.">
-          <Field label="API key">
-            <div className="flex gap-2">
+      <div className="mt-5 space-y-6">
+        {tab === "account" && (
+          <SectionGroup icon={User} title="Account" description="Your basic profile">
+            <Field label="Display name">
               <input
-                type={showKey ? "text" : "password"}
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder="AIza…"
-                spellCheck={false}
-                autoComplete="off"
-                className="flex-1 rounded-md border border-border bg-input px-3 py-2 font-mono text-sm outline-none focus:border-primary"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder="Your name"
+                className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm outline-none focus:border-primary"
               />
+            </Field>
+            <Field label="Email">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Mail className="h-4 w-4" />
+                {user?.email}
+              </div>
+            </Field>
+            <div className="pt-2">
               <button
-                type="button"
-                onClick={() => setShowKey((s) => !s)}
-                className="rounded-md border border-border bg-surface px-3 text-xs hover:bg-accent"
+                onClick={() => signOut()}
+                className="inline-flex items-center gap-1.5 rounded-md border border-border bg-surface px-3 py-1.5 text-sm hover:bg-accent"
               >
-                {showKey ? "Hide" : "Show"}
+                <LogOut className="h-4 w-4" /> Sign out
               </button>
             </div>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Don't have one?{" "}
-              <a
-                href="https://console.cloud.google.com/apis/credentials"
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 text-primary hover:underline"
-              >
-                Create a free YouTube Data API v3 key <ExternalLink className="h-3 w-3" />
-              </a>
-            </p>
-          </Field>
-        </SectionGroup>
+          </SectionGroup>
+        )}
 
-        {/* Privacy */}
-        <SectionGroup icon={Shield} title="Privacy" description="You control your data.">
-          <Toggle
-            label="Track my watch history"
-            description="Powers your insights. Disable to stop saving any history."
-            checked={prefs.data_tracking}
-            onChange={(v) => setPrefs({ ...prefs, data_tracking: v })}
-          />
-          <div className="pt-2">
-            <button
-              onClick={clearHistory}
-              className="inline-flex items-center gap-1.5 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-1.5 text-sm text-destructive hover:bg-destructive/15"
+        {tab === "preferences" && (
+          <SectionGroup icon={Palette} title="Preferences" description="How ZenTube behaves and looks">
+            <Field label="Default intent">
+              <div className="flex flex-wrap gap-2">
+                <Chip
+                  active={prefs.default_mode === null}
+                  onClick={() => setPrefs({ ...prefs, default_mode: null })}
+                >
+                  Always ask
+                </Chip>
+                {(Object.keys(MODES) as Mode[]).map((m) => (
+                  <Chip
+                    key={m}
+                    active={prefs.default_mode === m}
+                    onClick={() => setPrefs({ ...prefs, default_mode: m })}
+                  >
+                    {MODES[m].emoji} {MODES[m].label}
+                  </Chip>
+                ))}
+              </div>
+            </Field>
+            <Field label="Theme">
+              <div className="flex gap-2">
+                {(["dark", "light", "system"] as const).map((t) => (
+                  <Chip
+                    key={t}
+                    active={prefs.theme === t}
+                    onClick={() => setPrefs({ ...prefs, theme: t })}
+                  >
+                    {t[0].toUpperCase() + t.slice(1)}
+                  </Chip>
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Theme only changes when you press <span className="text-foreground">Save</span>.
+              </p>
+            </Field>
+          </SectionGroup>
+        )}
+
+        {tab === "usage" && (
+          <SectionGroup icon={Clock} title="Usage control" description="Gentle reminders, never blocks.">
+            <Field label={`Daily watch limit · ${prefs.daily_watch_limit_min} min`}>
+              <input
+                type="range"
+                min={10}
+                max={240}
+                step={5}
+                value={prefs.daily_watch_limit_min}
+                onChange={(e) =>
+                  setPrefs({ ...prefs, daily_watch_limit_min: parseInt(e.target.value, 10) })
+                }
+                className="w-full"
+              />
+              <div className="mt-1 flex justify-between text-xs text-muted-foreground">
+                <span>10 min</span>
+                <span>4 hours</span>
+              </div>
+            </Field>
+            <Toggle
+              label="Session reminders"
+              description="Ask if you're still watching with intent after 2 videos."
+              checked={sessionReminders}
+              onChange={setSessionReminders}
+            />
+          </SectionGroup>
+        )}
+
+        {tab === "privacy" && (
+          <SectionGroup icon={Shield} title="Privacy" description="You control your data.">
+            <Toggle
+              label="Track my watch history"
+              description="Powers your insights. Disable to stop saving any history."
+              checked={prefs.data_tracking}
+              onChange={(v) => setPrefs({ ...prefs, data_tracking: v })}
+            />
+            <div className="pt-2">
+              <button
+                onClick={clearHistory}
+                className="inline-flex items-center gap-1.5 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-1.5 text-sm text-destructive hover:bg-destructive/15"
+              >
+                <Trash2 className="h-4 w-4" /> Clear watch history
+              </button>
+            </div>
+          </SectionGroup>
+        )}
+
+        {tab === "apikey" && (
+          <SectionGroup
+            icon={Key}
+            title="Your YouTube API key"
+            description="ZenTube is a prototype. Add your own free key so your searches don't share the shared quota."
+          >
+            <Field label="API key (stored only in your browser)">
+              <div className="flex gap-2">
+                <input
+                  type={showKey ? "text" : "password"}
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  placeholder="AIza…"
+                  spellCheck={false}
+                  autoComplete="off"
+                  className="flex-1 rounded-md border border-border bg-input px-3 py-2 font-mono text-sm outline-none focus:border-primary"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowKey((s) => !s)}
+                  className="rounded-md border border-border bg-surface px-3 text-xs hover:bg-accent"
+                >
+                  {showKey ? "Hide" : "Show"}
+                </button>
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Need one? See <button onClick={() => setTab("help")} className="text-primary hover:underline">Help → How to get a YouTube API key</button>.
+              </p>
+            </Field>
+          </SectionGroup>
+        )}
+
+        {tab === "help" && (
+          <div className="space-y-6">
+            <SectionGroup icon={Sparkles} title="About ZenTube" description="A calmer way to watch.">
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                ZenTube wraps YouTube in an intent-first experience. Pick a reason
+                to watch — <span className="text-foreground">Learn</span>,{" "}
+                <span className="text-foreground">Find</span>,{" "}
+                <span className="text-foreground">Relax</span>, or{" "}
+                <span className="text-foreground">Explore</span> — and the app
+                tunes the search results, hides the infinite scroll, removes
+                "More videos" suggestions, and tracks only the time you{" "}
+                <span className="text-foreground">actually watched</span> so your
+                insights stay honest.
+              </p>
+              <ul className="grid gap-2 text-sm sm:grid-cols-2">
+                <Feature title="Intent-driven search" body="Refine by length, level and angle before any results are shown." />
+                <Feature title="Distraction-free player" body="No autoplay, no end-screen recommendations, no YouTube logo redirects." />
+                <Feature title="Library & notes" body="Save videos, take timestamped notes, build your own playlists." />
+                <Feature title="Honest insights" body="Skipped sections never count toward your watch time." />
+              </ul>
+            </SectionGroup>
+
+            <SectionGroup
+              icon={Key}
+              title="How to get your YouTube API key"
+              description="Free for personal use — takes about 3 minutes."
             >
-              <Trash2 className="h-4 w-4" /> Clear watch history
-            </button>
+              <ol className="space-y-3 text-sm text-muted-foreground">
+                <Step n={1}>
+                  Open <ExtLink href="https://console.cloud.google.com/">console.cloud.google.com</ExtLink> and sign in with your Google account.
+                </Step>
+                <Step n={2}>
+                  Click the project dropdown at the top → <span className="text-foreground">New Project</span>. Name it anything (e.g. "ZenTube") and create it.
+                </Step>
+                <Step n={3}>
+                  Make sure the new project is selected, then go to{" "}
+                  <ExtLink href="https://console.cloud.google.com/apis/library/youtube.googleapis.com">
+                    APIs & Services → Library → YouTube Data API v3
+                  </ExtLink>{" "}
+                  and click <span className="text-foreground">Enable</span>.
+                </Step>
+                <Step n={4}>
+                  Go to{" "}
+                  <ExtLink href="https://console.cloud.google.com/apis/credentials">
+                    APIs & Services → Credentials
+                  </ExtLink>{" "}
+                  → <span className="text-foreground">+ Create Credentials</span> → <span className="text-foreground">API key</span>.
+                </Step>
+                <Step n={5}>
+                  Copy the key (starts with <code className="rounded bg-surface px-1 py-0.5 text-xs">AIza…</code>) and paste it into the{" "}
+                  <button onClick={() => setTab("apikey")} className="text-primary hover:underline">API key</button> tab here, then press Save.
+                </Step>
+                <Step n={6}>
+                  Optional: click your key in Google Cloud → <span className="text-foreground">Edit API key</span> → restrict it to "YouTube Data API v3" so it can only be used for this purpose.
+                </Step>
+              </ol>
+              <p className="rounded-lg border border-border bg-surface/60 p-3 text-xs text-muted-foreground">
+                Your key is stored only in your browser's local storage and sent
+                directly to YouTube from your session. ZenTube never stores it on
+                our servers.
+              </p>
+            </SectionGroup>
           </div>
-        </SectionGroup>
+        )}
 
         <div className="sticky bottom-4 z-10 flex justify-end pt-2">
           <button
@@ -287,6 +400,43 @@ function SettingsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function ExtLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="inline-flex items-center gap-0.5 text-primary hover:underline"
+    >
+      {children}
+      <ExternalLink className="h-3 w-3" />
+    </a>
+  );
+}
+
+function Step({ n, children }: { n: number; children: React.ReactNode }) {
+  return (
+    <li className="flex gap-3">
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-semibold text-primary">
+        {n}
+      </span>
+      <span className="leading-relaxed">{children}</span>
+    </li>
+  );
+}
+
+function Feature({ title, body }: { title: string; body: string }) {
+  return (
+    <li className="flex gap-2 rounded-lg border border-border bg-surface/60 p-3">
+      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+      <div>
+        <div className="text-sm font-medium text-foreground">{title}</div>
+        <div className="text-xs text-muted-foreground">{body}</div>
+      </div>
+    </li>
   );
 }
 
