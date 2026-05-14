@@ -390,7 +390,7 @@ function Dashboard() {
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
         <Card>
           <CardLabel>Stacked intent — daily minutes</CardLabel>
-          <div style={{ width: "100%", height: 160, overflow: "hidden" }}>
+          <div style={{ width: "100%", flex: 1, minHeight: 180, overflow: "hidden" }}>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={data.days14} margin={{ top: 5, right: 8, left: -20, bottom: 0 }}>
                 <CartesianGrid stroke="var(--border)" vertical={false} />
@@ -471,7 +471,7 @@ function Dashboard() {
 
         <Card>
           <CardLabel>Behaviour radar</CardLabel>
-          <div style={{ width: "100%", height: 200, overflow: "hidden" }}>
+          <div style={{ width: "100%", flex: 1, minHeight: 220, overflow: "hidden" }}>
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart data={data.radar}>
                 <PolarGrid stroke="var(--border)" />
@@ -522,7 +522,7 @@ function Dashboard() {
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
         <Card>
           <CardLabel>Intent drift — 8 weeks</CardLabel>
-          <div style={{ width: "100%", height: 160, overflow: "hidden" }}>
+          <div style={{ width: "100%", flex: 1, minHeight: 180, overflow: "hidden" }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={data.drift} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
                 <CartesianGrid stroke="var(--border)" vertical={false} />
