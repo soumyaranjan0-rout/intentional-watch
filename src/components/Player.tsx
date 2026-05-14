@@ -207,35 +207,19 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
         </div>
       )}
 
-      {/* Distraction blockers — kept narrow & targeted so the rest of the
-          native player (play button, consent dialogs, captions, settings,
-          progress bar, fullscreen) stays fully clickable.
-          Blocked: top-right "Share / Watch later", "More videos" hover
-          shelf above the control bar, and the bottom-right YouTube logo. */}
+      {/* Distraction blockers — only cover the lower YouTube promo actions
+          below the progress bar. The scrubber and upper volume/CC/settings
+          controls stay outside these masks and remain clickable. */}
       {ready && !unavailable && hasPlayed && (
         <>
-          {/* Top-right: "Share" + "Watch later" floating buttons */}
           <div
-            className="pointer-events-auto absolute z-10"
-            style={{ top: 0, right: 0, width: 140, height: 56 }}
+            className="pointer-events-auto absolute bottom-0 left-0 z-10"
+            style={{ width: "clamp(112px, 13%, 150px)", height: "clamp(34px, 6.5%, 44px)" }}
             aria-hidden
           />
-          {/* "More videos" hover shelf above the control bar */}
           <div
-            className="pointer-events-auto absolute z-10"
-            style={{ left: 0, right: 0, bottom: 56, height: 80 }}
-            aria-hidden
-          />
-          {/* Bottom-left: Share + Watch later icons (sit just above the control bar) */}
-          <div
-            className="pointer-events-auto absolute z-10"
-            style={{ left: 0, bottom: 48, width: 110, height: 44 }}
-            aria-hidden
-          />
-          {/* Bottom-right: "More videos" pill + YouTube logo (sit just above the control bar) */}
-          <div
-            className="pointer-events-auto absolute z-10"
-            style={{ right: 0, bottom: 48, width: 220, height: 44 }}
+            className="pointer-events-auto absolute bottom-0 right-0 z-10"
+            style={{ width: "clamp(270px, 29%, 360px)", height: "clamp(34px, 6.5%, 44px)" }}
             aria-hidden
           />
         </>

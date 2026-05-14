@@ -390,9 +390,9 @@ function Dashboard() {
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
         <Card>
           <CardLabel>Stacked intent — daily minutes</CardLabel>
-          <div style={{ width: "100%", flex: 1, minHeight: 180, overflow: "hidden" }}>
+          <div className="min-w-0 flex-1 overflow-hidden" style={{ width: "100%", minHeight: 180 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data.days14} margin={{ top: 5, right: 8, left: -20, bottom: 0 }}>
+              <AreaChart data={data.days14} margin={{ top: 4, right: 4, left: -24, bottom: -4 }}>
                 <CartesianGrid stroke="var(--border)" vertical={false} />
                 <XAxis dataKey="day" stroke="var(--muted-foreground)" fontSize={10} tickLine={false} axisLine={false} />
                 <YAxis stroke="var(--muted-foreground)" fontSize={10} tickLine={false} axisLine={false} width={32} />
@@ -412,21 +412,23 @@ function Dashboard() {
 
         <Card>
           <CardLabel>Attention heatmap — 10 weeks</CardLabel>
-          <div className="grid grid-cols-[24px_1fr] gap-0">
+          <div className="min-w-0 flex-1 overflow-hidden">
+          <div className="grid h-full min-h-[180px] grid-cols-[24px_1fr] items-stretch gap-0">
             <div className="flex flex-col gap-[3px] pt-[17px] text-[9px] text-muted-foreground">
               {["M","T","W","T","F","S","S"].map((d, i) => <div key={i} className="h-3 leading-3">{d}</div>)}
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(10, 1fr)", gap: 3, width: "100%" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(10, 1fr)", gap: 3, width: "100%", alignContent: "stretch" }}>
               {Array.from({ length: 10 }).map((_, w) => (
-                <div key={w} className="flex flex-col" style={{ gap: 3 }}>
+                <div key={w} className="grid" style={{ gridTemplateRows: "13px repeat(7, minmax(0, 1fr))", gap: 3, minHeight: 0 }}>
                   <div className="h-[13px] text-center text-[9px] leading-[13px] text-muted-foreground">W{w + 1}</div>
                   {Array.from({ length: 7 }).map((_, d) => {
                     const v = data.heat[w * 7 + d] ?? 0;
-                    return <div key={d} style={{ width: "100%", aspectRatio: "1 / 1", borderRadius: 3, background: heatColor(v) }} title={`Focus: ${v}`} />;
+                    return <div key={d} style={{ width: "100%", height: "100%", borderRadius: 3, background: heatColor(v) }} title={`Focus: ${v}`} />;
                   })}
                 </div>
               ))}
             </div>
+          </div>
           </div>
           <div className="mt-2 flex items-center gap-1.5 text-[9px] text-muted-foreground">
             <span>none</span>
@@ -442,7 +444,7 @@ function Dashboard() {
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
         <Card>
           <CardLabel>Watch time by hour</CardLabel>
-          <div className="flex items-end gap-[2px]" style={{ flex: 1, minHeight: 120 }}>
+          <div className="flex min-w-0 flex-1 items-end gap-[2px] overflow-hidden" style={{ minHeight: 150 }}>
             {data.hourMin.map((v, i) => {
               const max = Math.max(...data.hourMin, 1);
               const pct = Math.max(2, Math.round((v / max) * 100));
@@ -471,9 +473,9 @@ function Dashboard() {
 
         <Card>
           <CardLabel>Behaviour radar</CardLabel>
-          <div style={{ width: "100%", flex: 1, minHeight: 220, overflow: "hidden" }}>
+          <div className="min-w-0 flex-1 overflow-hidden" style={{ width: "100%", minHeight: 240 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <RadarChart data={data.radar}>
+              <RadarChart data={data.radar} margin={{ top: 4, right: 18, bottom: 4, left: 18 }}>
                 <PolarGrid stroke="var(--border)" />
                 <PolarAngleAxis dataKey="k" tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} />
                 <PolarRadiusAxis tick={false} axisLine={false} domain={[0, 100]} />
@@ -522,9 +524,9 @@ function Dashboard() {
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
         <Card>
           <CardLabel>Intent drift — 8 weeks</CardLabel>
-          <div style={{ width: "100%", flex: 1, minHeight: 180, overflow: "hidden" }}>
+          <div className="min-w-0 flex-1 overflow-hidden" style={{ width: "100%", minHeight: 190 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={data.drift} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
+              <LineChart data={data.drift} margin={{ top: 4, right: 4, left: -28, bottom: -4 }}>
                 <CartesianGrid stroke="var(--border)" vertical={false} />
                 <XAxis dataKey="w" stroke="var(--muted-foreground)" fontSize={10} tickLine={false} axisLine={false} />
                 <YAxis stroke="var(--muted-foreground)" fontSize={10} tickLine={false} axisLine={false} width={40} domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
@@ -596,20 +598,24 @@ function Dashboard() {
 
         <Card>
           <CardLabel>Session timeline — today</CardLabel>
-          <div className="relative h-[52px] border-b border-border">
-            {data.sessions.map((s, i) => {
-              const tlS = 6, tlE = 24, tlR = tlE - tlS;
-              const pct = ((s.start - tlS) / tlR) * 100;
-              const wPct = Math.max(1, (s.dur / 60 / tlR) * 100);
-              const max = Math.max(...data.sessions.map((x) => x.dur), 1);
-              const h = Math.max(10, Math.round((s.dur / max) * 46));
-              return (
-                <div key={i} className="absolute bottom-0 rounded-t-sm"
-                  style={{ left: `${Math.max(0, pct).toFixed(1)}%`, width: `${wPct.toFixed(1)}%`, height: h,
-                    background: s.m === "l" ? COLORS.learn : COLORS.ent, opacity: 0.85 }}
-                  title={`${s.dur} min`} />
-              );
-            })}
+          <div className="relative min-w-0 flex-1 overflow-hidden border-b border-border" style={{ minHeight: 150 }}>
+            {data.sessions.length === 0 ? (
+              <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">No sessions today</div>
+            ) : (
+              data.sessions.map((s, i) => {
+                const tlS = 6, tlE = 24, tlR = tlE - tlS;
+                const pct = ((s.start - tlS) / tlR) * 100;
+                const wPct = Math.max(1, (s.dur / 60 / tlR) * 100);
+                const max = Math.max(...data.sessions.map((x) => x.dur), 1);
+                const h = `${Math.max(10, Math.round((s.dur / max) * 88))}%`;
+                return (
+                  <div key={i} className="absolute bottom-0 rounded-t-sm"
+                    style={{ left: `${Math.max(0, pct).toFixed(1)}%`, width: `${wPct.toFixed(1)}%`, height: h,
+                      background: s.m === "l" ? COLORS.learn : COLORS.ent, opacity: 0.85 }}
+                    title={`${s.dur} min`} />
+                );
+              })
+            )}
           </div>
           <div className="mt-1 flex justify-between text-[9px] text-muted-foreground">
             <span>6am</span><span>12pm</span><span>6pm</span><span>11pm</span>
