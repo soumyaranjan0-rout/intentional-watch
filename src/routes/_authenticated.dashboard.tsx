@@ -390,9 +390,9 @@ function Dashboard() {
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
         <Card>
           <CardLabel>Stacked intent — daily minutes</CardLabel>
-          <div style={{ width: "100%", flex: 1, minHeight: 180, overflow: "hidden" }}>
+          <div className="min-w-0 flex-1 overflow-hidden" style={{ width: "100%", minHeight: 180 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data.days14} margin={{ top: 5, right: 8, left: -20, bottom: 0 }}>
+              <AreaChart data={data.days14} margin={{ top: 4, right: 4, left: -24, bottom: -4 }}>
                 <CartesianGrid stroke="var(--border)" vertical={false} />
                 <XAxis dataKey="day" stroke="var(--muted-foreground)" fontSize={10} tickLine={false} axisLine={false} />
                 <YAxis stroke="var(--muted-foreground)" fontSize={10} tickLine={false} axisLine={false} width={32} />
@@ -412,21 +412,23 @@ function Dashboard() {
 
         <Card>
           <CardLabel>Attention heatmap — 10 weeks</CardLabel>
-          <div className="grid grid-cols-[24px_1fr] gap-0">
+          <div className="min-w-0 flex-1 overflow-hidden">
+          <div className="grid h-full min-h-[180px] grid-cols-[24px_1fr] items-stretch gap-0">
             <div className="flex flex-col gap-[3px] pt-[17px] text-[9px] text-muted-foreground">
               {["M","T","W","T","F","S","S"].map((d, i) => <div key={i} className="h-3 leading-3">{d}</div>)}
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(10, 1fr)", gap: 3, width: "100%" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(10, 1fr)", gap: 3, width: "100%", alignContent: "stretch" }}>
               {Array.from({ length: 10 }).map((_, w) => (
-                <div key={w} className="flex flex-col" style={{ gap: 3 }}>
+                <div key={w} className="grid" style={{ gridTemplateRows: "13px repeat(7, minmax(0, 1fr))", gap: 3, minHeight: 0 }}>
                   <div className="h-[13px] text-center text-[9px] leading-[13px] text-muted-foreground">W{w + 1}</div>
                   {Array.from({ length: 7 }).map((_, d) => {
                     const v = data.heat[w * 7 + d] ?? 0;
-                    return <div key={d} style={{ width: "100%", aspectRatio: "1 / 1", borderRadius: 3, background: heatColor(v) }} title={`Focus: ${v}`} />;
+                    return <div key={d} style={{ width: "100%", height: "100%", borderRadius: 3, background: heatColor(v) }} title={`Focus: ${v}`} />;
                   })}
                 </div>
               ))}
             </div>
+          </div>
           </div>
           <div className="mt-2 flex items-center gap-1.5 text-[9px] text-muted-foreground">
             <span>none</span>
