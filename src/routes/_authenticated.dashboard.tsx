@@ -668,7 +668,7 @@ function Header({ monthLabel, prev, next, navBtn }: { monthLabel: string; prev: 
 }
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={"rounded-2xl border border-border bg-background overflow-hidden " + className} style={{ padding: 22, minWidth: 0 }}>{children}</div>;
+  return <div className={"rounded-2xl border border-border bg-background overflow-hidden h-full flex flex-col " + className} style={{ padding: 22, minWidth: 0 }}>{children}</div>;
 }
 function CardLabel({ children }: { children: React.ReactNode }) {
   return (
