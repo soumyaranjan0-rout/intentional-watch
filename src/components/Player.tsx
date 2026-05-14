@@ -220,14 +220,22 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
             style={{ top: 0, right: 0, width: 140, height: 56 }}
             aria-hidden
           />
+          {/* "More videos" hover shelf above the control bar */}
           <div
             className="pointer-events-auto absolute z-10"
             style={{ left: 0, right: 0, bottom: 56, height: 80 }}
             aria-hidden
           />
+          {/* Bottom-left: Share + Watch later icons (sit just above the control bar) */}
           <div
             className="pointer-events-auto absolute z-10"
-            style={{ right: 48, bottom: 0, width: 90, height: 36 }}
+            style={{ left: 0, bottom: 48, width: 110, height: 44 }}
+            aria-hidden
+          />
+          {/* Bottom-right: "More videos" pill + YouTube logo (sit just above the control bar) */}
+          <div
+            className="pointer-events-auto absolute z-10"
+            style={{ right: 0, bottom: 48, width: 220, height: 44 }}
             aria-hidden
           />
         </>

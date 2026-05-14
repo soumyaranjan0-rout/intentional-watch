@@ -390,7 +390,7 @@ function Dashboard() {
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
         <Card>
           <CardLabel>Stacked intent — daily minutes</CardLabel>
-          <div style={{ width: "100%", height: 160, overflow: "hidden" }}>
+          <div style={{ width: "100%", flex: 1, minHeight: 180, overflow: "hidden" }}>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={data.days14} margin={{ top: 5, right: 8, left: -20, bottom: 0 }}>
                 <CartesianGrid stroke="var(--border)" vertical={false} />
@@ -442,14 +442,14 @@ function Dashboard() {
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
         <Card>
           <CardLabel>Watch time by hour</CardLabel>
-          <div className="flex h-20 items-end gap-[2px]">
+          <div className="flex items-end gap-[2px]" style={{ flex: 1, minHeight: 120 }}>
             {data.hourMin.map((v, i) => {
               const max = Math.max(...data.hourMin, 1);
-              const h = Math.max(2, Math.round((v / max) * 76));
+              const pct = Math.max(2, Math.round((v / max) * 100));
               const isL = data.hourMin[i] > 0 && data.hourLearnMin[i] / data.hourMin[i] > 0.4;
               return (
                 <div key={i} className="flex-1 self-end rounded-t-sm"
-                  style={{ height: h, background: isL ? COLORS.learn : COLORS.ent, opacity: v === 0 ? 0.1 : 0.82 }}
+                  style={{ height: `${pct}%`, background: isL ? COLORS.learn : COLORS.ent, opacity: v === 0 ? 0.1 : 0.82 }}
                   title={`${i}:00 · ${Math.round(v)} min`} />
               );
             })}
@@ -471,7 +471,7 @@ function Dashboard() {
 
         <Card>
           <CardLabel>Behaviour radar</CardLabel>
-          <div style={{ width: "100%", height: 200, overflow: "hidden" }}>
+          <div style={{ width: "100%", flex: 1, minHeight: 220, overflow: "hidden" }}>
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart data={data.radar}>
                 <PolarGrid stroke="var(--border)" />
@@ -522,7 +522,7 @@ function Dashboard() {
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
         <Card>
           <CardLabel>Intent drift — 8 weeks</CardLabel>
-          <div style={{ width: "100%", height: 160, overflow: "hidden" }}>
+          <div style={{ width: "100%", flex: 1, minHeight: 180, overflow: "hidden" }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={data.drift} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
                 <CartesianGrid stroke="var(--border)" vertical={false} />
@@ -668,7 +668,7 @@ function Header({ monthLabel, prev, next, navBtn }: { monthLabel: string; prev: 
 }
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={"rounded-2xl border border-border bg-background overflow-hidden " + className} style={{ padding: 22, minWidth: 0 }}>{children}</div>;
+  return <div className={"rounded-2xl border border-border bg-background overflow-hidden h-full flex flex-col " + className} style={{ padding: 22, minWidth: 0 }}>{children}</div>;
 }
 function CardLabel({ children }: { children: React.ReactNode }) {
   return (
