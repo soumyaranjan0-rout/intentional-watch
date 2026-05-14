@@ -207,15 +207,22 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
         </div>
       )}
 
-      {/* Distraction blockers — only cover the lower YouTube promo row below
-          the progress bar. The progress scrubber and native controls such as
-          volume, captions and settings stay outside this mask and clickable. */}
+      {/* Distraction blockers — only cover the lower YouTube promo actions
+          below the progress bar. The scrubber and upper volume/CC/settings
+          controls stay outside these masks and remain clickable. */}
       {ready && !unavailable && hasPlayed && (
-        <div
-          className="pointer-events-auto absolute bottom-0 left-0 right-0 z-10"
-          style={{ height: "clamp(34px, 6.5%, 44px)" }}
-          aria-hidden
-        />
+        <>
+          <div
+            className="pointer-events-auto absolute bottom-0 left-0 z-10"
+            style={{ width: "clamp(112px, 13%, 150px)", height: "clamp(34px, 6.5%, 44px)" }}
+            aria-hidden
+          />
+          <div
+            className="pointer-events-auto absolute bottom-0 right-0 z-10"
+            style={{ width: "clamp(270px, 29%, 360px)", height: "clamp(34px, 6.5%, 44px)" }}
+            aria-hidden
+          />
+        </>
       )}
       {/* End-screen "More videos" cards + share grid — mask the entire video
           area but leave the bottom control bar (incl. progress bar) exposed. */}
