@@ -598,20 +598,24 @@ function Dashboard() {
 
         <Card>
           <CardLabel>Session timeline — today</CardLabel>
-          <div className="relative h-[52px] border-b border-border">
-            {data.sessions.map((s, i) => {
-              const tlS = 6, tlE = 24, tlR = tlE - tlS;
-              const pct = ((s.start - tlS) / tlR) * 100;
-              const wPct = Math.max(1, (s.dur / 60 / tlR) * 100);
-              const max = Math.max(...data.sessions.map((x) => x.dur), 1);
-              const h = Math.max(10, Math.round((s.dur / max) * 46));
-              return (
-                <div key={i} className="absolute bottom-0 rounded-t-sm"
-                  style={{ left: `${Math.max(0, pct).toFixed(1)}%`, width: `${wPct.toFixed(1)}%`, height: h,
-                    background: s.m === "l" ? COLORS.learn : COLORS.ent, opacity: 0.85 }}
-                  title={`${s.dur} min`} />
-              );
-            })}
+          <div className="relative min-w-0 flex-1 overflow-hidden border-b border-border" style={{ minHeight: 150 }}>
+            {data.sessions.length === 0 ? (
+              <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">No sessions today</div>
+            ) : (
+              data.sessions.map((s, i) => {
+                const tlS = 6, tlE = 24, tlR = tlE - tlS;
+                const pct = ((s.start - tlS) / tlR) * 100;
+                const wPct = Math.max(1, (s.dur / 60 / tlR) * 100);
+                const max = Math.max(...data.sessions.map((x) => x.dur), 1);
+                const h = `${Math.max(10, Math.round((s.dur / max) * 88))}%`;
+                return (
+                  <div key={i} className="absolute bottom-0 rounded-t-sm"
+                    style={{ left: `${Math.max(0, pct).toFixed(1)}%`, width: `${wPct.toFixed(1)}%`, height: h,
+                      background: s.m === "l" ? COLORS.learn : COLORS.ent, opacity: 0.85 }}
+                    title={`${s.dur} min`} />
+                );
+              })
+            )}
           </div>
           <div className="mt-1 flex justify-between text-[9px] text-muted-foreground">
             <span>6am</span><span>12pm</span><span>6pm</span><span>11pm</span>
