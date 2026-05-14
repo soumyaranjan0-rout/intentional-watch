@@ -444,7 +444,7 @@ function Dashboard() {
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
         <Card>
           <CardLabel>Watch time by hour</CardLabel>
-          <div className="flex items-end gap-[2px]" style={{ flex: 1, minHeight: 120 }}>
+          <div className="flex min-w-0 flex-1 items-end gap-[2px] overflow-hidden" style={{ minHeight: 150 }}>
             {data.hourMin.map((v, i) => {
               const max = Math.max(...data.hourMin, 1);
               const pct = Math.max(2, Math.round((v / max) * 100));
@@ -473,9 +473,9 @@ function Dashboard() {
 
         <Card>
           <CardLabel>Behaviour radar</CardLabel>
-          <div style={{ width: "100%", flex: 1, minHeight: 220, overflow: "hidden" }}>
+          <div className="min-w-0 flex-1 overflow-hidden" style={{ width: "100%", minHeight: 240 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <RadarChart data={data.radar}>
+              <RadarChart data={data.radar} margin={{ top: 4, right: 18, bottom: 4, left: 18 }}>
                 <PolarGrid stroke="var(--border)" />
                 <PolarAngleAxis dataKey="k" tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} />
                 <PolarRadiusAxis tick={false} axisLine={false} domain={[0, 100]} />
@@ -524,9 +524,9 @@ function Dashboard() {
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
         <Card>
           <CardLabel>Intent drift — 8 weeks</CardLabel>
-          <div style={{ width: "100%", flex: 1, minHeight: 180, overflow: "hidden" }}>
+          <div className="min-w-0 flex-1 overflow-hidden" style={{ width: "100%", minHeight: 190 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={data.drift} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
+              <LineChart data={data.drift} margin={{ top: 4, right: 4, left: -28, bottom: -4 }}>
                 <CartesianGrid stroke="var(--border)" vertical={false} />
                 <XAxis dataKey="w" stroke="var(--muted-foreground)" fontSize={10} tickLine={false} axisLine={false} />
                 <YAxis stroke="var(--muted-foreground)" fontSize={10} tickLine={false} axisLine={false} width={40} domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
