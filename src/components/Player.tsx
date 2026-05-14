@@ -226,16 +226,16 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
             style={{ left: 0, right: 0, bottom: 56, height: 80 }}
             aria-hidden
           />
-          {/* Bottom-left: Share + Watch later icons that appear after first play */}
+          {/* Bottom-left: Share + Watch later icons (sit just above the control bar) */}
           <div
             className="pointer-events-auto absolute z-10"
-            style={{ left: 0, bottom: 0, width: 110, height: 40 }}
+            style={{ left: 0, bottom: 48, width: 110, height: 44 }}
             aria-hidden
           />
-          {/* Bottom-right: YouTube logo + "More videos" pill */}
+          {/* Bottom-right: "More videos" pill + YouTube logo (sit just above the control bar) */}
           <div
             className="pointer-events-auto absolute z-10"
-            style={{ right: 56, bottom: 0, width: 220, height: 40 }}
+            style={{ right: 0, bottom: 48, width: 220, height: 44 }}
             aria-hidden
           />
         </>
