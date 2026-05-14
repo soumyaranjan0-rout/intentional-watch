@@ -442,14 +442,14 @@ function Dashboard() {
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
         <Card>
           <CardLabel>Watch time by hour</CardLabel>
-          <div className="flex h-20 items-end gap-[2px]">
+          <div className="flex items-end gap-[2px]" style={{ flex: 1, minHeight: 120 }}>
             {data.hourMin.map((v, i) => {
               const max = Math.max(...data.hourMin, 1);
-              const h = Math.max(2, Math.round((v / max) * 76));
+              const pct = Math.max(2, Math.round((v / max) * 100));
               const isL = data.hourMin[i] > 0 && data.hourLearnMin[i] / data.hourMin[i] > 0.4;
               return (
                 <div key={i} className="flex-1 self-end rounded-t-sm"
-                  style={{ height: h, background: isL ? COLORS.learn : COLORS.ent, opacity: v === 0 ? 0.1 : 0.82 }}
+                  style={{ height: `${pct}%`, background: isL ? COLORS.learn : COLORS.ent, opacity: v === 0 ? 0.1 : 0.82 }}
                   title={`${i}:00 · ${Math.round(v)} min`} />
               );
             })}
