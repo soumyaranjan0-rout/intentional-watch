@@ -213,7 +213,7 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
       {ready && !unavailable && hasPlayed && (
         <div
           className="pointer-events-auto absolute bottom-0 left-0 right-0 z-10"
-          style={{ height: "clamp(40px, 8.5%, 58px)" }}
+          style={{ height: "clamp(34px, 6.5%, 44px)" }}
           aria-hidden
         />
       )}
