@@ -308,22 +308,31 @@ export const searchVideos = createServerFn({ method: "POST" })
 
     const { q, videoDuration, order, hint } = buildSearchQuery(data);
     const limit = data.maxResults ?? (data.mode === "find" ? 5 : data.mode === "explore" ? 5 : 7);
+    const intentInfo = detectQueryIntent(data.query);
 
-    const searchParams = new URLSearchParams({
-      part: "snippet", q, maxResults: "20", type: "video",
-      safeSearch: "moderate", order, key: apiKey,
-    });
-    if (videoDuration && videoDuration !== "any") searchParams.set("videoDuration", videoDuration);
-    if (data.pageToken) searchParams.set("pageToken", data.pageToken);
+    const buildSearchUrl = (ord: "relevance" | "viewCount" | "date", pageToken?: string) => {
+      const sp = new URLSearchParams({
+        part: "snippet", q, maxResults: "25", type: "video",
+        safeSearch: "moderate", order: ord, key: apiKey,
+      });
+      if (videoDuration && videoDuration !== "any") sp.set("videoDuration", videoDuration);
+      if (pageToken) sp.set("pageToken", pageToken);
+      return `${YT_BASE}/search?${sp.toString()}`;
+    };
 
     try {
       const includePlaylists = (data.mode === "learn" || data.mode === "explore") && !data.pageToken;
-      // Channel detection: only on first page, and only for short-ish queries
-      // (long queries are unlikely to be channel names).
       const includeChannel = !data.pageToken && data.query.trim().split(/\s+/).length <= 5;
 
-      const [sRes, playlists, channel] = await Promise.all([
-        fetch(`${YT_BASE}/search?${searchParams.toString()}`),
+      // For freshness queries, fetch BOTH relevance + date and merge — pure
+      // date order returns recently-uploaded noise that barely matches.
+      const dualFetch = intentInfo.freshness && !data.pageToken;
+      const primaryUrl = buildSearchUrl(order, data.pageToken);
+      const secondaryUrl = dualFetch ? buildSearchUrl("relevance") : null;
+
+      const [sRes, sRes2, playlists, channel] = await Promise.all([
+        fetch(primaryUrl),
+        secondaryUrl ? fetch(secondaryUrl) : Promise.resolve(null),
         includePlaylists ? fetchPlaylists(apiKey, q) : Promise.resolve([]),
         includeChannel ? fetchTopChannelMatch(apiKey, data.query) : Promise.resolve(null),
       ]);
@@ -337,7 +346,7 @@ export const searchVideos = createServerFn({ method: "POST" })
           effectiveQuery: q, hint, nextPageToken: null,
         };
       }
-      const sJson = (await sRes.json()) as {
+      type SearchJson = {
         nextPageToken?: string;
         items: Array<{
           id: { videoId: string };
@@ -347,8 +356,19 @@ export const searchVideos = createServerFn({ method: "POST" })
           };
         }>;
       };
+      const sJson = (await sRes.json()) as SearchJson;
+      const sJson2: SearchJson = sRes2 && sRes2.ok ? ((await sRes2.json()) as SearchJson) : { items: [] };
 
-      const ids = sJson.items.map((i) => i.id.videoId).filter(Boolean);
+      // Merge unique items
+      const seen = new Set<string>();
+      const mergedItems: SearchJson["items"] = [];
+      for (const it of [...sJson.items, ...sJson2.items]) {
+        if (!it.id?.videoId || seen.has(it.id.videoId)) continue;
+        seen.add(it.id.videoId);
+        mergedItems.push(it);
+      }
+
+      const ids = mergedItems.map((i) => i.id.videoId);
       if (ids.length === 0) {
         return {
           error: null, results: [] as ResultVideo[], playlists, channel,
