@@ -104,8 +104,6 @@ function AppShell({ children }: { children: React.ReactNode }) {
               <span className="font-semibold tracking-tight">ZenTube</span>
             </Link>
 
-            <BackButton />
-
             <BackToVideoButton />
 
             <PrimaryNav />
@@ -116,8 +114,21 @@ function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
       )}
-      <main className="zen-fade-in">{children}</main>
+      <main className="zen-fade-in">
+        {!onAuthPage && <PageBackBar />}
+        {children}
+      </main>
       {!onAuthPage && <MobileTabBar />}
+    </div>
+  );
+}
+
+function PageBackBar() {
+  const { location } = useRouterState();
+  if (location.pathname === "/" || location.pathname.startsWith("/login")) return null;
+  return (
+    <div className="zen-container-wide px-3 pt-4 sm:px-6">
+      <BackButton />
     </div>
   );
 }
