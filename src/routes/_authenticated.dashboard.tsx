@@ -535,7 +535,7 @@ function Dashboard() {
       </Card>
 
       {/* Drift + Streak */}
-      <div className="mt-3 grid gap-3 lg:grid-cols-2">
+      <div className="mt-3 grid gap-3 lg:grid-cols-2 lg:items-start">
         <Card>
           <CardLabel>Intent drift — 8 weeks</CardLabel>
           <div className="min-w-0 flex-1 overflow-hidden" style={{ width: "100%", minHeight: 190 }}>
@@ -587,7 +587,7 @@ function Dashboard() {
       </div>
 
       {/* Top channels + Session timeline */}
-      <div className="mt-3 grid gap-3 lg:grid-cols-2">
+      <div className="mt-3 grid gap-3 lg:grid-cols-2 lg:items-start">
         <Card>
           <CardLabel>Top channels</CardLabel>
           {data.topChannels.length === 0 ? (
