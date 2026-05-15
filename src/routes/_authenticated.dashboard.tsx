@@ -281,16 +281,28 @@ function Dashboard() {
     // Today's session timeline
     const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
     const todayEnd = new Date(todayStart); todayEnd.setDate(todayStart.getDate() + 1);
-    const sessions = rows
-      .filter((r) => {
-        const t = new Date(r.watched_at).getTime();
-        return t >= todayStart.getTime() && t < todayEnd.getTime();
-      })
+    const todayRows = rows.filter((r) => {
+      const t = new Date(r.watched_at).getTime();
+      return t >= todayStart.getTime() && t < todayEnd.getTime();
+    });
+    const todaySec = todayRows.reduce((s, r) => s + ((r.effective_seconds || 0) || (r.watch_seconds || 0)), 0);
+    const todayVideos = todayRows.length;
+
+    // This week (last 7 days incl. today)
+    const weekStart = new Date(todayStart); weekStart.setDate(weekStart.getDate() - 6);
+    const weekRows = rows.filter((r) => {
+      const t = new Date(r.watched_at).getTime();
+      return t >= weekStart.getTime() && t < todayEnd.getTime();
+    });
+    const weekSec = weekRows.reduce((s, r) => s + ((r.effective_seconds || 0) || (r.watch_seconds || 0)), 0);
+    const avgPerVideoSec = inMonth.length ? Math.round(monthEff / inMonth.length) : 0;
+
+    const sessions = todayRows
       .map((r) => {
         const start = new Date(r.watched_at);
         return {
           start: start.getHours() + start.getMinutes() / 60,
-          dur: Math.max(1, Math.round((r.effective_seconds || 0) / 60)),
+          dur: Math.max(1, Math.round(((r.effective_seconds || 0) || (r.watch_seconds || 0)) / 60)),
           m: intentOf(r) === "learn" ? "l" : "r",
         };
       });
