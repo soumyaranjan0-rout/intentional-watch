@@ -168,7 +168,8 @@ function Dashboard() {
       for (const r of rows) {
         const t = new Date(r.watched_at).getTime();
         if (t < d.getTime() || t >= next.getTime()) continue;
-        const min = (r.effective_seconds || 0) / 60;
+        const sec = (r.effective_seconds || 0) || (r.watch_seconds || 0);
+        const min = sec / 60;
         const i2 = intentOf(r);
         if (i2 === "learn") l += min;
         else if (i2 === "relax") e += min;
