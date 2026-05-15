@@ -338,6 +338,7 @@ function Dashboard() {
       completionPct, finished, focus, focusLabel, streak, todayHasLearn,
       days14, heat, hourMin, hourLearnMin, peakIdx, focusWindow,
       videos, drift, topChannels, sessions, radar, learnDelta, seeksPerVideo, avgCompletion,
+      todaySec, todayVideos, weekSec, avgPerVideoSec,
     };
   }, [rows, cur]);
 
