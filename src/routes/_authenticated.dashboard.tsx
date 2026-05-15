@@ -168,7 +168,8 @@ function Dashboard() {
       for (const r of rows) {
         const t = new Date(r.watched_at).getTime();
         if (t < d.getTime() || t >= next.getTime()) continue;
-        const min = (r.effective_seconds || 0) / 60;
+        const sec = (r.effective_seconds || 0) || (r.watch_seconds || 0);
+        const min = sec / 60;
         const i2 = intentOf(r);
         if (i2 === "learn") l += min;
         else if (i2 === "relax") e += min;
@@ -280,16 +281,28 @@ function Dashboard() {
     // Today's session timeline
     const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
     const todayEnd = new Date(todayStart); todayEnd.setDate(todayStart.getDate() + 1);
-    const sessions = rows
-      .filter((r) => {
-        const t = new Date(r.watched_at).getTime();
-        return t >= todayStart.getTime() && t < todayEnd.getTime();
-      })
+    const todayRows = rows.filter((r) => {
+      const t = new Date(r.watched_at).getTime();
+      return t >= todayStart.getTime() && t < todayEnd.getTime();
+    });
+    const todaySec = todayRows.reduce((s, r) => s + ((r.effective_seconds || 0) || (r.watch_seconds || 0)), 0);
+    const todayVideos = todayRows.length;
+
+    // This week (last 7 days incl. today)
+    const weekStart = new Date(todayStart); weekStart.setDate(weekStart.getDate() - 6);
+    const weekRows = rows.filter((r) => {
+      const t = new Date(r.watched_at).getTime();
+      return t >= weekStart.getTime() && t < todayEnd.getTime();
+    });
+    const weekSec = weekRows.reduce((s, r) => s + ((r.effective_seconds || 0) || (r.watch_seconds || 0)), 0);
+    const avgPerVideoSec = inMonth.length ? Math.round(monthEff / inMonth.length) : 0;
+
+    const sessions = todayRows
       .map((r) => {
         const start = new Date(r.watched_at);
         return {
           start: start.getHours() + start.getMinutes() / 60,
-          dur: Math.max(1, Math.round((r.effective_seconds || 0) / 60)),
+          dur: Math.max(1, Math.round(((r.effective_seconds || 0) || (r.watch_seconds || 0)) / 60)),
           m: intentOf(r) === "learn" ? "l" : "r",
         };
       });
@@ -325,6 +338,7 @@ function Dashboard() {
       completionPct, finished, focus, focusLabel, streak, todayHasLearn,
       days14, heat, hourMin, hourLearnMin, peakIdx, focusWindow,
       videos, drift, topChannels, sessions, radar, learnDelta, seeksPerVideo, avgCompletion,
+      todaySec, todayVideos, weekSec, avgPerVideoSec,
     };
   }, [rows, cur]);
 
@@ -378,12 +392,12 @@ function Dashboard() {
         <StripItem label="This month" value={fmtMin(data.monthEff)} sub={`${data.monthVideos} videos`} className="col-span-2 sm:col-span-1" />
       </div>
 
-      {/* KPI tiles */}
+      {/* KPI tiles — simple, useful at-a-glance numbers */}
       <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Kpi border={COLORS.learn} label="watched" value={fmtMin(data.monthEff)} sub={`of ${fmtMin(data.monthRaw)} opened`} valueColor={COLORS.learn} />
-        <Kpi border={COLORS.warn} label="completion" value={`${data.completionPct}%`} sub={`${data.finished} of ${data.monthVideos} finished`} valueColor={COLORS.warn} />
-        <Kpi border={COLORS.amber} label="focus score" value={String(data.focus)} sub={`/ 100 · ${data.focusLabel}`} valueColor={COLORS.amber} />
-        <Kpi border={COLORS.mint} label="streak" value={`${data.streak} day${data.streak === 1 ? "" : "s"}`} sub="learn-something cadence" valueColor={COLORS.mint} />
+        <Kpi border={COLORS.learn} label="today" value={fmtMin(data.todaySec)} sub={`${data.todayVideos} video${data.todayVideos === 1 ? "" : "s"} watched`} valueColor={COLORS.learn} />
+        <Kpi border={COLORS.mint} label="this week" value={fmtMin(data.weekSec)} sub="last 7 days" valueColor={COLORS.mint} />
+        <Kpi border={COLORS.amber} label="avg per video" value={fmtMin(data.avgPerVideoSec)} sub="this month" valueColor={COLORS.amber} />
+        <Kpi border={COLORS.ent} label="streak" value={`${data.streak} day${data.streak === 1 ? "" : "s"}`} sub="learning cadence" valueColor={COLORS.ent} />
       </div>
 
       {/* Stacked area + Heatmap */}
@@ -521,7 +535,7 @@ function Dashboard() {
       </Card>
 
       {/* Drift + Streak */}
-      <div className="mt-3 grid gap-3 lg:grid-cols-2">
+      <div className="mt-3 grid gap-3 lg:grid-cols-2 lg:items-start">
         <Card>
           <CardLabel>Intent drift — 8 weeks</CardLabel>
           <div className="min-w-0 flex-1 overflow-hidden" style={{ width: "100%", minHeight: 190 }}>
@@ -573,7 +587,7 @@ function Dashboard() {
       </div>
 
       {/* Top channels + Session timeline */}
-      <div className="mt-3 grid gap-3 lg:grid-cols-2">
+      <div className="mt-3 grid gap-3 lg:grid-cols-2 lg:items-start">
         <Card>
           <CardLabel>Top channels</CardLabel>
           {data.topChannels.length === 0 ? (

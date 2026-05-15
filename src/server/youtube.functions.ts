@@ -308,22 +308,31 @@ export const searchVideos = createServerFn({ method: "POST" })
 
     const { q, videoDuration, order, hint } = buildSearchQuery(data);
     const limit = data.maxResults ?? (data.mode === "find" ? 5 : data.mode === "explore" ? 5 : 7);
+    const intentInfo = detectQueryIntent(data.query);
 
-    const searchParams = new URLSearchParams({
-      part: "snippet", q, maxResults: "20", type: "video",
-      safeSearch: "moderate", order, key: apiKey,
-    });
-    if (videoDuration && videoDuration !== "any") searchParams.set("videoDuration", videoDuration);
-    if (data.pageToken) searchParams.set("pageToken", data.pageToken);
+    const buildSearchUrl = (ord: "relevance" | "viewCount" | "date", pageToken?: string) => {
+      const sp = new URLSearchParams({
+        part: "snippet", q, maxResults: "25", type: "video",
+        safeSearch: "moderate", order: ord, key: apiKey,
+      });
+      if (videoDuration && videoDuration !== "any") sp.set("videoDuration", videoDuration);
+      if (pageToken) sp.set("pageToken", pageToken);
+      return `${YT_BASE}/search?${sp.toString()}`;
+    };
 
     try {
       const includePlaylists = (data.mode === "learn" || data.mode === "explore") && !data.pageToken;
-      // Channel detection: only on first page, and only for short-ish queries
-      // (long queries are unlikely to be channel names).
       const includeChannel = !data.pageToken && data.query.trim().split(/\s+/).length <= 5;
 
-      const [sRes, playlists, channel] = await Promise.all([
-        fetch(`${YT_BASE}/search?${searchParams.toString()}`),
+      // For freshness queries, fetch BOTH relevance + date and merge — pure
+      // date order returns recently-uploaded noise that barely matches.
+      const dualFetch = intentInfo.freshness && !data.pageToken;
+      const primaryUrl = buildSearchUrl(order, data.pageToken);
+      const secondaryUrl = dualFetch ? buildSearchUrl("relevance") : null;
+
+      const [sRes, sRes2, playlists, channel] = await Promise.all([
+        fetch(primaryUrl),
+        secondaryUrl ? fetch(secondaryUrl) : Promise.resolve(null),
         includePlaylists ? fetchPlaylists(apiKey, q) : Promise.resolve([]),
         includeChannel ? fetchTopChannelMatch(apiKey, data.query) : Promise.resolve(null),
       ]);
@@ -337,7 +346,7 @@ export const searchVideos = createServerFn({ method: "POST" })
           effectiveQuery: q, hint, nextPageToken: null,
         };
       }
-      const sJson = (await sRes.json()) as {
+      type SearchJson = {
         nextPageToken?: string;
         items: Array<{
           id: { videoId: string };
@@ -347,8 +356,19 @@ export const searchVideos = createServerFn({ method: "POST" })
           };
         }>;
       };
+      const sJson = (await sRes.json()) as SearchJson;
+      const sJson2: SearchJson = sRes2 && sRes2.ok ? ((await sRes2.json()) as SearchJson) : { items: [] };
 
-      const ids = sJson.items.map((i) => i.id.videoId).filter(Boolean);
+      // Merge unique items
+      const seen = new Set<string>();
+      const mergedItems: SearchJson["items"] = [];
+      for (const it of [...sJson.items, ...sJson2.items]) {
+        if (!it.id?.videoId || seen.has(it.id.videoId)) continue;
+        seen.add(it.id.videoId);
+        mergedItems.push(it);
+      }
+
+      const ids = mergedItems.map((i) => i.id.videoId);
       if (ids.length === 0) {
         return {
           error: null, results: [] as ResultVideo[], playlists, channel,
@@ -376,7 +396,15 @@ export const searchVideos = createServerFn({ method: "POST" })
       };
       const detailMap = new Map(dJson.items.map((it) => [it.id, it]));
 
-      let results: ResultVideo[] = sJson.items
+      // Tokens used for both filtering and ranking. Strip stopwords and short tokens.
+      const STOP = new Set(["the","and","for","with","video","videos","new","latest","best","top","you","your","this","that","from","into","what","how","why","2024","2025","2026","2027"]);
+      const qNorm = data.query.toLowerCase().trim();
+      const allTokens = qNorm.split(/\s+/).filter((t) => t.length >= 3);
+      const coreTokens = allTokens.filter((t) => !STOP.has(t));
+      const channelNameNorm = channel ? channel.title.toLowerCase() : null;
+      const nowMs = Date.now();
+
+      let results: ResultVideo[] = mergedItems
         .map((it) => {
           const d = detailMap.get(it.id.videoId);
           const durationSeconds = d ? parseISODuration(d.contentDetails.duration) : 0;
@@ -400,41 +428,45 @@ export const searchVideos = createServerFn({ method: "POST" })
           if (v.durationSeconds <= 65) return false;
           if (/#shorts?\b/i.test(v.title)) return false;
           if (data.mode === "learn" && v.durationSeconds < 90) return false;
-          return v.durationSeconds > 0;
+          if (v.durationSeconds <= 0) return false;
+          // Strict topic filter: when the query has 2+ meaningful tokens,
+          // require at least half of them to appear in title or description.
+          if (coreTokens.length >= 2) {
+            const hay = (v.title + " " + (v.description || "") + " " + v.channel).toLowerCase();
+            const matched = coreTokens.filter((t) => hay.includes(t)).length;
+            if (matched / coreTokens.length < 0.5) return false;
+          }
+          return true;
         });
 
       const bucket = videoDuration ?? "any";
 
-      // Smart ranking: title coverage > exact phrase > channel > popularity.
-      // Off-topic videos (no token overlap on multi-token queries) are
-      // demoted to keep them out of the top picks.
-      const qNorm = data.query.toLowerCase().trim();
-      const qTokens = qNorm.split(/\s+/).filter((t) => t.length >= 3);
-      const channelNameNorm = channel ? channel.title.toLowerCase() : null;
+      // Smart ranking — combines popularity, title coverage, exact phrase,
+      // channel match and (for freshness queries) recency.
       results.sort((a, b) => {
         const score = (v: ResultVideo) => {
           let s = fitScore(bucket, v.durationSeconds, v.viewCount);
           const titleN = v.title.toLowerCase();
           const descN = (v.description || "").toLowerCase();
           const chN = v.channel.toLowerCase();
-          // Title token coverage (0..1)
-          const matched = qTokens.filter((t) => titleN.includes(t)).length;
-          const coverage = qTokens.length ? matched / qTokens.length : 1;
-          s += matched * 8;
-          // Penalize off-topic results when the user gave a multi-word query
-          if (qTokens.length >= 2 && coverage < 0.5) s -= 30;
-          if (qTokens.length >= 2 && matched === 0) {
-            // tiny rescue if description carries the topic
-            const descMatched = qTokens.filter((t) => descN.includes(t)).length;
-            if (descMatched < 1) s -= 25;
+          const matched = allTokens.filter((t) => titleN.includes(t)).length;
+          const coreMatched = coreTokens.filter((t) => titleN.includes(t)).length;
+          const coreCoverage = coreTokens.length ? coreMatched / coreTokens.length : 1;
+          s += matched * 8 + coreMatched * 6;
+          if (coreTokens.length >= 2 && coreCoverage < 0.5) s -= 35;
+          if (coreTokens.length >= 1 && coreMatched === 0) {
+            const descMatched = coreTokens.filter((t) => descN.includes(t)).length;
+            if (descMatched < 1) s -= 30;
           }
-          // Channel name match → very high weight
           if (channelNameNorm && chN === channelNameNorm) s += 60;
           else if (channelNameNorm && chN.includes(channelNameNorm)) s += 28;
-          // Direct query phrase in title — biggest signal of intent match
           if (qNorm.length >= 4 && titleN.includes(qNorm)) s += 18;
-          // Title that starts with the query phrase is even stronger
           if (qNorm.length >= 4 && titleN.startsWith(qNorm)) s += 10;
+          // Recency boost for freshness queries (decays over ~60 days)
+          if (intentInfo.freshness && v.publishedAt) {
+            const ageDays = (nowMs - +new Date(v.publishedAt)) / 86_400_000;
+            if (ageDays >= 0) s += Math.max(0, 25 - ageDays * 0.4);
+          }
           return s;
         };
         return score(b) - score(a);
@@ -444,7 +476,6 @@ export const searchVideos = createServerFn({ method: "POST" })
       if (channel && !data.pageToken) {
         const fromChannel = results.filter((r) => r.channelId === channel.channelId);
         const others = results.filter((r) => r.channelId !== channel.channelId);
-        // Sort channel videos by recency for "latest" feel
         fromChannel.sort((a, b) => +new Date(b.publishedAt) - +new Date(a.publishedAt));
         results = [...fromChannel, ...others];
       }

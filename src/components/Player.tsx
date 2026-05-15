@@ -214,12 +214,12 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
         <>
           <div
             className="pointer-events-auto absolute bottom-0 left-0 z-10"
-            style={{ width: "clamp(112px, 13%, 150px)", height: "clamp(34px, 6.5%, 44px)" }}
+            style={{ width: "clamp(120px, 14%, 170px)", height: "clamp(50px, 11%, 68px)" }}
             aria-hidden
           />
           <div
             className="pointer-events-auto absolute bottom-0 right-0 z-10"
-            style={{ width: "clamp(270px, 29%, 360px)", height: "clamp(34px, 6.5%, 44px)" }}
+            style={{ width: "clamp(280px, 30%, 380px)", height: "clamp(50px, 11%, 68px)" }}
             aria-hidden
           />
         </>
