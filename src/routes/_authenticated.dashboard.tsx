@@ -392,12 +392,12 @@ function Dashboard() {
         <StripItem label="This month" value={fmtMin(data.monthEff)} sub={`${data.monthVideos} videos`} className="col-span-2 sm:col-span-1" />
       </div>
 
-      {/* KPI tiles */}
+      {/* KPI tiles — simple, useful at-a-glance numbers */}
       <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Kpi border={COLORS.learn} label="watched" value={fmtMin(data.monthEff)} sub={`of ${fmtMin(data.monthRaw)} opened`} valueColor={COLORS.learn} />
-        <Kpi border={COLORS.warn} label="completion" value={`${data.completionPct}%`} sub={`${data.finished} of ${data.monthVideos} finished`} valueColor={COLORS.warn} />
-        <Kpi border={COLORS.amber} label="focus score" value={String(data.focus)} sub={`/ 100 · ${data.focusLabel}`} valueColor={COLORS.amber} />
-        <Kpi border={COLORS.mint} label="streak" value={`${data.streak} day${data.streak === 1 ? "" : "s"}`} sub="learn-something cadence" valueColor={COLORS.mint} />
+        <Kpi border={COLORS.learn} label="today" value={fmtMin(data.todaySec)} sub={`${data.todayVideos} video${data.todayVideos === 1 ? "" : "s"} watched`} valueColor={COLORS.learn} />
+        <Kpi border={COLORS.mint} label="this week" value={fmtMin(data.weekSec)} sub="last 7 days" valueColor={COLORS.mint} />
+        <Kpi border={COLORS.amber} label="avg per video" value={fmtMin(data.avgPerVideoSec)} sub="this month" valueColor={COLORS.amber} />
+        <Kpi border={COLORS.ent} label="streak" value={`${data.streak} day${data.streak === 1 ? "" : "s"}`} sub="learning cadence" valueColor={COLORS.ent} />
       </div>
 
       {/* Stacked area + Heatmap */}
