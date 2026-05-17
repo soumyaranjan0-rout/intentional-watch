@@ -379,7 +379,7 @@ function WatchPage() {
 
       <div className="grid gap-6">
         <div className="min-w-0">
-          <div className="-mx-3 sm:mx-0">
+          <div className="-mx-6 sm:mx-0">
             <Player
               ref={playerRef}
               videoId={videoId}
