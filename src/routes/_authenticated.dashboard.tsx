@@ -538,7 +538,7 @@ function Dashboard() {
       <div className="mt-3 grid gap-3 lg:grid-cols-2 lg:items-start">
         <Card>
           <CardLabel>Intent drift — 8 weeks</CardLabel>
-          <div className="min-w-0 flex-1 overflow-hidden" style={{ width: "100%", minHeight: 190 }}>
+          <div className="min-w-0 w-full overflow-hidden" style={{ height: 220 }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={data.drift} margin={{ top: 4, right: 4, left: -28, bottom: -4 }}>
                 <CartesianGrid stroke="var(--border)" vertical={false} />
