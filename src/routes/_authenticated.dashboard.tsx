@@ -487,7 +487,7 @@ function Dashboard() {
 
         <Card>
           <CardLabel>Behaviour radar</CardLabel>
-          <div className="min-w-0 flex-1 overflow-hidden" style={{ width: "100%", minHeight: 240 }}>
+          <div className="min-w-0 w-full overflow-hidden" style={{ height: 260 }}>
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart data={data.radar} margin={{ top: 4, right: 18, bottom: 4, left: 18 }}>
                 <PolarGrid stroke="var(--border)" />
