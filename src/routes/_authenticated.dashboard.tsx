@@ -426,14 +426,14 @@ function Dashboard() {
 
         <Card>
           <CardLabel>Attention heatmap — 10 weeks</CardLabel>
-          <div className="min-w-0 flex-1 overflow-hidden">
-          <div className="grid h-full min-h-[180px] grid-cols-[24px_1fr] items-stretch gap-0">
+          <div className="min-w-0 w-full overflow-hidden">
+          <div className="grid grid-cols-[24px_1fr] gap-0" style={{ height: 220 }}>
             <div className="flex flex-col gap-[3px] pt-[17px] text-[9px] text-muted-foreground">
-              {["M","T","W","T","F","S","S"].map((d, i) => <div key={i} className="h-3 leading-3">{d}</div>)}
+              {["M","T","W","T","F","S","S"].map((d, i) => <div key={i} className="flex-1 leading-3">{d}</div>)}
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(10, 1fr)", gap: 3, width: "100%", alignContent: "stretch" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(10, 1fr)", gap: 3, width: "100%", height: "100%" }}>
               {Array.from({ length: 10 }).map((_, w) => (
-                <div key={w} className="grid" style={{ gridTemplateRows: "13px repeat(7, minmax(0, 1fr))", gap: 3, minHeight: 0 }}>
+                <div key={w} className="grid" style={{ gridTemplateRows: "13px repeat(7, 1fr)", gap: 3, minHeight: 0 }}>
                   <div className="h-[13px] text-center text-[9px] leading-[13px] text-muted-foreground">W{w + 1}</div>
                   {Array.from({ length: 7 }).map((_, d) => {
                     const v = data.heat[w * 7 + d] ?? 0;
