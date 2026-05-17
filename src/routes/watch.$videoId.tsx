@@ -14,7 +14,7 @@ import { getVideoMeta } from "@/server/youtube.functions";
 import { getStoredYouTubeApiKey } from "@/lib/youtubeApiKey";
 import { toast } from "sonner";
 import {
-  ArrowLeft, BookmarkPlus, BookmarkCheck, Share2, ThumbsUp, ThumbsDown,
+  BookmarkPlus, BookmarkCheck, Share2, ThumbsUp, ThumbsDown,
   Clock, Sparkles, Brain, Coffee, Search as SearchIcon,
 } from "lucide-react";
 
