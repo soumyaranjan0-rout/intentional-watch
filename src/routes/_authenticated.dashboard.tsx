@@ -404,7 +404,7 @@ function Dashboard() {
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
         <Card>
           <CardLabel>Stacked intent — daily minutes</CardLabel>
-          <div className="min-w-0 flex-1 overflow-hidden" style={{ width: "100%", minHeight: 180 }}>
+          <div className="min-w-0 w-full overflow-hidden" style={{ height: 220 }}>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={data.days14} margin={{ top: 4, right: 4, left: -24, bottom: -4 }}>
                 <CartesianGrid stroke="var(--border)" vertical={false} />
