@@ -612,7 +612,7 @@ function Dashboard() {
 
         <Card>
           <CardLabel>Session timeline — today</CardLabel>
-          <div className="relative min-w-0 flex-1 overflow-hidden border-b border-border" style={{ minHeight: 150 }}>
+          <div className="relative min-w-0 w-full overflow-hidden border-b border-border" style={{ height: 180 }}>
             {data.sessions.length === 0 ? (
               <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">No sessions today</div>
             ) : (
