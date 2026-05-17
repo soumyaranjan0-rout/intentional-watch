@@ -14,7 +14,7 @@ import { getVideoMeta } from "@/server/youtube.functions";
 import { getStoredYouTubeApiKey } from "@/lib/youtubeApiKey";
 import { toast } from "sonner";
 import {
-  ArrowLeft, BookmarkPlus, BookmarkCheck, Share2, ThumbsUp, ThumbsDown,
+  BookmarkPlus, BookmarkCheck, Share2, ThumbsUp, ThumbsDown,
   Clock, Sparkles, Brain, Coffee, Search as SearchIcon,
 } from "lucide-react";
 
@@ -367,40 +367,35 @@ function WatchPage() {
   const isExplore = finalIntent === "explore";
 
   return (
-    <div className="zen-container-wide py-6 sm:py-8">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <Link
-          to="/results"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" /> Back to results
-        </Link>
-
-        {isRelax && sessionMinutes >= 5 && (
+    <div className="zen-container-wide py-4 sm:py-8">
+      {isRelax && sessionMinutes >= 5 && (
+        <div className="mb-3 flex justify-end">
           <div className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface/70 px-3 py-1 text-xs text-muted-foreground">
             <Clock className="h-3.5 w-3.5" />
             You've been watching for {sessionMinutes} min
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="grid gap-6">
         <div className="min-w-0">
-          <Player
-            ref={playerRef}
-            videoId={videoId}
-            chapterLabel=""
-            onProgress={handleProgress}
-            onEnded={handleEnded}
-            onSegmentPlayed={handleSegment}
-            onSeek={handleSeek}
-            onReady={() => {
-              if (!initialSeekRef.current && search.t && search.t > 0) {
-                initialSeekRef.current = true;
-                playerRef.current?.seekTo(search.t);
-              }
-            }}
-          />
+          <div className="-mx-6 sm:mx-0">
+            <Player
+              ref={playerRef}
+              videoId={videoId}
+              chapterLabel=""
+              onProgress={handleProgress}
+              onEnded={handleEnded}
+              onSegmentPlayed={handleSegment}
+              onSeek={handleSeek}
+              onReady={() => {
+                if (!initialSeekRef.current && search.t && search.t > 0) {
+                  initialSeekRef.current = true;
+                  playerRef.current?.seekTo(search.t);
+                }
+              }}
+            />
+          </div>
 
           {/* Title */}
           <h1 className="mt-4 text-xl font-semibold leading-snug text-foreground sm:text-2xl">

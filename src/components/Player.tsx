@@ -197,7 +197,7 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
   }, [onProgress, onSeek, flushSegment]);
 
   return (
-    <div className="zen-player relative aspect-video w-full overflow-hidden rounded-2xl bg-black shadow-[0_12px_50px_-15px_rgba(0,0,0,0.7)]">
+    <div className="zen-player relative aspect-video w-full overflow-hidden bg-black sm:rounded-2xl sm:shadow-[0_12px_50px_-15px_rgba(0,0,0,0.7)]">
       <div ref={mountRef} className="absolute inset-0 h-full w-full [&>iframe]:h-full [&>iframe]:w-full" />
 
       {/* Loading shimmer */}

@@ -404,7 +404,7 @@ function Dashboard() {
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
         <Card>
           <CardLabel>Stacked intent — daily minutes</CardLabel>
-          <div className="min-w-0 flex-1 overflow-hidden" style={{ width: "100%", minHeight: 180 }}>
+          <div className="min-w-0 w-full overflow-hidden" style={{ height: 220 }}>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={data.days14} margin={{ top: 4, right: 4, left: -24, bottom: -4 }}>
                 <CartesianGrid stroke="var(--border)" vertical={false} />
@@ -426,14 +426,14 @@ function Dashboard() {
 
         <Card>
           <CardLabel>Attention heatmap — 10 weeks</CardLabel>
-          <div className="min-w-0 flex-1 overflow-hidden">
-          <div className="grid h-full min-h-[180px] grid-cols-[24px_1fr] items-stretch gap-0">
+          <div className="min-w-0 w-full overflow-hidden">
+          <div className="grid grid-cols-[24px_1fr] gap-0" style={{ height: 220 }}>
             <div className="flex flex-col gap-[3px] pt-[17px] text-[9px] text-muted-foreground">
-              {["M","T","W","T","F","S","S"].map((d, i) => <div key={i} className="h-3 leading-3">{d}</div>)}
+              {["M","T","W","T","F","S","S"].map((d, i) => <div key={i} className="flex-1 leading-3">{d}</div>)}
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(10, 1fr)", gap: 3, width: "100%", alignContent: "stretch" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(10, 1fr)", gap: 3, width: "100%", height: "100%" }}>
               {Array.from({ length: 10 }).map((_, w) => (
-                <div key={w} className="grid" style={{ gridTemplateRows: "13px repeat(7, minmax(0, 1fr))", gap: 3, minHeight: 0 }}>
+                <div key={w} className="grid" style={{ gridTemplateRows: "13px repeat(7, 1fr)", gap: 3, minHeight: 0 }}>
                   <div className="h-[13px] text-center text-[9px] leading-[13px] text-muted-foreground">W{w + 1}</div>
                   {Array.from({ length: 7 }).map((_, d) => {
                     const v = data.heat[w * 7 + d] ?? 0;
@@ -458,7 +458,7 @@ function Dashboard() {
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
         <Card>
           <CardLabel>Watch time by hour</CardLabel>
-          <div className="flex min-w-0 flex-1 items-end gap-[2px] overflow-hidden" style={{ minHeight: 150 }}>
+          <div className="flex min-w-0 w-full items-end gap-[2px] overflow-hidden" style={{ height: 180 }}>
             {data.hourMin.map((v, i) => {
               const max = Math.max(...data.hourMin, 1);
               const pct = Math.max(2, Math.round((v / max) * 100));
@@ -487,7 +487,7 @@ function Dashboard() {
 
         <Card>
           <CardLabel>Behaviour radar</CardLabel>
-          <div className="min-w-0 flex-1 overflow-hidden" style={{ width: "100%", minHeight: 240 }}>
+          <div className="min-w-0 w-full overflow-hidden" style={{ height: 260 }}>
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart data={data.radar} margin={{ top: 4, right: 18, bottom: 4, left: 18 }}>
                 <PolarGrid stroke="var(--border)" />
@@ -538,7 +538,7 @@ function Dashboard() {
       <div className="mt-3 grid gap-3 lg:grid-cols-2 lg:items-start">
         <Card>
           <CardLabel>Intent drift — 8 weeks</CardLabel>
-          <div className="min-w-0 flex-1 overflow-hidden" style={{ width: "100%", minHeight: 190 }}>
+          <div className="min-w-0 w-full overflow-hidden" style={{ height: 220 }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={data.drift} margin={{ top: 4, right: 4, left: -28, bottom: -4 }}>
                 <CartesianGrid stroke="var(--border)" vertical={false} />
@@ -612,7 +612,7 @@ function Dashboard() {
 
         <Card>
           <CardLabel>Session timeline — today</CardLabel>
-          <div className="relative min-w-0 flex-1 overflow-hidden border-b border-border" style={{ minHeight: 150 }}>
+          <div className="relative min-w-0 w-full overflow-hidden border-b border-border" style={{ height: 180 }}>
             {data.sessions.length === 0 ? (
               <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">No sessions today</div>
             ) : (
@@ -688,7 +688,7 @@ function Header({ monthLabel, prev, next, navBtn }: { monthLabel: string; prev: 
 }
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={"rounded-2xl border border-border bg-background overflow-hidden h-full flex flex-col " + className} style={{ padding: 22, minWidth: 0 }}>{children}</div>;
+  return <div className={"rounded-2xl border border-border bg-background overflow-hidden " + className} style={{ padding: 22, minWidth: 0 }}>{children}</div>;
 }
 function CardLabel({ children }: { children: React.ReactNode }) {
   return (
