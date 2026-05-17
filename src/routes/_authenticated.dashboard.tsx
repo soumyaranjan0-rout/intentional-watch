@@ -458,7 +458,7 @@ function Dashboard() {
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
         <Card>
           <CardLabel>Watch time by hour</CardLabel>
-          <div className="flex min-w-0 flex-1 items-end gap-[2px] overflow-hidden" style={{ minHeight: 150 }}>
+          <div className="flex min-w-0 w-full items-end gap-[2px] overflow-hidden" style={{ height: 180 }}>
             {data.hourMin.map((v, i) => {
               const max = Math.max(...data.hourMin, 1);
               const pct = Math.max(2, Math.round((v / max) * 100));
