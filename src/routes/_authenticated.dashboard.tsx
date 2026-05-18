@@ -404,8 +404,8 @@ function Dashboard() {
         <Kpi border={COLORS.ent} label="streak" value={`${data.streak} day${data.streak === 1 ? "" : "s"}`} sub="learning cadence" valueColor={COLORS.ent} />
       </div>
 
+      <div className="mt-3 columns-1 gap-3 lg:columns-2 [&>*]:mb-3 [&>*]:break-inside-avoid">
       {/* Stacked area + Heatmap */}
-      <div className="mt-3 grid gap-3 lg:grid-cols-2">
         <Card>
           <CardLabel>Stacked intent — daily minutes</CardLabel>
           <div className="min-w-0 w-full overflow-hidden" style={{ height: 220 }}>
@@ -456,10 +456,8 @@ function Dashboard() {
             <span>focused</span>
           </div>
         </Card>
-      </div>
 
       {/* Hour bars + Radar */}
-      <div className="mt-3 grid gap-3 lg:grid-cols-2">
         <Card>
           <CardLabel>Watch time by hour</CardLabel>
           <div className="flex min-w-0 w-full items-end gap-[2px] overflow-hidden" style={{ height: 180 }}>
@@ -505,10 +503,9 @@ function Dashboard() {
           </div>
           <Legend items={[{ color: COLORS.learn, label: "You" }, { color: COLORS.goal, label: "Goal", dashed: true }]} />
         </Card>
-      </div>
 
       {/* Watch map */}
-      <Card className="mt-3">
+      <Card>
         <div className="mb-1">
           <CardLabel>Video watch map — how much of each video you watched</CardLabel>
         </div>
@@ -539,7 +536,7 @@ function Dashboard() {
       </Card>
 
       {/* Drift + Streak */}
-      <div className="mt-3 grid gap-3 lg:grid-cols-2 lg:items-start">
+      <>
         <Card>
           <CardLabel>Intent drift — 8 weeks</CardLabel>
           <div className="min-w-0 w-full overflow-hidden" style={{ height: 220 }}>
@@ -588,10 +585,9 @@ function Dashboard() {
             </div>
           </div>
         </Card>
-      </div>
 
       {/* Top channels + Session timeline */}
-      <div className="mt-3 grid gap-3 lg:grid-cols-2 lg:items-start">
+      <>
         <Card>
           <CardLabel>Top channels</CardLabel>
           {data.topChannels.length === 0 ? (
@@ -643,7 +639,6 @@ function Dashboard() {
             { color: COLORS.ent, label: "Entertainment" },
           ]} />
         </Card>
-      </div>
 
       {/* Three things */}
       <Card className="mt-3">
