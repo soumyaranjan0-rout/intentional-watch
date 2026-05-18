@@ -398,8 +398,8 @@ function Dashboard() {
 
       {/* KPI tiles — simple, useful at-a-glance numbers */}
       <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Kpi border={COLORS.learn} label="today" value={fmtMin(data.todaySec)} sub={`${data.todayVideos} video${data.todayVideos === 1 ? "" : "s"} watched`} valueColor={COLORS.learn} />
-        <Kpi border={COLORS.mint} label="this week" value={fmtMin(data.weekSec)} sub="last 7 days" valueColor={COLORS.mint} />
+        <Kpi border={COLORS.learn} label="best day" value={fmtMin(data.bestDaySec)} sub="highest watch day" valueColor={COLORS.learn} />
+        <Kpi border={COLORS.mint} label="active days" value={`${data.activeDays}`} sub="days with watching" valueColor={COLORS.mint} />
         <Kpi border={COLORS.amber} label="avg per video" value={fmtMin(data.avgPerVideoSec)} sub="this month" valueColor={COLORS.amber} />
         <Kpi border={COLORS.ent} label="streak" value={`${data.streak} day${data.streak === 1 ? "" : "s"}`} sub="learning cadence" valueColor={COLORS.ent} />
       </div>
