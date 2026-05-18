@@ -638,6 +638,8 @@ function Dashboard() {
           ]} />
         </Card>
 
+      </div>
+
       {/* Three things */}
       <Card>
         <div className="mb-3 text-sm font-medium text-foreground">Three things your data is saying</div>
@@ -659,7 +661,6 @@ function Dashboard() {
           ))}
         </div>
       </Card>
-      </div>
     </div>
   );
 }
