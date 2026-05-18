@@ -79,11 +79,11 @@ export function SessionStateProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<SessionState>(
     () => ({
-      mode,
+      mode: modeState,
       setMode,
-      refinement,
+      refinement: refinementState,
       setRefinement,
-      query,
+      query: queryState,
       setQuery,
       videosWatchedThisSession,
       sessionStartedAt,
