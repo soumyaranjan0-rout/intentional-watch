@@ -253,7 +253,7 @@ function Dashboard() {
     // 8-week intent drift (percent learn vs ent)
     const drift: { w: string; learn: number; ent: number }[] = [];
     for (let w = 7; w >= 0; w--) {
-      const start = new Date(); start.setHours(0, 0, 0, 0);
+      const start = new Date(periodAnchor); start.setHours(0, 0, 0, 0);
       start.setDate(start.getDate() - (w * 7 + 6));
       const end = new Date(start); end.setDate(start.getDate() + 7);
       let l = 0, e = 0, t = 0;
@@ -330,7 +330,7 @@ function Dashboard() {
     const learn4w = drift[Math.max(0, drift.length - 5)]?.learn ?? 0;
     const learnDelta = learnNow - learn4w;
 
-    const videosFinished = rows.filter(
+    const videosFinished = inMonth.filter(
       (r) => r.duration_seconds && (r.effective_seconds || 0) >= (r.duration_seconds || 0) * 0.85,
     ).length;
     const skippedSec = Math.max(0, monthRaw - monthEff);
