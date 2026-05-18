@@ -99,9 +99,9 @@ function AppShell({ children }: { children: React.ReactNode }) {
       {!onAuthPage && (
         <header className="sticky top-0 z-30 border-b border-border/40 bg-background/75 backdrop-blur-xl">
           <div className="zen-container-wide flex h-14 items-center gap-2 px-3 sm:gap-3 sm:px-6">
-            <Link to="/" className="flex items-center gap-2 text-foreground transition-opacity hover:opacity-80">
-              <ZenLogo size={26} />
-              <span className="font-semibold tracking-tight">ZenTube</span>
+            <Link to="/" className="flex items-center gap-2.5 text-foreground transition-opacity hover:opacity-80">
+              <ZenLogo size={34} />
+              <span className="text-lg font-semibold tracking-tight">ZenTube</span>
             </Link>
 
             <BackToVideoButton />
