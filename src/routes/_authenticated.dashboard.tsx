@@ -93,9 +93,15 @@ function Dashboard() {
 
   const data = useMemo(() => {
     if (!rows) return null;
+    const monthStart = new Date(cur.y, cur.m, 1);
+    const monthEnd = new Date(cur.y, cur.m + 1, 1);
+    const periodAnchor = new Date(monthEnd);
+    periodAnchor.setDate(periodAnchor.getDate() - 1);
+    const periodAnchorEnd = new Date(periodAnchor);
+    periodAnchorEnd.setDate(periodAnchorEnd.getDate() + 1);
     const inMonth = rows.filter((r) => {
       const d = new Date(r.watched_at);
-      return d.getFullYear() === cur.y && d.getMonth() === cur.m;
+      return d >= monthStart && d < monthEnd;
     });
 
     // All-time
@@ -132,10 +138,10 @@ function Dashboard() {
     );
     const focusLabel = focus > 70 ? "focused" : focus > 40 ? "drifting" : "scattered";
 
-    // Streak — consecutive days ending today with any "learn" video
+    // Streak — consecutive days ending at the selected month's latest day
     let streak = 0;
     for (let i = 0; i < 60; i++) {
-      const d = new Date();
+      const d = new Date(periodAnchor);
       d.setHours(0, 0, 0, 0);
       d.setDate(d.getDate() - i);
       const next = new Date(d);
@@ -150,7 +156,7 @@ function Dashboard() {
       else break;
     }
     const todayHasLearn = streak > 0 && (() => {
-      const d = new Date(); d.setHours(0, 0, 0, 0);
+      const d = new Date(periodAnchor); d.setHours(0, 0, 0, 0);
       const next = new Date(d); next.setDate(d.getDate() + 1);
       return rows.some((r) => {
         if (intentOf(r) !== "learn") return false;
@@ -159,10 +165,10 @@ function Dashboard() {
       });
     })();
 
-    // Last 14 days stacked
+    // Last 14 days of the selected month window
     const days14: { day: string; learn: number; ent: number; other: number }[] = [];
     for (let i = 13; i >= 0; i--) {
-      const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - i);
+      const d = new Date(periodAnchor); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - i);
       const next = new Date(d); next.setDate(d.getDate() + 1);
       let l = 0, e = 0, o = 0;
       for (const r of rows) {
@@ -181,11 +187,11 @@ function Dashboard() {
       });
     }
 
-    // 10-week heatmap (focus per day, 0-100)
+    // 10-week heatmap ending at selected month, focus per day 0-100
     const heat: number[] = [];
     for (let w = 9; w >= 0; w--) {
       for (let d = 0; d < 7; d++) {
-        const day = new Date();
+        const day = new Date(periodAnchor);
         day.setHours(0, 0, 0, 0);
         day.setDate(day.getDate() - (w * 7 + (6 - d)));
         const next = new Date(day);
@@ -279,25 +285,23 @@ function Dashboard() {
       .slice(0, 5);
 
     // Today's session timeline
-    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date(todayStart); todayEnd.setDate(todayStart.getDate() + 1);
-    const todayRows = rows.filter((r) => {
+    const anchorRows = rows.filter((r) => {
       const t = new Date(r.watched_at).getTime();
-      return t >= todayStart.getTime() && t < todayEnd.getTime();
+      return t >= periodAnchor.getTime() && t < periodAnchorEnd.getTime();
     });
-    const todaySec = todayRows.reduce((s, r) => s + ((r.effective_seconds || 0) || (r.watch_seconds || 0)), 0);
-    const todayVideos = todayRows.length;
+    const bestDaySec = (() => {
+      const byDay: Record<string, number> = {};
+      for (const r of inMonth) {
+        const key = new Date(r.watched_at).toDateString();
+        byDay[key] = (byDay[key] || 0) + ((r.effective_seconds || 0) || (r.watch_seconds || 0));
+      }
+      return Math.max(0, ...Object.values(byDay));
+    })();
+    const activeDays = new Set(inMonth.map((r) => new Date(r.watched_at).toDateString())).size;
 
-    // This week (last 7 days incl. today)
-    const weekStart = new Date(todayStart); weekStart.setDate(weekStart.getDate() - 6);
-    const weekRows = rows.filter((r) => {
-      const t = new Date(r.watched_at).getTime();
-      return t >= weekStart.getTime() && t < todayEnd.getTime();
-    });
-    const weekSec = weekRows.reduce((s, r) => s + ((r.effective_seconds || 0) || (r.watch_seconds || 0)), 0);
     const avgPerVideoSec = inMonth.length ? Math.round(monthEff / inMonth.length) : 0;
 
-    const sessions = todayRows
+    const sessions = anchorRows
       .map((r) => {
         const start = new Date(r.watched_at);
         return {
@@ -338,7 +342,7 @@ function Dashboard() {
       completionPct, finished, focus, focusLabel, streak, todayHasLearn,
       days14, heat, hourMin, hourLearnMin, peakIdx, focusWindow,
       videos, drift, topChannels, sessions, radar, learnDelta, seeksPerVideo, avgCompletion,
-      todaySec, todayVideos, weekSec, avgPerVideoSec,
+      bestDaySec, activeDays, avgPerVideoSec,
     };
   }, [rows, cur]);
 
