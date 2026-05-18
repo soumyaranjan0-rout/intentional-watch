@@ -536,7 +536,6 @@ function Dashboard() {
       </Card>
 
       {/* Drift + Streak */}
-      <>
         <Card>
           <CardLabel>Intent drift — 8 weeks</CardLabel>
           <div className="min-w-0 w-full overflow-hidden" style={{ height: 220 }}>
@@ -587,7 +586,6 @@ function Dashboard() {
         </Card>
 
       {/* Top channels + Session timeline */}
-      <>
         <Card>
           <CardLabel>Top channels</CardLabel>
           {data.topChannels.length === 0 ? (
@@ -661,6 +659,7 @@ function Dashboard() {
           ))}
         </div>
       </Card>
+      </div>
     </div>
   );
 }
