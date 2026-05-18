@@ -93,9 +93,15 @@ function Dashboard() {
 
   const data = useMemo(() => {
     if (!rows) return null;
+    const monthStart = new Date(cur.y, cur.m, 1);
+    const monthEnd = new Date(cur.y, cur.m + 1, 1);
+    const periodAnchor = new Date(monthEnd);
+    periodAnchor.setDate(periodAnchor.getDate() - 1);
+    const periodAnchorEnd = new Date(periodAnchor);
+    periodAnchorEnd.setDate(periodAnchorEnd.getDate() + 1);
     const inMonth = rows.filter((r) => {
       const d = new Date(r.watched_at);
-      return d.getFullYear() === cur.y && d.getMonth() === cur.m;
+      return d >= monthStart && d < monthEnd;
     });
 
     // All-time
@@ -132,10 +138,10 @@ function Dashboard() {
     );
     const focusLabel = focus > 70 ? "focused" : focus > 40 ? "drifting" : "scattered";
 
-    // Streak — consecutive days ending today with any "learn" video
+    // Streak — consecutive days ending at the selected month's latest day
     let streak = 0;
     for (let i = 0; i < 60; i++) {
-      const d = new Date();
+      const d = new Date(periodAnchor);
       d.setHours(0, 0, 0, 0);
       d.setDate(d.getDate() - i);
       const next = new Date(d);
@@ -150,7 +156,7 @@ function Dashboard() {
       else break;
     }
     const todayHasLearn = streak > 0 && (() => {
-      const d = new Date(); d.setHours(0, 0, 0, 0);
+      const d = new Date(periodAnchor); d.setHours(0, 0, 0, 0);
       const next = new Date(d); next.setDate(d.getDate() + 1);
       return rows.some((r) => {
         if (intentOf(r) !== "learn") return false;
@@ -159,10 +165,10 @@ function Dashboard() {
       });
     })();
 
-    // Last 14 days stacked
+    // Last 14 days of the selected month window
     const days14: { day: string; learn: number; ent: number; other: number }[] = [];
     for (let i = 13; i >= 0; i--) {
-      const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - i);
+      const d = new Date(periodAnchor); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - i);
       const next = new Date(d); next.setDate(d.getDate() + 1);
       let l = 0, e = 0, o = 0;
       for (const r of rows) {
@@ -181,11 +187,11 @@ function Dashboard() {
       });
     }
 
-    // 10-week heatmap (focus per day, 0-100)
+    // 10-week heatmap ending at selected month, focus per day 0-100
     const heat: number[] = [];
     for (let w = 9; w >= 0; w--) {
       for (let d = 0; d < 7; d++) {
-        const day = new Date();
+        const day = new Date(periodAnchor);
         day.setHours(0, 0, 0, 0);
         day.setDate(day.getDate() - (w * 7 + (6 - d)));
         const next = new Date(day);
@@ -247,7 +253,7 @@ function Dashboard() {
     // 8-week intent drift (percent learn vs ent)
     const drift: { w: string; learn: number; ent: number }[] = [];
     for (let w = 7; w >= 0; w--) {
-      const start = new Date(); start.setHours(0, 0, 0, 0);
+      const start = new Date(periodAnchor); start.setHours(0, 0, 0, 0);
       start.setDate(start.getDate() - (w * 7 + 6));
       const end = new Date(start); end.setDate(start.getDate() + 7);
       let l = 0, e = 0, t = 0;
@@ -279,25 +285,23 @@ function Dashboard() {
       .slice(0, 5);
 
     // Today's session timeline
-    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date(todayStart); todayEnd.setDate(todayStart.getDate() + 1);
-    const todayRows = rows.filter((r) => {
+    const anchorRows = rows.filter((r) => {
       const t = new Date(r.watched_at).getTime();
-      return t >= todayStart.getTime() && t < todayEnd.getTime();
+      return t >= periodAnchor.getTime() && t < periodAnchorEnd.getTime();
     });
-    const todaySec = todayRows.reduce((s, r) => s + ((r.effective_seconds || 0) || (r.watch_seconds || 0)), 0);
-    const todayVideos = todayRows.length;
+    const bestDaySec = (() => {
+      const byDay: Record<string, number> = {};
+      for (const r of inMonth) {
+        const key = new Date(r.watched_at).toDateString();
+        byDay[key] = (byDay[key] || 0) + ((r.effective_seconds || 0) || (r.watch_seconds || 0));
+      }
+      return Math.max(0, ...Object.values(byDay));
+    })();
+    const activeDays = new Set(inMonth.map((r) => new Date(r.watched_at).toDateString())).size;
 
-    // This week (last 7 days incl. today)
-    const weekStart = new Date(todayStart); weekStart.setDate(weekStart.getDate() - 6);
-    const weekRows = rows.filter((r) => {
-      const t = new Date(r.watched_at).getTime();
-      return t >= weekStart.getTime() && t < todayEnd.getTime();
-    });
-    const weekSec = weekRows.reduce((s, r) => s + ((r.effective_seconds || 0) || (r.watch_seconds || 0)), 0);
     const avgPerVideoSec = inMonth.length ? Math.round(monthEff / inMonth.length) : 0;
 
-    const sessions = todayRows
+    const sessions = anchorRows
       .map((r) => {
         const start = new Date(r.watched_at);
         return {
@@ -326,7 +330,7 @@ function Dashboard() {
     const learn4w = drift[Math.max(0, drift.length - 5)]?.learn ?? 0;
     const learnDelta = learnNow - learn4w;
 
-    const videosFinished = rows.filter(
+    const videosFinished = inMonth.filter(
       (r) => r.duration_seconds && (r.effective_seconds || 0) >= (r.duration_seconds || 0) * 0.85,
     ).length;
     const skippedSec = Math.max(0, monthRaw - monthEff);
@@ -338,7 +342,7 @@ function Dashboard() {
       completionPct, finished, focus, focusLabel, streak, todayHasLearn,
       days14, heat, hourMin, hourLearnMin, peakIdx, focusWindow,
       videos, drift, topChannels, sessions, radar, learnDelta, seeksPerVideo, avgCompletion,
-      todaySec, todayVideos, weekSec, avgPerVideoSec,
+      bestDaySec, activeDays, avgPerVideoSec,
     };
   }, [rows, cur]);
 
@@ -394,14 +398,14 @@ function Dashboard() {
 
       {/* KPI tiles — simple, useful at-a-glance numbers */}
       <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Kpi border={COLORS.learn} label="today" value={fmtMin(data.todaySec)} sub={`${data.todayVideos} video${data.todayVideos === 1 ? "" : "s"} watched`} valueColor={COLORS.learn} />
-        <Kpi border={COLORS.mint} label="this week" value={fmtMin(data.weekSec)} sub="last 7 days" valueColor={COLORS.mint} />
+        <Kpi border={COLORS.learn} label="best day" value={fmtMin(data.bestDaySec)} sub="highest watch day" valueColor={COLORS.learn} />
+        <Kpi border={COLORS.mint} label="active days" value={`${data.activeDays}`} sub="days with watching" valueColor={COLORS.mint} />
         <Kpi border={COLORS.amber} label="avg per video" value={fmtMin(data.avgPerVideoSec)} sub="this month" valueColor={COLORS.amber} />
         <Kpi border={COLORS.ent} label="streak" value={`${data.streak} day${data.streak === 1 ? "" : "s"}`} sub="learning cadence" valueColor={COLORS.ent} />
       </div>
 
+      <div className="mt-3 columns-1 gap-3 lg:columns-2 [&>*]:mb-3 [&>*]:break-inside-avoid">
       {/* Stacked area + Heatmap */}
-      <div className="mt-3 grid gap-3 lg:grid-cols-2">
         <Card>
           <CardLabel>Stacked intent — daily minutes</CardLabel>
           <div className="min-w-0 w-full overflow-hidden" style={{ height: 220 }}>
@@ -452,10 +456,8 @@ function Dashboard() {
             <span>focused</span>
           </div>
         </Card>
-      </div>
 
       {/* Hour bars + Radar */}
-      <div className="mt-3 grid gap-3 lg:grid-cols-2">
         <Card>
           <CardLabel>Watch time by hour</CardLabel>
           <div className="flex min-w-0 w-full items-end gap-[2px] overflow-hidden" style={{ height: 180 }}>
@@ -501,10 +503,9 @@ function Dashboard() {
           </div>
           <Legend items={[{ color: COLORS.learn, label: "You" }, { color: COLORS.goal, label: "Goal", dashed: true }]} />
         </Card>
-      </div>
 
       {/* Watch map */}
-      <Card className="mt-3">
+      <Card>
         <div className="mb-1">
           <CardLabel>Video watch map — how much of each video you watched</CardLabel>
         </div>
@@ -535,7 +536,6 @@ function Dashboard() {
       </Card>
 
       {/* Drift + Streak */}
-      <div className="mt-3 grid gap-3 lg:grid-cols-2 lg:items-start">
         <Card>
           <CardLabel>Intent drift — 8 weeks</CardLabel>
           <div className="min-w-0 w-full overflow-hidden" style={{ height: 220 }}>
@@ -584,10 +584,8 @@ function Dashboard() {
             </div>
           </div>
         </Card>
-      </div>
 
       {/* Top channels + Session timeline */}
-      <div className="mt-3 grid gap-3 lg:grid-cols-2 lg:items-start">
         <Card>
           <CardLabel>Top channels</CardLabel>
           {data.topChannels.length === 0 ? (
@@ -611,10 +609,10 @@ function Dashboard() {
         </Card>
 
         <Card>
-          <CardLabel>Session timeline — today</CardLabel>
+          <CardLabel>Session timeline — month end day</CardLabel>
           <div className="relative min-w-0 w-full overflow-hidden border-b border-border" style={{ height: 180 }}>
             {data.sessions.length === 0 ? (
-              <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">No sessions today</div>
+              <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">No sessions on this day</div>
             ) : (
               data.sessions.map((s, i) => {
                 const tlS = 6, tlE = 24, tlR = tlE - tlS;
@@ -639,12 +637,13 @@ function Dashboard() {
             { color: COLORS.ent, label: "Entertainment" },
           ]} />
         </Card>
+
       </div>
 
       {/* Three things */}
-      <Card className="mt-3">
+      <Card>
         <div className="mb-3 text-sm font-medium text-foreground">Three things your data is saying</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 12 }}>
+        <div className="grid gap-3 md:grid-cols-3">
           {tips.map((t, i) => (
             <div
               key={i}
@@ -688,7 +687,7 @@ function Header({ monthLabel, prev, next, navBtn }: { monthLabel: string; prev: 
 }
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={"rounded-2xl border border-border bg-background overflow-hidden " + className} style={{ padding: 22, minWidth: 0 }}>{children}</div>;
+  return <div className={"zen-card overflow-hidden shadow-[var(--shadow-soft)] " + className} style={{ padding: 22, minWidth: 0 }}>{children}</div>;
 }
 function CardLabel({ children }: { children: React.ReactNode }) {
   return (

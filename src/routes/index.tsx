@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { Mode } from "@/lib/intent";
 import { useSessionState } from "@/contexts/SessionStateContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,13 +21,11 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
-  const { setMode, setQuery, resetSession } = useSessionState();
+  const { setMode, setQuery } = useSessionState();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
-
-  useEffect(() => { resetSession(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
 
   const onSearch = (e: React.FormEvent) => {
     e.preventDefault();
