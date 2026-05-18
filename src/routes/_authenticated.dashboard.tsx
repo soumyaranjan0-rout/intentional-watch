@@ -609,10 +609,10 @@ function Dashboard() {
         </Card>
 
         <Card>
-          <CardLabel>Session timeline — today</CardLabel>
+          <CardLabel>Session timeline — month end day</CardLabel>
           <div className="relative min-w-0 w-full overflow-hidden border-b border-border" style={{ height: 180 }}>
             {data.sessions.length === 0 ? (
-              <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">No sessions today</div>
+              <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">No sessions on this day</div>
             ) : (
               data.sessions.map((s, i) => {
                 const tlS = 6, tlE = 24, tlR = tlE - tlS;
@@ -639,9 +639,9 @@ function Dashboard() {
         </Card>
 
       {/* Three things */}
-      <Card className="mt-3">
+      <Card>
         <div className="mb-3 text-sm font-medium text-foreground">Three things your data is saying</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 12 }}>
+        <div className="grid gap-3 md:grid-cols-3">
           {tips.map((t, i) => (
             <div
               key={i}
