@@ -409,16 +409,18 @@ function Dashboard() {
 
       {/* KPI tiles — simple, useful at-a-glance numbers */}
       <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Kpi border={COLORS.learn} label="best day" value={fmtMin(data.bestDaySec)} sub="highest watch day" valueColor={COLORS.learn} />
-        <Kpi border={COLORS.mint} label="active days" value={`${data.activeDays}`} sub="days with watching" valueColor={COLORS.mint} />
-        <Kpi border={COLORS.amber} label="avg per video" value={fmtMin(data.avgPerVideoSec)} sub="this month" valueColor={COLORS.amber} />
-        <Kpi border={COLORS.ent} label="streak" value={`${data.streak} day${data.streak === 1 ? "" : "s"}`} sub="learning cadence" valueColor={COLORS.ent} />
+        <Kpi border={COLORS.learn} label="Best day" value={fmtTime(data.bestDaySec)} sub="Most watched day this month" valueColor={COLORS.learn} />
+        <Kpi border={COLORS.mint} label="Active days" value={`${data.activeDays}`} sub="Days you watched anything" valueColor={COLORS.mint} />
+        <Kpi border={COLORS.amber} label="Avg / video" value={fmtTime(data.avgPerVideoSec)} sub="Real time per video" valueColor={COLORS.amber} />
+        <Kpi border={COLORS.ent} label="Learn streak" value={`${data.streak} day${data.streak === 1 ? "" : "s"}`} sub="Consecutive learning days" valueColor={COLORS.ent} />
       </div>
 
-      <div className="mt-3 columns-1 gap-3 lg:columns-2 [&>*]:mb-3 [&>*]:break-inside-avoid">
-      {/* Stacked area + Heatmap */}
+      {/* Card grid — two manual flex columns for true masonry without trailing gap */}
+      <div className="mt-3 grid gap-3 lg:grid-cols-2">
+        <div className="flex flex-col gap-3 min-w-0">
+        {/* Stacked area */}
         <Card>
-          <CardLabel>Stacked intent — daily minutes</CardLabel>
+          <CardLabel info="Daily minutes by intent. Each band shows how your watch time split between Learn, Entertainment and other over the last 14 days of the selected month.">Stacked intent — daily minutes</CardLabel>
           <div className="min-w-0 w-full overflow-hidden" style={{ height: 220 }}>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={data.days14} margin={{ top: 4, right: 4, left: -24, bottom: -4 }}>
