@@ -7,7 +7,7 @@ import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   LineChart, Line,
 } from "recharts";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { inferIntentFromVideo, guessCategory } from "@/lib/intent";
 
@@ -60,6 +60,17 @@ function fmtMin(sec: number) {
   if (m < 60) return `${m} min`;
   const h = (m / 60).toFixed(1);
   return `${h} hrs`;
+}
+
+// Second-level accurate duration: "1h 23m 45s" / "12m 04s" / "47s"
+function fmtTime(sec: number) {
+  const s = Math.max(0, Math.round(sec));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const ss = s % 60;
+  if (h > 0) return `${h}h ${m}m ${ss}s`;
+  if (m > 0) return `${m}m ${String(ss).padStart(2, "0")}s`;
+  return `${ss}s`;
 }
 
 function intentOf(r: Row): "learn" | "relax" | "find" | "explore" | "other" {
@@ -398,16 +409,18 @@ function Dashboard() {
 
       {/* KPI tiles — simple, useful at-a-glance numbers */}
       <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Kpi border={COLORS.learn} label="best day" value={fmtMin(data.bestDaySec)} sub="highest watch day" valueColor={COLORS.learn} />
-        <Kpi border={COLORS.mint} label="active days" value={`${data.activeDays}`} sub="days with watching" valueColor={COLORS.mint} />
-        <Kpi border={COLORS.amber} label="avg per video" value={fmtMin(data.avgPerVideoSec)} sub="this month" valueColor={COLORS.amber} />
-        <Kpi border={COLORS.ent} label="streak" value={`${data.streak} day${data.streak === 1 ? "" : "s"}`} sub="learning cadence" valueColor={COLORS.ent} />
+        <Kpi border={COLORS.learn} label="Best day" value={fmtTime(data.bestDaySec)} sub="Most watched day this month" valueColor={COLORS.learn} />
+        <Kpi border={COLORS.mint} label="Active days" value={`${data.activeDays}`} sub="Days you watched anything" valueColor={COLORS.mint} />
+        <Kpi border={COLORS.amber} label="Avg / video" value={fmtTime(data.avgPerVideoSec)} sub="Real time per video" valueColor={COLORS.amber} />
+        <Kpi border={COLORS.ent} label="Learn streak" value={`${data.streak} day${data.streak === 1 ? "" : "s"}`} sub="Consecutive learning days" valueColor={COLORS.ent} />
       </div>
 
-      <div className="mt-3 columns-1 gap-3 lg:columns-2 [&>*]:mb-3 [&>*]:break-inside-avoid">
-      {/* Stacked area + Heatmap */}
+      {/* Card grid — two manual flex columns for true masonry without trailing gap */}
+      <div className="mt-3 grid gap-3 lg:grid-cols-2">
+        <div className="flex flex-col gap-3 min-w-0">
+        {/* Stacked area */}
         <Card>
-          <CardLabel>Stacked intent — daily minutes</CardLabel>
+          <CardLabel info="Daily minutes by intent. Each band shows how your watch time split between Learn, Entertainment and other over the last 14 days of the selected month.">Stacked intent — daily minutes</CardLabel>
           <div className="min-w-0 w-full overflow-hidden" style={{ height: 220 }}>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={data.days14} margin={{ top: 4, right: 4, left: -24, bottom: -4 }}>
@@ -429,7 +442,7 @@ function Dashboard() {
         </Card>
 
         <Card>
-          <CardLabel>Attention heatmap — 10 weeks</CardLabel>
+          <CardLabel info="Focus per day for the last 10 weeks. Greener cells mean you completed videos with fewer skips. Empty cells are days with no watch history.">Attention heatmap — 10 weeks</CardLabel>
           <div className="min-w-0 w-full overflow-hidden">
           <div className="grid grid-cols-[24px_1fr] gap-0" style={{ height: 220 }}>
             <div className="flex flex-col gap-[3px] pt-[17px] text-[9px] text-muted-foreground">
@@ -457,9 +470,9 @@ function Dashboard() {
           </div>
         </Card>
 
-      {/* Hour bars + Radar */}
+      {/* Hour bars */}
         <Card>
-          <CardLabel>Watch time by hour</CardLabel>
+          <CardLabel info="When you actually watch, hour by hour. Green hours skew toward learning; pink hours skew toward entertainment.">Watch time by hour</CardLabel>
           <div className="flex min-w-0 w-full items-end gap-[2px] overflow-hidden" style={{ height: 180 }}>
             {data.hourMin.map((v, i) => {
               const max = Math.max(...data.hourMin, 1);
@@ -488,7 +501,7 @@ function Dashboard() {
         </Card>
 
         <Card>
-          <CardLabel>Behaviour radar</CardLabel>
+          <CardLabel info="Six habits scored 0–100. Solid shape is you, dashed shape is a healthy target. Bigger is better.">Behaviour radar</CardLabel>
           <div className="min-w-0 w-full overflow-hidden" style={{ height: 260 }}>
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart data={data.radar} margin={{ top: 4, right: 18, bottom: 4, left: 18 }}>
@@ -503,11 +516,13 @@ function Dashboard() {
           </div>
           <Legend items={[{ color: COLORS.learn, label: "You" }, { color: COLORS.goal, label: "Goal", dashed: true }]} />
         </Card>
+        </div>
 
+        <div className="flex flex-col gap-3 min-w-0">
       {/* Watch map */}
       <Card>
         <div className="mb-1">
-          <CardLabel>Video watch map — how much of each video you watched</CardLabel>
+          <CardLabel info="Top videos this month. Filled bar = portion you actually watched; empty area = skipped or never reached.">Video watch map — how much of each video you watched</CardLabel>
         </div>
         <div className="mb-3 text-xs text-muted-foreground">
           Each row = one video · colored fill = portion watched · gray = skipped · sorted by watch %
@@ -537,7 +552,7 @@ function Dashboard() {
 
       {/* Drift + Streak */}
         <Card>
-          <CardLabel>Intent drift — 8 weeks</CardLabel>
+          <CardLabel info="Share of your weekly watch time spent on learning vs. entertainment over the last 8 weeks.">Intent drift — 8 weeks</CardLabel>
           <div className="min-w-0 w-full overflow-hidden" style={{ height: 220 }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={data.drift} margin={{ top: 4, right: 4, left: -28, bottom: -4 }}>
@@ -562,7 +577,7 @@ function Dashboard() {
         </Card>
 
         <Card>
-          <CardLabel>Deep work streak</CardLabel>
+          <CardLabel info="Consecutive days you watched at least one learning video, ending on the selected month's latest day.">Deep work streak</CardLabel>
           <div className="text-4xl font-medium" style={{ color: COLORS.learn }}>
             {data.streak} <span className="text-sm font-normal text-muted-foreground">day{data.streak === 1 ? "" : "s"}</span>
           </div>
@@ -587,7 +602,7 @@ function Dashboard() {
 
       {/* Top channels + Session timeline */}
         <Card>
-          <CardLabel>Top channels</CardLabel>
+          <CardLabel info="Channels you spent the most real time on this month (skipped time excluded).">Top channels</CardLabel>
           {data.topChannels.length === 0 ? (
             <div className="text-sm text-muted-foreground">No channels this month.</div>
           ) : (
@@ -609,7 +624,7 @@ function Dashboard() {
         </Card>
 
         <Card>
-          <CardLabel>Session timeline — month end day</CardLabel>
+          <CardLabel info="Each bar is one watch session on the selected month's last active day, plotted by start time and length.">Session timeline — month end day</CardLabel>
           <div className="relative min-w-0 w-full overflow-hidden border-b border-border" style={{ height: 180 }}>
             {data.sessions.length === 0 ? (
               <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">No sessions on this day</div>
@@ -637,7 +652,7 @@ function Dashboard() {
             { color: COLORS.ent, label: "Entertainment" },
           ]} />
         </Card>
-
+        </div>
       </div>
 
       {/* Three things */}
@@ -689,13 +704,25 @@ function Header({ monthLabel, prev, next, navBtn }: { monthLabel: string; prev: 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <div className={"zen-card overflow-hidden shadow-[var(--shadow-soft)] " + className} style={{ padding: 22, minWidth: 0 }}>{children}</div>;
 }
-function CardLabel({ children }: { children: React.ReactNode }) {
+function CardLabel({ children, info }: { children: React.ReactNode; info?: string }) {
   return (
-    <div
-      className="mb-3 uppercase text-muted-foreground"
-      style={{ fontSize: 13, fontWeight: 600, letterSpacing: "0.06em", lineHeight: 1.3, whiteSpace: "normal", overflowWrap: "break-word" }}
-    >
-      {children}
+    <div className="mb-3 flex items-start justify-between gap-2">
+      <div
+        className="uppercase text-muted-foreground"
+        style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.08em", lineHeight: 1.3, whiteSpace: "normal", overflowWrap: "break-word" }}
+      >
+        {children}
+      </div>
+      {info && (
+        <span
+          tabIndex={0}
+          title={info}
+          aria-label={info}
+          className="shrink-0 rounded-full p-1 text-muted-foreground/70 transition-colors hover:text-foreground focus:text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40"
+        >
+          <Info className="h-3.5 w-3.5" />
+        </span>
+      )}
     </div>
   );
 }
@@ -854,9 +881,14 @@ function buildTips(d: TipShape): [Tip, Tip, Tip] {
       body: `${d.videoCount} videos watched this period. Consistent presence is the first step to intentional watching.`,
     };
   }
-  card3.bg = "#e1f5ee";
-  card3.titleColor = "#085041";
-  card3.bodyColor = "#0F6E56";
+  // Apply consistent accent-tinted backgrounds that adapt to the active
+  // theme (light or dark) via color-mix on the page background.
+  const tint = (c: Tip) => {
+    c.bg = `color-mix(in oklab, ${c.color} 16%, var(--background))`;
+    c.titleColor = `color-mix(in oklab, ${c.color} 92%, var(--foreground))`;
+    c.bodyColor = `color-mix(in oklab, ${c.color} 55%, var(--foreground))`;
+  };
+  tint(card1); tint(card2); tint(card3);
 
   return [card1, card2, card3];
 }

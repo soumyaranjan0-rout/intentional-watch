@@ -114,7 +114,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
       )}
-      <main className="zen-fade-in">
+      <main>
         {children}
       </main>
       {!onAuthPage && <MobileTabBar />}
