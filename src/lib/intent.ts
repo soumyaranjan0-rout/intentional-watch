@@ -75,19 +75,40 @@ const RELAX_TOPIC_HINTS: Array<{ match: RegExp; chips: string[] }> = [
   { match: /\b(movie|trailer|teaser|scene)\b/i, chips: ["official", "review", "breakdown"] },
 ];
 
+// Deterministic shuffle so chip order varies per session but stays stable
+// within a single refine view. Uses a seed derived from the hour + query.
+function seededShuffle<T>(arr: T[], seed: number): T[] {
+  const a = arr.slice();
+  let s = seed || 1;
+  for (let i = a.length - 1; i > 0; i--) {
+    s = (s * 9301 + 49297) % 233280;
+    const j = Math.floor((s / 233280) * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function chipSeed(query: string): number {
+  const hourBucket = Math.floor(Date.now() / (1000 * 60 * 30)); // rotates every 30 min
+  let h = hourBucket;
+  for (let i = 0; i < query.length; i++) h = (h * 31 + query.charCodeAt(i)) >>> 0;
+  return h || 1;
+}
+
 export function getSmartChips(mode: Mode, query: string): ChipGroup[] {
   const q = query.trim().toLowerCase();
   if (!q) return [];
+  const seed = chipSeed(q + "|" + mode);
 
   if (mode === "learn") {
     const groups: ChipGroup[] = [
-      { label: "Skill level", chips: ["beginner", "intermediate", "advanced"] },
-      { label: "Format", chips: ["step-by-step", "overview", "deep dive", "crash course"] },
+      { label: "Skill level", chips: seededShuffle(["beginner", "intermediate", "advanced", "no prerequisites"], seed) },
+      { label: "Format", chips: seededShuffle(["step-by-step", "overview", "deep dive", "crash course", "with project", "code-along"], seed + 1).slice(0, 4) },
       { label: "Length", chips: ["under 15 min", "around 1 hour", "full course"] },
     ];
     for (const hint of LEARN_TOPIC_HINTS) {
       if (hint.match.test(q)) {
-        groups.push({ label: "Topic angle", chips: hint.chips });
+        groups.push({ label: "Topic angle", chips: seededShuffle(hint.chips, seed + 2) });
         break;
       }
     }
@@ -96,12 +117,12 @@ export function getSmartChips(mode: Mode, query: string): ChipGroup[] {
 
   if (mode === "relax") {
     const groups: ChipGroup[] = [
-      { label: "Mood", chips: ["chill", "emotional", "energetic", "nostalgic"] },
+      { label: "Mood", chips: seededShuffle(["chill", "emotional", "energetic", "nostalgic", "uplifting", "calming"], seed).slice(0, 4) },
       { label: "Length", chips: ["short", "medium", "long"] },
     ];
     for (const hint of RELAX_TOPIC_HINTS) {
       if (hint.match.test(q)) {
-        groups.unshift({ label: "Style", chips: hint.chips });
+        groups.unshift({ label: "Style", chips: seededShuffle(hint.chips, seed + 1) });
         break;
       }
     }
@@ -110,13 +131,13 @@ export function getSmartChips(mode: Mode, query: string): ChipGroup[] {
 
   if (mode === "explore") {
     return [
-      { label: "Format", chips: ["3 best picks", "structured playlist", "different angles"] },
+      { label: "Format", chips: seededShuffle(["3 best picks", "structured playlist", "different angles", "expert takes"], seed) },
       { label: "Depth", chips: ["intro", "intermediate", "expert"] },
     ];
   }
 
   return [
-    { label: "Filter", chips: ["official", "latest", "high quality", "exact match"] },
+    { label: "Filter", chips: seededShuffle(["official", "latest", "high quality", "exact match", "most viewed"], seed).slice(0, 4) },
   ];
 }
 

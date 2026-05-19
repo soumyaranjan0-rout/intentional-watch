@@ -434,7 +434,7 @@ export const searchVideos = createServerFn({ method: "POST" })
           if (coreTokens.length >= 2) {
             const hay = (v.title + " " + (v.description || "") + " " + v.channel).toLowerCase();
             const matched = coreTokens.filter((t) => hay.includes(t)).length;
-            if (matched / coreTokens.length < 0.5) return false;
+            if (matched / coreTokens.length < 0.34) return false;
           }
           return true;
         });
