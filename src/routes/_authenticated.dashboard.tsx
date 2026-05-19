@@ -442,7 +442,7 @@ function Dashboard() {
         </Card>
 
         <Card>
-          <CardLabel>Attention heatmap — 10 weeks</CardLabel>
+          <CardLabel info="Focus per day for the last 10 weeks. Greener cells mean you completed videos with fewer skips. Empty cells are days with no watch history.">Attention heatmap — 10 weeks</CardLabel>
           <div className="min-w-0 w-full overflow-hidden">
           <div className="grid grid-cols-[24px_1fr] gap-0" style={{ height: 220 }}>
             <div className="flex flex-col gap-[3px] pt-[17px] text-[9px] text-muted-foreground">
@@ -470,9 +470,9 @@ function Dashboard() {
           </div>
         </Card>
 
-      {/* Hour bars + Radar */}
+      {/* Hour bars */}
         <Card>
-          <CardLabel>Watch time by hour</CardLabel>
+          <CardLabel info="When you actually watch, hour by hour. Green hours skew toward learning; pink hours skew toward entertainment.">Watch time by hour</CardLabel>
           <div className="flex min-w-0 w-full items-end gap-[2px] overflow-hidden" style={{ height: 180 }}>
             {data.hourMin.map((v, i) => {
               const max = Math.max(...data.hourMin, 1);
@@ -501,7 +501,7 @@ function Dashboard() {
         </Card>
 
         <Card>
-          <CardLabel>Behaviour radar</CardLabel>
+          <CardLabel info="Six habits scored 0–100. Solid shape is you, dashed shape is a healthy target. Bigger is better.">Behaviour radar</CardLabel>
           <div className="min-w-0 w-full overflow-hidden" style={{ height: 260 }}>
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart data={data.radar} margin={{ top: 4, right: 18, bottom: 4, left: 18 }}>
@@ -516,11 +516,13 @@ function Dashboard() {
           </div>
           <Legend items={[{ color: COLORS.learn, label: "You" }, { color: COLORS.goal, label: "Goal", dashed: true }]} />
         </Card>
+        </div>
 
+        <div className="flex flex-col gap-3 min-w-0">
       {/* Watch map */}
       <Card>
         <div className="mb-1">
-          <CardLabel>Video watch map — how much of each video you watched</CardLabel>
+          <CardLabel info="Top videos this month. Filled bar = portion you actually watched; empty area = skipped or never reached.">Video watch map — how much of each video you watched</CardLabel>
         </div>
         <div className="mb-3 text-xs text-muted-foreground">
           Each row = one video · colored fill = portion watched · gray = skipped · sorted by watch %
@@ -550,7 +552,7 @@ function Dashboard() {
 
       {/* Drift + Streak */}
         <Card>
-          <CardLabel>Intent drift — 8 weeks</CardLabel>
+          <CardLabel info="Share of your weekly watch time spent on learning vs. entertainment over the last 8 weeks.">Intent drift — 8 weeks</CardLabel>
           <div className="min-w-0 w-full overflow-hidden" style={{ height: 220 }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={data.drift} margin={{ top: 4, right: 4, left: -28, bottom: -4 }}>
@@ -575,7 +577,7 @@ function Dashboard() {
         </Card>
 
         <Card>
-          <CardLabel>Deep work streak</CardLabel>
+          <CardLabel info="Consecutive days you watched at least one learning video, ending on the selected month's latest day.">Deep work streak</CardLabel>
           <div className="text-4xl font-medium" style={{ color: COLORS.learn }}>
             {data.streak} <span className="text-sm font-normal text-muted-foreground">day{data.streak === 1 ? "" : "s"}</span>
           </div>
@@ -600,7 +602,7 @@ function Dashboard() {
 
       {/* Top channels + Session timeline */}
         <Card>
-          <CardLabel>Top channels</CardLabel>
+          <CardLabel info="Channels you spent the most real time on this month (skipped time excluded).">Top channels</CardLabel>
           {data.topChannels.length === 0 ? (
             <div className="text-sm text-muted-foreground">No channels this month.</div>
           ) : (
@@ -622,7 +624,7 @@ function Dashboard() {
         </Card>
 
         <Card>
-          <CardLabel>Session timeline — month end day</CardLabel>
+          <CardLabel info="Each bar is one watch session on the selected month's last active day, plotted by start time and length.">Session timeline — month end day</CardLabel>
           <div className="relative min-w-0 w-full overflow-hidden border-b border-border" style={{ height: 180 }}>
             {data.sessions.length === 0 ? (
               <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">No sessions on this day</div>
