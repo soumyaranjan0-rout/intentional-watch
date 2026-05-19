@@ -7,7 +7,7 @@ import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   LineChart, Line,
 } from "recharts";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { inferIntentFromVideo, guessCategory } from "@/lib/intent";
 
@@ -60,6 +60,17 @@ function fmtMin(sec: number) {
   if (m < 60) return `${m} min`;
   const h = (m / 60).toFixed(1);
   return `${h} hrs`;
+}
+
+// Second-level accurate duration: "1h 23m 45s" / "12m 04s" / "47s"
+function fmtTime(sec: number) {
+  const s = Math.max(0, Math.round(sec));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const ss = s % 60;
+  if (h > 0) return `${h}h ${m}m ${ss}s`;
+  if (m > 0) return `${m}m ${String(ss).padStart(2, "0")}s`;
+  return `${ss}s`;
 }
 
 function intentOf(r: Row): "learn" | "relax" | "find" | "explore" | "other" {
