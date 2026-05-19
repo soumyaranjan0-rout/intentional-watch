@@ -652,7 +652,7 @@ function Dashboard() {
             { color: COLORS.ent, label: "Entertainment" },
           ]} />
         </Card>
-
+        </div>
       </div>
 
       {/* Three things */}
@@ -704,13 +704,25 @@ function Header({ monthLabel, prev, next, navBtn }: { monthLabel: string; prev: 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <div className={"zen-card overflow-hidden shadow-[var(--shadow-soft)] " + className} style={{ padding: 22, minWidth: 0 }}>{children}</div>;
 }
-function CardLabel({ children }: { children: React.ReactNode }) {
+function CardLabel({ children, info }: { children: React.ReactNode; info?: string }) {
   return (
-    <div
-      className="mb-3 uppercase text-muted-foreground"
-      style={{ fontSize: 13, fontWeight: 600, letterSpacing: "0.06em", lineHeight: 1.3, whiteSpace: "normal", overflowWrap: "break-word" }}
-    >
-      {children}
+    <div className="mb-3 flex items-start justify-between gap-2">
+      <div
+        className="uppercase text-muted-foreground"
+        style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.08em", lineHeight: 1.3, whiteSpace: "normal", overflowWrap: "break-word" }}
+      >
+        {children}
+      </div>
+      {info && (
+        <span
+          tabIndex={0}
+          title={info}
+          aria-label={info}
+          className="shrink-0 rounded-full p-1 text-muted-foreground/70 transition-colors hover:text-foreground focus:text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40"
+        >
+          <Info className="h-3.5 w-3.5" />
+        </span>
+      )}
     </div>
   );
 }
