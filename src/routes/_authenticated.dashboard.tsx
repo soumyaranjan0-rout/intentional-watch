@@ -881,9 +881,14 @@ function buildTips(d: TipShape): [Tip, Tip, Tip] {
       body: `${d.videoCount} videos watched this period. Consistent presence is the first step to intentional watching.`,
     };
   }
-  card3.bg = "#e1f5ee";
-  card3.titleColor = "#085041";
-  card3.bodyColor = "#0F6E56";
+  // Apply consistent accent-tinted backgrounds that adapt to the active
+  // theme (light or dark) via color-mix on the page background.
+  const tint = (c: Tip) => {
+    c.bg = `color-mix(in oklab, ${c.color} 16%, var(--background))`;
+    c.titleColor = `color-mix(in oklab, ${c.color} 92%, var(--foreground))`;
+    c.bodyColor = `color-mix(in oklab, ${c.color} 55%, var(--foreground))`;
+  };
+  tint(card1); tint(card2); tint(card3);
 
   return [card1, card2, card3];
 }
