@@ -9,6 +9,7 @@ import {
 } from "recharts";
 import { ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip as UITooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { inferIntentFromVideo, guessCategory } from "@/lib/intent";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -106,14 +107,24 @@ function Dashboard() {
     if (!rows) return null;
     const monthStart = new Date(cur.y, cur.m, 1);
     const monthEnd = new Date(cur.y, cur.m + 1, 1);
-    const periodAnchor = new Date(monthEnd);
-    periodAnchor.setDate(periodAnchor.getDate() - 1);
-    const periodAnchorEnd = new Date(periodAnchor);
-    periodAnchorEnd.setDate(periodAnchorEnd.getDate() + 1);
     const inMonth = rows.filter((r) => {
       const d = new Date(r.watched_at);
       return d >= monthStart && d < monthEnd;
     });
+    // periodAnchor = most recent day in selected month that has activity
+    // (falls back to last day of month if none). Fixes "empty session timeline".
+    const periodAnchor = (() => {
+      if (inMonth.length === 0) {
+        const d = new Date(monthEnd); d.setDate(d.getDate() - 1); d.setHours(0,0,0,0); return d;
+      }
+      const latest = inMonth.reduce((acc, r) => {
+        const t = new Date(r.watched_at).getTime();
+        return t > acc ? t : acc;
+      }, 0);
+      const d = new Date(latest); d.setHours(0,0,0,0); return d;
+    })();
+    const periodAnchorEnd = new Date(periodAnchor);
+    periodAnchorEnd.setDate(periodAnchorEnd.getDate() + 1);
 
     // All-time
     const totalAll = rows.reduce((s, r) => s + (r.effective_seconds || 0), 0);
@@ -624,7 +635,7 @@ function Dashboard() {
         </Card>
 
         <Card>
-          <CardLabel info="Each bar is one watch session on the selected month's last active day, plotted by start time and length.">Session timeline — month end day</CardLabel>
+          <CardLabel info="Each bar is one watch session on your most recent active day in the selected month, plotted by start time and length.">Session timeline — latest active day</CardLabel>
           <div className="relative min-w-0 w-full overflow-hidden border-b border-border" style={{ height: 180 }}>
             {data.sessions.length === 0 ? (
               <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">No sessions on this day</div>
@@ -714,14 +725,20 @@ function CardLabel({ children, info }: { children: React.ReactNode; info?: strin
         {children}
       </div>
       {info && (
-        <span
-          tabIndex={0}
-          title={info}
-          aria-label={info}
-          className="shrink-0 rounded-full p-1 text-muted-foreground/70 transition-colors hover:text-foreground focus:text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40"
-        >
-          <Info className="h-3.5 w-3.5" />
-        </span>
+        <UITooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              aria-label="More info"
+              className="shrink-0 rounded-full p-1 text-muted-foreground/70 transition-colors hover:text-foreground focus:text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40"
+            >
+              <Info className="h-3.5 w-3.5" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="left" align="start" className="max-w-[260px]">
+            {info}
+          </TooltipContent>
+        </UITooltip>
       )}
     </div>
   );
