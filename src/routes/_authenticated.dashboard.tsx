@@ -715,14 +715,20 @@ function CardLabel({ children, info }: { children: React.ReactNode; info?: strin
         {children}
       </div>
       {info && (
-        <span
-          tabIndex={0}
-          title={info}
-          aria-label={info}
-          className="shrink-0 rounded-full p-1 text-muted-foreground/70 transition-colors hover:text-foreground focus:text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40"
-        >
-          <Info className="h-3.5 w-3.5" />
-        </span>
+        <UITooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              aria-label="More info"
+              className="shrink-0 rounded-full p-1 text-muted-foreground/70 transition-colors hover:text-foreground focus:text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40"
+            >
+              <Info className="h-3.5 w-3.5" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="left" align="start" className="max-w-[260px]">
+            {info}
+          </TooltipContent>
+        </UITooltip>
       )}
     </div>
   );
