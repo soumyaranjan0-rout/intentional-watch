@@ -635,7 +635,7 @@ function Dashboard() {
         </Card>
 
         <Card>
-          <CardLabel info="Each bar is one watch session on the selected month's last active day, plotted by start time and length.">Session timeline — month end day</CardLabel>
+          <CardLabel info="Each bar is one watch session on your most recent active day in the selected month, plotted by start time and length.">Session timeline — latest active day</CardLabel>
           <div className="relative min-w-0 w-full overflow-hidden border-b border-border" style={{ height: 180 }}>
             {data.sessions.length === 0 ? (
               <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">No sessions on this day</div>
