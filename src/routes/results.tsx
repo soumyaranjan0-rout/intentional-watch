@@ -26,15 +26,13 @@ type Page = {
 };
 
 function ResultsPage() {
-  const { mode, refinement, query, setMode } = useSessionState();
+  const { mode, refinement, query, setMode, hydrated } = useSessionState();
   const navigate = useNavigate();
 
-  // Accumulated pages — append on "Show more" so user can scroll back.
   const [pages, setPages] = useState<Page[]>([]);
   const [pageToken, setPageToken] = useState<string | undefined>(undefined);
   const [endReached, setEndReached] = useState(false);
 
-  // Reset when underlying search changes
   useEffect(() => {
     setPages([]);
     setPageToken(undefined);
@@ -42,8 +40,11 @@ function ResultsPage() {
   }, [mode, query, refinement?.chips, refinement?.freeform]);
 
   useEffect(() => {
+    // Wait for session hydration before redirecting — otherwise the first
+    // client render (empty state) would bounce the user back to home.
+    if (!hydrated) return;
     if (!mode || !query) navigate({ to: "/" });
-  }, [mode, query, navigate]);
+  }, [hydrated, mode, query, navigate]);
 
   const { data, isLoading, isFetching, error, refetch } = useQuery({
     queryKey: ["search", mode, query, refinement?.chips, refinement?.freeform, pageToken ?? "first"],
