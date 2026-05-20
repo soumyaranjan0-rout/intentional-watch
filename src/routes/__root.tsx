@@ -2,6 +2,7 @@ import { Outlet, Link, createRootRouteWithContext, HeadContent, Scripts, useRout
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { SessionStateProvider } from "@/contexts/SessionStateContext";
 import { AccountMenu } from "@/components/AccountMenu";
