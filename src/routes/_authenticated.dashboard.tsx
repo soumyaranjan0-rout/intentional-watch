@@ -107,14 +107,24 @@ function Dashboard() {
     if (!rows) return null;
     const monthStart = new Date(cur.y, cur.m, 1);
     const monthEnd = new Date(cur.y, cur.m + 1, 1);
-    const periodAnchor = new Date(monthEnd);
-    periodAnchor.setDate(periodAnchor.getDate() - 1);
-    const periodAnchorEnd = new Date(periodAnchor);
-    periodAnchorEnd.setDate(periodAnchorEnd.getDate() + 1);
     const inMonth = rows.filter((r) => {
       const d = new Date(r.watched_at);
       return d >= monthStart && d < monthEnd;
     });
+    // periodAnchor = most recent day in selected month that has activity
+    // (falls back to last day of month if none). Fixes "empty session timeline".
+    const periodAnchor = (() => {
+      if (inMonth.length === 0) {
+        const d = new Date(monthEnd); d.setDate(d.getDate() - 1); d.setHours(0,0,0,0); return d;
+      }
+      const latest = inMonth.reduce((acc, r) => {
+        const t = new Date(r.watched_at).getTime();
+        return t > acc ? t : acc;
+      }, 0);
+      const d = new Date(latest); d.setHours(0,0,0,0); return d;
+    })();
+    const periodAnchorEnd = new Date(periodAnchor);
+    periodAnchorEnd.setDate(periodAnchorEnd.getDate() + 1);
 
     // All-time
     const totalAll = rows.reduce((s, r) => s + (r.effective_seconds || 0), 0);
