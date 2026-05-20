@@ -21,15 +21,16 @@ function RefinePage() {
   const m = paramMode as Mode;
   const cfg = MODES[m];
   const navigate = useNavigate();
-  const { query, setRefinement, setMode } = useSessionState();
+  const { query, setRefinement, setMode, hydrated } = useSessionState();
 
   const [chips, setChips] = useState<string[]>([]);
   const [freeform, setFreeform] = useState("");
 
   useEffect(() => {
-    // If user landed here without a query, send back to home
+    // Don't redirect before session hydrates from localStorage.
+    if (!hydrated) return;
     if (!query) navigate({ to: "/" });
-  }, [query, navigate]);
+  }, [hydrated, query, navigate]);
 
   const groups = useMemo(() => getSmartChips(m, query), [m, query]);
 
