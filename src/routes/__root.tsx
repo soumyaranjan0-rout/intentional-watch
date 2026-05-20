@@ -81,10 +81,12 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <SessionStateProvider>
-          <AppShell>
-            <Outlet />
-          </AppShell>
-          <Toaster />
+          <TooltipProvider delayDuration={150} skipDelayDuration={300}>
+            <AppShell>
+              <Outlet />
+            </AppShell>
+            <Toaster />
+          </TooltipProvider>
         </SessionStateProvider>
       </AuthProvider>
     </QueryClientProvider>
