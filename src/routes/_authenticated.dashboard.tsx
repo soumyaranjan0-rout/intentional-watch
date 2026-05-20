@@ -9,6 +9,7 @@ import {
 } from "recharts";
 import { ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip as UITooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { inferIntentFromVideo, guessCategory } from "@/lib/intent";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
