@@ -275,35 +275,6 @@ function WatchPage() {
     }
   };
 
-  const share = async () => {
-    const url = `https://www.youtube.com/watch?v=${videoId}`;
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: meta?.title || search.title || "ZenTube", url });
-      } else {
-        await navigator.clipboard.writeText(url);
-        toast.success("Link copied");
-      }
-    } catch {}
-  };
-
-  const sendFeedback = async (kind: "helpful" | "not_useful") => {
-    if (!user) {
-      toast.message("Sign in to give feedback");
-      return;
-    }
-    const next = feedback === kind ? null : kind;
-    setFeedback(next);
-    if (next === null) {
-      await supabase.from("video_feedback").delete().eq("user_id", user.id).eq("video_id", videoId);
-    } else {
-      await supabase.from("video_feedback").upsert(
-        { user_id: user.id, video_id: videoId, feedback: next },
-        { onConflict: "user_id,video_id" },
-      );
-    }
-  };
-
   const target = () => ({
     videoId,
     title: meta?.title || search.title || "Untitled",
@@ -312,40 +283,6 @@ function WatchPage() {
     durationSeconds: meta?.durationSeconds || search.duration || 0,
   });
 
-  const toggleLike = async () => {
-    if (!user) { toast.message("Sign in to like videos"); return; }
-    if (liked) {
-      await removeFromSystemPlaylist(user.id, "liked", videoId);
-      setLiked(false);
-      if (feedback === "helpful") {
-        setFeedback(null);
-        await supabase.from("video_feedback").delete().eq("user_id", user.id).eq("video_id", videoId);
-      }
-      toast.success("Removed from Liked Videos");
-    } else {
-      await addToSystemPlaylist(user.id, "liked", target());
-      setLiked(true);
-      setFeedback("helpful");
-      await supabase.from("video_feedback").upsert(
-        { user_id: user.id, video_id: videoId, feedback: "helpful" },
-        { onConflict: "user_id,video_id" },
-      );
-      toast.success("Added to Liked Videos");
-    }
-  };
-
-  const toggleWatchLater = async () => {
-    if (!user) { toast.message("Sign in to use Watch Later"); return; }
-    if (watchLater) {
-      await removeFromSystemPlaylist(user.id, "watch_later", videoId);
-      setWatchLater(false);
-      toast.success("Removed from Watch Later");
-    } else {
-      await addToSystemPlaylist(user.id, "watch_later", target());
-      setWatchLater(true);
-      toast.success("Added to Watch Later");
-    }
-  };
 
   const setIntentOverride = async (m: Mode) => {
     setOverride(m);
