@@ -404,27 +404,34 @@ function Dashboard() {
 
   return (
     <div className="zen-container-wide py-10">
-      <Header monthLabel={monthLabel} prev={goPrev} next={goNext} navBtn={navBtn} />
+      {/* Frozen overview — header + intent strip + KPI tiles stay pinned
+          while charts below scroll. Backdrop blur keeps it readable over
+          chart content sliding underneath. */}
+      <div className="sticky top-14 z-20 -mx-3 px-3 pb-4 pt-2 backdrop-blur-xl sm:-mx-6 sm:px-6"
+           style={{ background: "color-mix(in oklab, var(--background) 88%, transparent)" }}>
+        <Header monthLabel={monthLabel} prev={goPrev} next={goNext} navBtn={navBtn} />
 
-      {/* Intent strip */}
-      <div
-        className="mt-5 grid grid-cols-2 overflow-hidden border border-border bg-background sm:grid-cols-5"
-        style={{ borderRadius: 14 }}
-      >
-        <StripItem label="All-time watched" value={fmtMin(data.totalAll)} sub="since you joined" />
-        <StripItem label="Learning" value={fmtMin(data.learn)} sub={`${data.learnPct}% of watch time`} valueColor={COLORS.learn} subColor="#0F6E56" labelColor="#085041" />
-        <StripItem label="Entertainment" value={fmtMin(data.ent)} sub={`${data.entPct}% of watch time`} valueColor={COLORS.ent} subColor="#993556" labelColor="#72243E" />
-        <StripItem label="Quick lookup" value={fmtMin(data.find)} sub={`${data.findPct}% of watch time`} valueColor={COLORS.amber} subColor="#854F0B" labelColor="#633806" />
-        <StripItem label="This month" value={fmtMin(data.monthEff)} sub={`${data.monthVideos} videos`} className="col-span-2 sm:col-span-1" />
+        {/* Intent strip */}
+        <div
+          className="mt-5 grid grid-cols-2 overflow-hidden border border-border/60 bg-card/60 shadow-[var(--shadow-soft)] sm:grid-cols-5"
+          style={{ borderRadius: 16 }}
+        >
+          <StripItem label="All-time watched" value={fmtMin(data.totalAll)} sub="since you joined" />
+          <StripItem label="Learning" value={fmtMin(data.learn)} sub={`${data.learnPct}% of watch time`} valueColor={COLORS.learn} subColor="#0F6E56" labelColor="#085041" />
+          <StripItem label="Entertainment" value={fmtMin(data.ent)} sub={`${data.entPct}% of watch time`} valueColor={COLORS.ent} subColor="#993556" labelColor="#72243E" />
+          <StripItem label="Quick lookup" value={fmtMin(data.find)} sub={`${data.findPct}% of watch time`} valueColor={COLORS.amber} subColor="#854F0B" labelColor="#633806" />
+          <StripItem label="This month" value={fmtMin(data.monthEff)} sub={`${data.monthVideos} videos`} className="col-span-2 sm:col-span-1" />
+        </div>
+
+        {/* KPI tiles — simple, useful at-a-glance numbers */}
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <Kpi border={COLORS.learn} label="Best day" value={fmtTime(data.bestDaySec)} sub="Most watched day this month" valueColor={COLORS.learn} />
+          <Kpi border={COLORS.mint} label="Active days" value={`${data.activeDays}`} sub="Days you watched anything" valueColor={COLORS.mint} />
+          <Kpi border={COLORS.amber} label="Avg / video" value={fmtTime(data.avgPerVideoSec)} sub="Real time per video" valueColor={COLORS.amber} />
+          <Kpi border={COLORS.ent} label="Learn streak" value={`${data.streak} day${data.streak === 1 ? "" : "s"}`} sub="Consecutive learning days" valueColor={COLORS.ent} />
+        </div>
       </div>
 
-      {/* KPI tiles — simple, useful at-a-glance numbers */}
-      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Kpi border={COLORS.learn} label="Best day" value={fmtTime(data.bestDaySec)} sub="Most watched day this month" valueColor={COLORS.learn} />
-        <Kpi border={COLORS.mint} label="Active days" value={`${data.activeDays}`} sub="Days you watched anything" valueColor={COLORS.mint} />
-        <Kpi border={COLORS.amber} label="Avg / video" value={fmtTime(data.avgPerVideoSec)} sub="Real time per video" valueColor={COLORS.amber} />
-        <Kpi border={COLORS.ent} label="Learn streak" value={`${data.streak} day${data.streak === 1 ? "" : "s"}`} sub="Consecutive learning days" valueColor={COLORS.ent} />
-      </div>
 
       {/* Card grid — two manual flex columns for true masonry without trailing gap */}
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
