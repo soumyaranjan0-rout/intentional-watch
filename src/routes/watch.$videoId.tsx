@@ -430,32 +430,8 @@ function WatchPage() {
               </div>
             )}
 
-            {/* YouTube-style pill action group */}
+            {/* Save-to-library only — like/dislike/share removed per design */}
             <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex items-center overflow-hidden rounded-full bg-secondary">
-                <button
-                  onClick={toggleLike}
-                  className={"inline-flex items-center gap-1.5 px-3.5 py-2 text-sm transition-colors hover:bg-accent " + (liked ? "text-primary" : "text-foreground")}
-                  aria-pressed={liked}
-                >
-                  <ThumbsUp className={"h-4 w-4 " + (liked ? "fill-primary text-primary" : "")} />
-                  <span>{liked ? "Liked" : "Like"}</span>
-                </button>
-                <div className="h-5 w-px bg-border" aria-hidden />
-                <button
-                  onClick={() => sendFeedback("not_useful")}
-                  className={"inline-flex items-center px-3.5 py-2 transition-colors hover:bg-accent " + (feedback === "not_useful" ? "text-foreground" : "text-muted-foreground")}
-                  aria-label="Not useful"
-                >
-                  <ThumbsDown className={"h-4 w-4 " + (feedback === "not_useful" ? "fill-muted-foreground" : "")} />
-                </button>
-              </div>
-              <button
-                onClick={share}
-                className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3.5 py-2 text-sm text-foreground transition-colors hover:bg-accent"
-              >
-                <Share2 className="h-4 w-4" /> Share
-              </button>
               <button
                 onClick={() => {
                   if (!user) {
