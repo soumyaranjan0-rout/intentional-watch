@@ -251,37 +251,6 @@ function WatchPage() {
     if (videosWatchedThisSession + 1 >= 2) setShowSessionPrompt(true);
   };
 
-  const toggleSave = async () => {
-    if (!user) {
-      toast.message("Sign in to save videos");
-      navigate({ to: "/login", search: { redirect: window.location.pathname } });
-      return;
-    }
-    if (saved) {
-      await supabase.from("saved_videos").delete().eq("user_id", user.id).eq("video_id", videoId);
-      setSaved(false);
-      toast.success("Removed from library");
-    } else {
-      await supabase.from("saved_videos").insert({
-        user_id: user.id,
-        video_id: videoId,
-        title: meta?.title || search.title,
-        channel: meta?.channel || search.channel,
-        thumbnail: search.thumbnail,
-        duration_seconds: meta?.durationSeconds || search.duration,
-      });
-      setSaved(true);
-      toast.success("Saved to library");
-    }
-  };
-
-  const target = () => ({
-    videoId,
-    title: meta?.title || search.title || "Untitled",
-    channel: meta?.channel || search.channel || "",
-    thumbnail: search.thumbnail || meta?.channelThumbnail || "",
-    durationSeconds: meta?.durationSeconds || search.duration || 0,
-  });
 
 
   const setIntentOverride = async (m: Mode) => {
