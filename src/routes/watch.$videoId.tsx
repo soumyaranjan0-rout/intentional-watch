@@ -9,7 +9,7 @@ import { Player, type PlayerHandle } from "@/components/Player";
 import { NotesPanel } from "@/components/NotesPanel";
 import { SessionPrompt } from "@/components/SessionPrompt";
 import { SaveToLibraryModal } from "@/components/SaveToLibraryModal";
-import { addToSystemPlaylist, isInSystemPlaylist, removeFromSystemPlaylist } from "@/lib/systemPlaylists";
+import { isInSystemPlaylist } from "@/lib/systemPlaylists";
 import { getVideoMeta } from "@/server/youtube.functions";
 import { getStoredYouTubeApiKey } from "@/lib/youtubeApiKey";
 import { toast } from "sonner";
