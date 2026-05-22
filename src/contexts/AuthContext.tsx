@@ -18,11 +18,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    // Listener first — fires synchronously on init with the cached session
-    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+    let lastToken: string | null | undefined;
+    let lastUserId: string | null | undefined;
+
+    const apply = (s: Session | null, event?: string) => {
       if (cancelled) return;
+      const token = s?.access_token ?? null;
+      const uid = s?.user?.id ?? null;
+      // Only update React state when something meaningful actually changed.
+      // Without this guard, token-refresh / tab-focus events flip the user
+      // object reference and re-fire every effect that depends on `user`,
+      // which manifested as random "page reloads" mid-session.
+      if (token === lastToken && uid === lastUserId) {
+        setLoading(false);
+        return;
+      }
+      lastToken = token;
+      lastUserId = uid;
       setSession(s);
       setLoading(false);
+
       if (event === "SIGNED_IN" && s) {
         const target = consumePostLoginPath();
         if (target && `${window.location.pathname}${window.location.search}` !== target) {
@@ -30,16 +45,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           window.dispatchEvent(new PopStateEvent("popstate"));
         }
       }
-    });
-    // Also resolve immediately so the UI doesn't sit in "loading" if the
-    // listener hasn't fired yet.
-    supabase.auth.getSession().then(({ data }) => {
-      if (cancelled) return;
-      setSession(data.session);
-      setLoading(false);
-    }).catch(() => {
-      if (!cancelled) setLoading(false);
-    });
+    };
+
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => apply(s, event));
+    supabase.auth.getSession()
+      .then(({ data }) => apply(data.session))
+      .catch(() => { if (!cancelled) setLoading(false); });
+
     return () => {
       cancelled = true;
       sub.subscription.unsubscribe();

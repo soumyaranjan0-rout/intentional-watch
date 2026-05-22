@@ -9,12 +9,12 @@ import { Player, type PlayerHandle } from "@/components/Player";
 import { NotesPanel } from "@/components/NotesPanel";
 import { SessionPrompt } from "@/components/SessionPrompt";
 import { SaveToLibraryModal } from "@/components/SaveToLibraryModal";
-import { addToSystemPlaylist, isInSystemPlaylist, removeFromSystemPlaylist } from "@/lib/systemPlaylists";
+import { isInSystemPlaylist } from "@/lib/systemPlaylists";
 import { getVideoMeta } from "@/server/youtube.functions";
 import { getStoredYouTubeApiKey } from "@/lib/youtubeApiKey";
 import { toast } from "sonner";
 import {
-  BookmarkPlus, BookmarkCheck, Share2, ThumbsUp, ThumbsDown,
+  BookmarkPlus, BookmarkCheck, ArrowLeft,
   Clock, Sparkles, Brain, Coffee, Search as SearchIcon,
 } from "lucide-react";
 
@@ -251,101 +251,7 @@ function WatchPage() {
     if (videosWatchedThisSession + 1 >= 2) setShowSessionPrompt(true);
   };
 
-  const toggleSave = async () => {
-    if (!user) {
-      toast.message("Sign in to save videos");
-      navigate({ to: "/login", search: { redirect: window.location.pathname } });
-      return;
-    }
-    if (saved) {
-      await supabase.from("saved_videos").delete().eq("user_id", user.id).eq("video_id", videoId);
-      setSaved(false);
-      toast.success("Removed from library");
-    } else {
-      await supabase.from("saved_videos").insert({
-        user_id: user.id,
-        video_id: videoId,
-        title: meta?.title || search.title,
-        channel: meta?.channel || search.channel,
-        thumbnail: search.thumbnail,
-        duration_seconds: meta?.durationSeconds || search.duration,
-      });
-      setSaved(true);
-      toast.success("Saved to library");
-    }
-  };
 
-  const share = async () => {
-    const url = `https://www.youtube.com/watch?v=${videoId}`;
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: meta?.title || search.title || "ZenTube", url });
-      } else {
-        await navigator.clipboard.writeText(url);
-        toast.success("Link copied");
-      }
-    } catch {}
-  };
-
-  const sendFeedback = async (kind: "helpful" | "not_useful") => {
-    if (!user) {
-      toast.message("Sign in to give feedback");
-      return;
-    }
-    const next = feedback === kind ? null : kind;
-    setFeedback(next);
-    if (next === null) {
-      await supabase.from("video_feedback").delete().eq("user_id", user.id).eq("video_id", videoId);
-    } else {
-      await supabase.from("video_feedback").upsert(
-        { user_id: user.id, video_id: videoId, feedback: next },
-        { onConflict: "user_id,video_id" },
-      );
-    }
-  };
-
-  const target = () => ({
-    videoId,
-    title: meta?.title || search.title || "Untitled",
-    channel: meta?.channel || search.channel || "",
-    thumbnail: search.thumbnail || meta?.channelThumbnail || "",
-    durationSeconds: meta?.durationSeconds || search.duration || 0,
-  });
-
-  const toggleLike = async () => {
-    if (!user) { toast.message("Sign in to like videos"); return; }
-    if (liked) {
-      await removeFromSystemPlaylist(user.id, "liked", videoId);
-      setLiked(false);
-      if (feedback === "helpful") {
-        setFeedback(null);
-        await supabase.from("video_feedback").delete().eq("user_id", user.id).eq("video_id", videoId);
-      }
-      toast.success("Removed from Liked Videos");
-    } else {
-      await addToSystemPlaylist(user.id, "liked", target());
-      setLiked(true);
-      setFeedback("helpful");
-      await supabase.from("video_feedback").upsert(
-        { user_id: user.id, video_id: videoId, feedback: "helpful" },
-        { onConflict: "user_id,video_id" },
-      );
-      toast.success("Added to Liked Videos");
-    }
-  };
-
-  const toggleWatchLater = async () => {
-    if (!user) { toast.message("Sign in to use Watch Later"); return; }
-    if (watchLater) {
-      await removeFromSystemPlaylist(user.id, "watch_later", videoId);
-      setWatchLater(false);
-      toast.success("Removed from Watch Later");
-    } else {
-      await addToSystemPlaylist(user.id, "watch_later", target());
-      setWatchLater(true);
-      toast.success("Added to Watch Later");
-    }
-  };
 
   const setIntentOverride = async (m: Mode) => {
     setOverride(m);
@@ -366,16 +272,31 @@ function WatchPage() {
   const isFind = finalIntent === "find";
   const isExplore = finalIntent === "explore";
 
+  const goBack = () => {
+    // Prefer going to results if we have an active session, otherwise just go home.
+    if (sessionMode) navigate({ to: "/results" });
+    else if (window.history.length > 1) window.history.back();
+    else navigate({ to: "/" });
+  };
+
   return (
     <div className="zen-container-wide py-4 sm:py-8">
-      {isRelax && sessionMinutes >= 5 && (
-        <div className="mb-3 flex justify-end">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={goBack}
+          className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-surface/60 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" /> Back to results
+        </button>
+        {isRelax && sessionMinutes >= 5 && (
           <div className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface/70 px-3 py-1 text-xs text-muted-foreground">
             <Clock className="h-3.5 w-3.5" />
             You've been watching for {sessionMinutes} min
           </div>
-        </div>
-      )}
+        )}
+      </div>
+
 
       <div className="grid gap-6">
         <div className="min-w-0">
@@ -430,32 +351,8 @@ function WatchPage() {
               </div>
             )}
 
-            {/* YouTube-style pill action group */}
+            {/* Save-to-library only — like/dislike/share removed per design */}
             <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex items-center overflow-hidden rounded-full bg-secondary">
-                <button
-                  onClick={toggleLike}
-                  className={"inline-flex items-center gap-1.5 px-3.5 py-2 text-sm transition-colors hover:bg-accent " + (liked ? "text-primary" : "text-foreground")}
-                  aria-pressed={liked}
-                >
-                  <ThumbsUp className={"h-4 w-4 " + (liked ? "fill-primary text-primary" : "")} />
-                  <span>{liked ? "Liked" : "Like"}</span>
-                </button>
-                <div className="h-5 w-px bg-border" aria-hidden />
-                <button
-                  onClick={() => sendFeedback("not_useful")}
-                  className={"inline-flex items-center px-3.5 py-2 transition-colors hover:bg-accent " + (feedback === "not_useful" ? "text-foreground" : "text-muted-foreground")}
-                  aria-label="Not useful"
-                >
-                  <ThumbsDown className={"h-4 w-4 " + (feedback === "not_useful" ? "fill-muted-foreground" : "")} />
-                </button>
-              </div>
-              <button
-                onClick={share}
-                className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3.5 py-2 text-sm text-foreground transition-colors hover:bg-accent"
-              >
-                <Share2 className="h-4 w-4" /> Share
-              </button>
               <button
                 onClick={() => {
                   if (!user) {

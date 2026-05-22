@@ -61,6 +61,17 @@ function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-6">
       <div className="w-full max-w-md">
+        <button
+          type="button"
+          onClick={() => {
+            if (window.history.length > 1) window.history.back();
+            else navigate({ to: "/", replace: true });
+          }}
+          className="mb-6 inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-surface/60 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M19 12H5" /><path d="m12 19-7-7 7-7" /></svg>
+          Back
+        </button>
         <div className="mb-8 flex items-center justify-center gap-2 text-foreground">
           <ZenLogo size={28} />
           <span className="text-lg font-semibold tracking-tight">ZenTube</span>
