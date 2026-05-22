@@ -366,16 +366,31 @@ function WatchPage() {
   const isFind = finalIntent === "find";
   const isExplore = finalIntent === "explore";
 
+  const goBack = () => {
+    // Prefer going to results if we have an active session, otherwise just go home.
+    if (sessionMode) navigate({ to: "/results" });
+    else if (window.history.length > 1) window.history.back();
+    else navigate({ to: "/" });
+  };
+
   return (
     <div className="zen-container-wide py-4 sm:py-8">
-      {isRelax && sessionMinutes >= 5 && (
-        <div className="mb-3 flex justify-end">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={goBack}
+          className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-surface/60 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" /> Back to results
+        </button>
+        {isRelax && sessionMinutes >= 5 && (
           <div className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface/70 px-3 py-1 text-xs text-muted-foreground">
             <Clock className="h-3.5 w-3.5" />
             You've been watching for {sessionMinutes} min
           </div>
-        </div>
-      )}
+        )}
+      </div>
+
 
       <div className="grid gap-6">
         <div className="min-w-0">
