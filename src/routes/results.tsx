@@ -381,6 +381,7 @@ const ResultCard = memo(function ResultCard({
               )}
             </div>
             <p className="mt-3 border-l-2 border-primary/40 pl-3 text-sm text-muted-foreground">{v.reason}</p>
+            <MatchExplanation v={v} mode={mode} query={query} chips={chips} />
           </div>
         </div>
       </Link>
