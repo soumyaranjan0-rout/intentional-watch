@@ -141,6 +141,7 @@ function PlaylistViewer({
   const [liked, setLiked] = useState(false);
   const [watchLater, setWatchLater] = useState(false);
   const [intentOverride, setIntentOverride] = useState<Mode | null>(null);
+  const [notesOpen, setNotesOpen] = useState(false);
 
   const { data: metaData } = useQuery({
     queryKey: ["video-meta", videoId],
