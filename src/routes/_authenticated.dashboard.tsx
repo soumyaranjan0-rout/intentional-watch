@@ -409,7 +409,7 @@ function Dashboard() {
           layer prevents the sub-pixel "shake" Chromium shows when a
           translucent + blurred sticky element repaints during scroll. */}
       <div
-        className="sticky top-14 z-20 -mx-3 border-b border-border/40 bg-background px-3 pb-4 pt-3 sm:-mx-6 sm:px-6"
+        className="sticky top-14 z-20 -mx-3 border-b border-border/40 bg-background px-3 pb-4 pt-3 sm:-mx-6 sm:px-6 relative"
         style={{ transform: "translateZ(0)", willChange: "transform", backfaceVisibility: "hidden" }}
       >
         {/* Subtle gradient wash for visual polish — solid base, no blur, no jitter */}
