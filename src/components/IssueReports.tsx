@@ -69,6 +69,12 @@ export function ReportsSection() {
                     {new Date(r.createdAt).toLocaleString()} · Page: <span className="text-foreground">{r.page || "/"}</span>
                   </div>
                   <p className="mt-1.5 text-sm leading-relaxed text-foreground">{r.friendly}</p>
+                  {r.reproSteps && (
+                    <div className="mt-2 rounded-md border border-border/60 bg-surface/60 p-2.5 text-xs leading-relaxed text-foreground">
+                      <div className="mb-1 text-[10px] uppercase tracking-wider text-muted-foreground">Steps to reproduce</div>
+                      <div className="whitespace-pre-wrap">{r.reproSteps}</div>
+                    </div>
+                  )}
                 </div>
                 <button
                   onClick={() => remove(r.id)}
@@ -84,6 +90,7 @@ export function ReportsSection() {
                 </summary>
                 <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap rounded-md bg-muted p-3 font-mono text-[11px] leading-relaxed text-muted-foreground">
                   {r.detail}
+                  {r.device ? `\n\n--- Device ---\n${r.device}` : ""}
                 </pre>
               </details>
             </article>

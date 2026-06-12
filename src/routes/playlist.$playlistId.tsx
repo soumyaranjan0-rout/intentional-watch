@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import {
   ArrowLeft, ListVideo, Play, Loader2, BookmarkPlus, BookmarkCheck,
   Share2, ThumbsUp, ThumbsDown, Brain, Coffee, Search as SearchIcon, Sparkles,
-  Heart, Clock, ListPlus,
+  StickyNote,
 } from "lucide-react";
 import { addToSystemPlaylist, isInSystemPlaylist, removeFromSystemPlaylist } from "@/lib/systemPlaylists";
 
@@ -141,6 +141,7 @@ function PlaylistViewer({
   const [liked, setLiked] = useState(false);
   const [watchLater, setWatchLater] = useState(false);
   const [intentOverride, setIntentOverride] = useState<Mode | null>(null);
+  const [notesOpen, setNotesOpen] = useState(false);
 
   const { data: metaData } = useQuery({
     queryKey: ["video-meta", videoId],
@@ -258,15 +259,17 @@ function PlaylistViewer({
         <ArrowLeft className="h-4 w-4" /> Back
       </Link>
 
-      <div className={"mt-4 grid gap-6 " + (isLearning ? "lg:grid-cols-[1fr_360px]" : "")}>
+      <div className="mt-4 grid gap-6">
         {/* LEFT: Player → metadata → playlist queue */}
         <div className="min-w-0">
-          <Player
-            ref={playerRef}
-            videoId={videoId}
-            onProgress={handleProgress}
-            onEnded={() => active < items.length - 1 && playAt(active + 1)}
-          />
+          <div className="lg:sticky lg:top-16 lg:z-10 lg:-mx-1 lg:bg-background lg:px-1 lg:pb-2 lg:pt-1">
+            <Player
+              ref={playerRef}
+              videoId={videoId}
+              onProgress={handleProgress}
+              onEnded={() => active < items.length - 1 && playAt(active + 1)}
+            />
+          </div>
 
           <h1 className="mt-4 text-xl font-semibold leading-snug text-foreground sm:text-2xl">{title}</h1>
 
@@ -335,10 +338,27 @@ function PlaylistViewer({
               icon={(saved || watchLater) ? <BookmarkCheck className="h-4 w-4" /> : <BookmarkPlus className="h-4 w-4" />}
               label={(saved || watchLater) ? "Saved" : "Save"} />
             <ActionButton onClick={share} icon={<Share2 className="h-4 w-4" />} label="Share" />
+            <ActionButton
+              onClick={() => setNotesOpen((v) => !v)}
+              active={notesOpen}
+              icon={<StickyNote className="h-4 w-4" />}
+              label="Notes"
+            />
             <div className="mx-1 h-5 w-px bg-border" aria-hidden />
             <ActionButton onClick={() => sendFeedback("not_useful")} active={feedback === "not_useful"}
               icon={<ThumbsDown className="h-4 w-4" />} label="Not useful" />
           </div>
+
+          {notesOpen && (
+            <div className="mt-4">
+              <NotesPanel
+                videoId={videoId}
+                videoTitle={title}
+                getCurrentSeconds={() => watchSecondsRef.current}
+                onJumpTo={(s) => playerRef.current?.seekTo(s)}
+              />
+            </div>
+          )}
 
           {/* Playlist queue BELOW metadata */}
           <div className="zen-card mt-6 overflow-hidden">
@@ -380,18 +400,6 @@ function PlaylistViewer({
             </ol>
           </div>
         </div>
-
-        {/* RIGHT: Notes panel only for learn intent */}
-        {isLearning && (
-          <aside className="lg:sticky lg:top-20 lg:self-start">
-            <NotesPanel
-              videoId={videoId}
-              videoTitle={title}
-              getCurrentSeconds={() => watchSecondsRef.current}
-              onJumpTo={(s) => playerRef.current?.seekTo(s)}
-            />
-          </aside>
-        )}
       </div>
 
       {saveOpen && (
