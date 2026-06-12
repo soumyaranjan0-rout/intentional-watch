@@ -457,8 +457,8 @@ function WatchPage() {
             </div>
           )}
 
-          {/* Timestamped notes — appear BELOW the video meta for "Learn" intent */}
-          {isLearning && (
+          {/* Timestamped notes — only shown when user toggles them on */}
+          {notesOpen && (
             <div className="mt-6">
               <NotesPanel
                 videoId={videoId}
@@ -468,6 +468,7 @@ function WatchPage() {
               />
             </div>
           )}
+
 
           {ended && <EndScreen />}
         </div>
