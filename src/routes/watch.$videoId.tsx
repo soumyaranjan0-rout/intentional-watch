@@ -14,7 +14,7 @@ import { getVideoMeta } from "@/server/youtube.functions";
 import { getStoredYouTubeApiKey } from "@/lib/youtubeApiKey";
 import { toast } from "sonner";
 import {
-  BookmarkPlus, BookmarkCheck, ArrowLeft,
+  BookmarkPlus, BookmarkCheck, ArrowLeft, Share2, StickyNote,
   Clock, Sparkles, Brain, Coffee, Search as SearchIcon,
 } from "lucide-react";
 
@@ -55,6 +55,7 @@ function WatchPage() {
   const [liked, setLiked] = useState(false);
   const [watchLater, setWatchLater] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
 
   // Intent: explicit override (from URL or user-set), inferred (from meta), session fallback.
   const [override, setOverride] = useState<Mode | null>(
@@ -351,7 +352,7 @@ function WatchPage() {
               </div>
             )}
 
-            {/* Save-to-library only — like/dislike/share removed per design */}
+            {/* Action cluster: Save · Notes · Share */}
             <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={() => {
@@ -370,7 +371,46 @@ function WatchPage() {
                 {(saved || watchLater) ? <BookmarkCheck className="h-4 w-4" /> : <BookmarkPlus className="h-4 w-4" />}
                 <span>{(saved || watchLater) ? "Saved" : "Save"}</span>
               </button>
+
+              <button
+                onClick={() => setNotesOpen((v) => !v)}
+                className={"inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-sm transition-colors " +
+                  (notesOpen
+                    ? "bg-primary/15 text-primary hover:bg-primary/20"
+                    : "bg-secondary text-foreground hover:bg-accent")}
+                aria-pressed={notesOpen}
+              >
+                <StickyNote className="h-4 w-4" />
+                <span>Notes</span>
+              </button>
+
+              <button
+                onClick={async () => {
+                  const url = `${window.location.origin}/watch/${videoId}`;
+                  const shareData = { title, text: title, url };
+                  try {
+                    if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+                      await navigator.share(shareData);
+                      return;
+                    }
+                  } catch (err) {
+                    // user cancelled or share failed — fall through to clipboard
+                    if (err instanceof Error && err.name === "AbortError") return;
+                  }
+                  try {
+                    await navigator.clipboard.writeText(url);
+                    toast.success("Link copied to clipboard");
+                  } catch {
+                    toast.error("Could not copy link");
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3.5 py-2 text-sm text-foreground transition-colors hover:bg-accent"
+              >
+                <Share2 className="h-4 w-4" />
+                <span>Share</span>
+              </button>
             </div>
+
           </div>
 
           {/* YouTube-style description card: views · date · description */}
@@ -417,8 +457,8 @@ function WatchPage() {
             </div>
           )}
 
-          {/* Timestamped notes — appear BELOW the video meta for "Learn" intent */}
-          {isLearning && (
+          {/* Timestamped notes — only shown when user toggles them on */}
+          {notesOpen && (
             <div className="mt-6">
               <NotesPanel
                 videoId={videoId}
@@ -428,6 +468,7 @@ function WatchPage() {
               />
             </div>
           )}
+
 
           {ended && <EndScreen />}
         </div>
