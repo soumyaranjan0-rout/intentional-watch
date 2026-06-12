@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { addToSystemPlaylist } from "@/lib/systemPlaylists";
 import { formatCount, formatDuration, MODES, detectMismatch, type Mode, type ResultVideo } from "@/lib/intent";
 import { ResumeBanner } from "@/components/ResumeBanner";
+import { MatchExplanation } from "@/components/MatchExplanation";
 import { getStoredYouTubeApiKey } from "@/lib/youtubeApiKey";
 import { ArrowLeft, Loader2, Search as SearchIcon, AlertCircle, ListVideo, ChevronDown, Play, ChevronRight, Users, Clock, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
