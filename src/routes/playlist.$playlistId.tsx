@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import {
   ArrowLeft, ListVideo, Play, Loader2, BookmarkPlus, BookmarkCheck,
   Share2, ThumbsUp, ThumbsDown, Brain, Coffee, Search as SearchIcon, Sparkles,
-  Heart, Clock, ListPlus,
+  StickyNote,
 } from "lucide-react";
 import { addToSystemPlaylist, isInSystemPlaylist, removeFromSystemPlaylist } from "@/lib/systemPlaylists";
 
