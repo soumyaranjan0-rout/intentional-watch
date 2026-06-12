@@ -266,11 +266,13 @@ function ChannelCard({ channel }: { channel: ResultChannel }) {
 function ResultsList({
   results, playlists, mode,
 }: { results: ResultVideo[]; playlists: ResultPlaylist[]; mode: Mode }) {
+  const { query, refinement } = useSessionState();
+  const chips = refinement?.chips ?? [];
   const primary = results.find((r) => r.primary) ?? results[0];
   const rest = results.filter((r) => primary && r.videoId !== primary.videoId);
   return (
     <div className="mt-6 space-y-4">
-      {primary && <ResultCard v={primary} highlighted={mode === "find"} />}
+      {primary && <ResultCard v={primary} highlighted={mode === "find"} mode={mode} query={query} chips={chips} />}
 
       {playlists.length > 0 && (
         <>
@@ -287,7 +289,7 @@ function ResultsList({
             More videos
           </div>
           {rest.map((r) => (
-            <ResultCard key={r.videoId} v={r} />
+            <ResultCard key={r.videoId} v={r} mode={mode} query={query} chips={chips} />
           ))}
         </>
       )}
