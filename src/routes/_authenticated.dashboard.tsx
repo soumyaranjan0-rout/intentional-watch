@@ -89,20 +89,26 @@ function intentOf(r: Row): "learn" | "relax" | "find" | "explore" | "other" {
 
 function Dashboard() {
   const { user } = useAuth();
-  const [rows, setRows] = useState<Row[] | null>(null);
   const now = new Date();
   const [cur, setCur] = useState({ y: now.getFullYear(), m: now.getMonth() });
 
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .from("watch_history")
-      .select("mode, final_intent, watch_seconds, effective_seconds, seek_count, duration_seconds, watched_at, title, channel, category")
-      .eq("user_id", user.id)
-      .order("watched_at", { ascending: false })
-      .limit(1000)
-      .then(({ data }) => setRows((data || []) as Row[]));
-  }, [user]);
+  // Cached across navigation so going back to Insights feels instant.
+  const { data: rows = null } = useQuery({
+    queryKey: ["watch-history-insights", user?.id ?? "anon"],
+    enabled: !!user,
+    staleTime: 60_000,
+    gcTime: 10 * 60_000,
+    refetchOnWindowFocus: false,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("watch_history")
+        .select("mode, final_intent, watch_seconds, effective_seconds, seek_count, duration_seconds, watched_at, title, channel, category")
+        .eq("user_id", user!.id)
+        .order("watched_at", { ascending: false })
+        .limit(1000);
+      return (data || []) as Row[];
+    },
+  });
 
   const data = useMemo(() => {
     if (!rows) return null;
