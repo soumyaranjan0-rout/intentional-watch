@@ -298,8 +298,8 @@ function ResultsList({
 }
 
 const ResultCard = memo(function ResultCard({
-  v, highlighted,
-}: { v: ResultVideo; highlighted?: boolean }) {
+  v, highlighted, mode, query, chips,
+}: { v: ResultVideo; highlighted?: boolean; mode: Mode; query: string; chips: string[] }) {
   const { user } = useAuth();
   const [savingWL, setSavingWL] = useState(false);
   const [savedWL, setSavedWL] = useState(false);
