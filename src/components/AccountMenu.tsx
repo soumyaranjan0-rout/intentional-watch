@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useAuth } from "@/contexts/AuthContext";
-import { signInWithGoogle } from "@/lib/auth";
+
 import { toast } from "sonner";
 import {
   User as UserIcon, LogOut, History, Settings, RefreshCcw, LogIn,
