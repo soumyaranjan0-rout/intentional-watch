@@ -338,10 +338,27 @@ function PlaylistViewer({
               icon={(saved || watchLater) ? <BookmarkCheck className="h-4 w-4" /> : <BookmarkPlus className="h-4 w-4" />}
               label={(saved || watchLater) ? "Saved" : "Save"} />
             <ActionButton onClick={share} icon={<Share2 className="h-4 w-4" />} label="Share" />
+            <ActionButton
+              onClick={() => setNotesOpen((v) => !v)}
+              active={notesOpen}
+              icon={<StickyNote className="h-4 w-4" />}
+              label="Notes"
+            />
             <div className="mx-1 h-5 w-px bg-border" aria-hidden />
             <ActionButton onClick={() => sendFeedback("not_useful")} active={feedback === "not_useful"}
               icon={<ThumbsDown className="h-4 w-4" />} label="Not useful" />
           </div>
+
+          {notesOpen && (
+            <div className="mt-4">
+              <NotesPanel
+                videoId={videoId}
+                videoTitle={title}
+                getCurrentSeconds={() => watchSecondsRef.current}
+                onJumpTo={(s) => playerRef.current?.seekTo(s)}
+              />
+            </div>
+          )}
 
           {/* Playlist queue BELOW metadata */}
           <div className="zen-card mt-6 overflow-hidden">
