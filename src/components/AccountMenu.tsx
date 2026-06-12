@@ -33,30 +33,16 @@ export function AccountMenu() {
   // Close menu when route changes
   useEffect(() => { setOpen(false); }, [location.pathname]);
 
-  const signInGoogle = async () => {
-    if (busy) return;
-    setBusy(true);
+  // Route the sign-in through the /login page (same flow as the
+  // "Sign in" link below the search bar). The dedicated login route
+  // handles popup-vs-redirect fallbacks reliably; invoking OAuth from
+  // a dropdown breaks inside preview iframes and some browser contexts.
+  const signInGoogle = () => {
     setOpen(false);
-    try {
-      const result = await signInWithGoogle(location.pathname + location.search);
-
-      if (result?.error) {
-        const msg = result.error.message || "";
-        // Suppress benign cancellations (popup closed, redirect aborted, etc.)
-        if (!/cancel|closed|aborted|user.*denied/i.test(msg)) {
-          toast.error(msg || "Sign in failed. Please try again.");
-        }
-        setBusy(false);
-        return;
-      }
-      // If result.redirected, the browser is navigating away — keep spinner.
-      if (!result?.redirected) {
-        setBusy(false);
-      }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Sign in failed");
-      setBusy(false);
-    }
+    const redirect = location.pathname + location.search || "/";
+    navigate({ to: "/login", search: { redirect } }).catch(() => {
+      window.location.assign(`/login?redirect=${encodeURIComponent(redirect)}`);
+    });
   };
 
   const switchAccount = async () => {
@@ -66,8 +52,10 @@ export function AccountMenu() {
     try {
       await signOut();
     } catch { /* ignore — we still want to re-auth */ }
-    await signInGoogle();
+    setBusy(false);
+    signInGoogle();
   };
+
 
   const handleSignOut = async () => {
     setOpen(false);
