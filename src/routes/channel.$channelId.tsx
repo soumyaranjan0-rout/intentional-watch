@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { getChannelDetail, getChannelPlaylists } from "@/server/youtube.functions";
+import { getChannelDetail, getChannelPlaylists } from "@/lib/youtube.functions";
 import { getStoredYouTubeApiKey } from "@/lib/youtubeApiKey";
 import { formatCount, formatDuration, type ResultVideo } from "@/lib/intent";
 import { ArrowLeft, Loader2, Users, Video as VideoIcon } from "lucide-react";

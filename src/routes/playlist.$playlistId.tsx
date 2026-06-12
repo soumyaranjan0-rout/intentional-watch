@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-r
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { z } from "zod";
-import { getPlaylistItems, getVideoMeta } from "@/server/youtube.functions";
+import { getPlaylistItems, getVideoMeta } from "@/lib/youtube.functions";
 import { getStoredYouTubeApiKey } from "@/lib/youtubeApiKey";
 import { Player, type PlayerHandle } from "@/components/Player";
 import { NotesPanel } from "@/components/NotesPanel";

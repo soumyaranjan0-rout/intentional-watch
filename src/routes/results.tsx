@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { memo, useEffect, useMemo, useState } from "react";
-import { searchVideos, getPlaylistItems, type ResultPlaylist, type ResultChannel } from "@/server/youtube.functions";
+import { searchVideos, getPlaylistItems, type ResultPlaylist, type ResultChannel } from "@/lib/youtube.functions";
 import { useSessionState } from "@/contexts/SessionStateContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { addToSystemPlaylist } from "@/lib/systemPlaylists";
