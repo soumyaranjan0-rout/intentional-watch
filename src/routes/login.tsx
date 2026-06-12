@@ -48,10 +48,9 @@ function LoginPage() {
       if (result?.redirected) return;
 
       // Tokens were returned directly (popup-style). Session is already set;
-      // navigate to the intended destination.
-      navigate({ to: target as "/", replace: true }).catch(() => {
-        window.location.replace(target);
-      });
+      // navigate to the intended destination via a hard reload to avoid
+      // router coercion of complex paths.
+      window.location.replace(target);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Google sign-in failed");
       setBusy(false);
