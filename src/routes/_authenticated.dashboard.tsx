@@ -405,15 +405,27 @@ function Dashboard() {
   return (
     <div className="zen-container-wide py-10">
       {/* Frozen overview — header + intent strip + KPI tiles stay pinned
-          while charts below scroll. Backdrop blur keeps it readable over
-          chart content sliding underneath. */}
-      <div className="sticky top-14 z-20 -mx-3 px-3 pb-4 pt-2 backdrop-blur-xl sm:-mx-6 sm:px-6"
-           style={{ background: "color-mix(in oklab, var(--background) 88%, transparent)" }}>
+          while charts below scroll. Solid background + GPU compositing
+          layer prevents the sub-pixel "shake" Chromium shows when a
+          translucent + blurred sticky element repaints during scroll. */}
+      <div
+        className="sticky top-14 z-20 -mx-3 border-b border-border/40 bg-background px-3 pb-4 pt-3 sm:-mx-6 sm:px-6 relative"
+        style={{ transform: "translateZ(0)", willChange: "transform", backfaceVisibility: "hidden" }}
+      >
+        {/* Subtle gradient wash for visual polish — solid base, no blur, no jitter */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-full"
+          style={{
+            background:
+              "radial-gradient(1200px 220px at 20% 0%, color-mix(in oklab, var(--primary) 8%, transparent), transparent 60%), radial-gradient(900px 200px at 90% 0%, color-mix(in oklab, var(--accent) 10%, transparent), transparent 60%)",
+          }}
+        />
         <Header monthLabel={monthLabel} prev={goPrev} next={goNext} navBtn={navBtn} />
 
         {/* Intent strip */}
         <div
-          className="mt-5 grid grid-cols-2 overflow-hidden border border-border/60 bg-card/60 shadow-[var(--shadow-soft)] sm:grid-cols-5"
+          className="mt-5 grid grid-cols-2 overflow-hidden border border-border/60 bg-card/70 shadow-[var(--shadow-soft)] sm:grid-cols-5"
           style={{ borderRadius: 16 }}
         >
           <StripItem label="All-time watched" value={fmtMin(data.totalAll)} sub="since you joined" />
