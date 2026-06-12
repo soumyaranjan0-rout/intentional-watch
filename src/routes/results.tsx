@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { addToSystemPlaylist } from "@/lib/systemPlaylists";
 import { formatCount, formatDuration, MODES, detectMismatch, type Mode, type ResultVideo } from "@/lib/intent";
 import { ResumeBanner } from "@/components/ResumeBanner";
+import { MatchExplanation } from "@/components/MatchExplanation";
 import { getStoredYouTubeApiKey } from "@/lib/youtubeApiKey";
 import { ArrowLeft, Loader2, Search as SearchIcon, AlertCircle, ListVideo, ChevronDown, Play, ChevronRight, Users, Clock, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
@@ -265,11 +266,13 @@ function ChannelCard({ channel }: { channel: ResultChannel }) {
 function ResultsList({
   results, playlists, mode,
 }: { results: ResultVideo[]; playlists: ResultPlaylist[]; mode: Mode }) {
+  const { query, refinement } = useSessionState();
+  const chips = refinement?.chips ?? [];
   const primary = results.find((r) => r.primary) ?? results[0];
   const rest = results.filter((r) => primary && r.videoId !== primary.videoId);
   return (
     <div className="mt-6 space-y-4">
-      {primary && <ResultCard v={primary} highlighted={mode === "find"} />}
+      {primary && <ResultCard v={primary} highlighted={mode === "find"} mode={mode} query={query} chips={chips} />}
 
       {playlists.length > 0 && (
         <>
@@ -286,7 +289,7 @@ function ResultsList({
             More videos
           </div>
           {rest.map((r) => (
-            <ResultCard key={r.videoId} v={r} />
+            <ResultCard key={r.videoId} v={r} mode={mode} query={query} chips={chips} />
           ))}
         </>
       )}
@@ -295,8 +298,8 @@ function ResultsList({
 }
 
 const ResultCard = memo(function ResultCard({
-  v, highlighted,
-}: { v: ResultVideo; highlighted?: boolean }) {
+  v, highlighted, mode, query, chips,
+}: { v: ResultVideo; highlighted?: boolean; mode: Mode; query: string; chips: string[] }) {
   const { user } = useAuth();
   const [savingWL, setSavingWL] = useState(false);
   const [savedWL, setSavedWL] = useState(false);
@@ -378,6 +381,7 @@ const ResultCard = memo(function ResultCard({
               )}
             </div>
             <p className="mt-3 border-l-2 border-primary/40 pl-3 text-sm text-muted-foreground">{v.reason}</p>
+            <MatchExplanation v={v} mode={mode} query={query} chips={chips} />
           </div>
         </div>
       </Link>
