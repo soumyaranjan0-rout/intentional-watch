@@ -107,8 +107,6 @@ function AppShell({ children }: { children: React.ReactNode }) {
               <span className="text-lg font-semibold tracking-tight">ZenTube</span>
             </Link>
 
-            <BackToVideoButton />
-
             <PrimaryNav />
 
             <div className="ml-auto flex items-center gap-1 lg:ml-1">
