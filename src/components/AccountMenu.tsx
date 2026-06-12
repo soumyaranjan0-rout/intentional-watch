@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useAuth } from "@/contexts/AuthContext";
-import { signInWithGoogle } from "@/lib/auth";
+
 import { toast } from "sonner";
 import {
   User as UserIcon, LogOut, History, Settings, RefreshCcw, LogIn,
@@ -33,30 +33,16 @@ export function AccountMenu() {
   // Close menu when route changes
   useEffect(() => { setOpen(false); }, [location.pathname]);
 
-  const signInGoogle = async () => {
-    if (busy) return;
-    setBusy(true);
+  // Route the sign-in through the /login page (same flow as the
+  // "Sign in" link below the search bar). The dedicated login route
+  // handles popup-vs-redirect fallbacks reliably; invoking OAuth from
+  // a dropdown breaks inside preview iframes and some browser contexts.
+  const signInGoogle = () => {
     setOpen(false);
-    try {
-      const result = await signInWithGoogle(location.pathname + location.search);
-
-      if (result?.error) {
-        const msg = result.error.message || "";
-        // Suppress benign cancellations (popup closed, redirect aborted, etc.)
-        if (!/cancel|closed|aborted|user.*denied/i.test(msg)) {
-          toast.error(msg || "Sign in failed. Please try again.");
-        }
-        setBusy(false);
-        return;
-      }
-      // If result.redirected, the browser is navigating away — keep spinner.
-      if (!result?.redirected) {
-        setBusy(false);
-      }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Sign in failed");
-      setBusy(false);
-    }
+    const redirect = location.pathname + location.search || "/";
+    navigate({ to: "/login", search: { redirect } }).catch(() => {
+      window.location.assign(`/login?redirect=${encodeURIComponent(redirect)}`);
+    });
   };
 
   const switchAccount = async () => {
@@ -66,8 +52,10 @@ export function AccountMenu() {
     try {
       await signOut();
     } catch { /* ignore — we still want to re-auth */ }
-    await signInGoogle();
+    setBusy(false);
+    signInGoogle();
   };
+
 
   const handleSignOut = async () => {
     setOpen(false);
@@ -199,22 +187,15 @@ function GoogleIcon() {
 // Small floating "Sign in to unlock" pill for guests on the homepage.
 export function GuestSignInHint() {
   const { user } = useAuth();
-  const [busy, setBusy] = useState(false);
+  const navigate = useNavigate();
+  const { location } = useRouterState();
   if (user) return null;
 
-  const signIn = async () => {
-    if (busy) return;
-    setBusy(true);
-    try {
-      const result = await signInWithGoogle();
-      if (result?.error) {
-        toast.error(result.error.message || "Sign in failed");
-      }
-      if (!result?.redirected) setBusy(false);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Sign in failed");
-      setBusy(false);
-    }
+  const signIn = () => {
+    const redirect = location.pathname + location.search || "/";
+    navigate({ to: "/login", search: { redirect } }).catch(() => {
+      window.location.assign(`/login?redirect=${encodeURIComponent(redirect)}`);
+    });
   };
 
   return (
@@ -224,8 +205,7 @@ export function GuestSignInHint() {
       </p>
       <button
         onClick={signIn}
-        disabled={busy}
-        className="mt-3 inline-flex items-center gap-2 rounded-full border border-border bg-background/60 px-4 py-2 text-sm font-medium text-foreground hover:border-primary/50 hover:bg-surface disabled:opacity-60"
+        className="mt-3 inline-flex items-center gap-2 rounded-full border border-border bg-background/60 px-4 py-2 text-sm font-medium text-foreground hover:border-primary/50 hover:bg-surface"
       >
         <GoogleIcon /> Continue with Google
         <LogIn className="h-3.5 w-3.5 text-muted-foreground" />
@@ -233,3 +213,4 @@ export function GuestSignInHint() {
     </div>
   );
 }
+
