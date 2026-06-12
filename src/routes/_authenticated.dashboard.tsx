@@ -387,13 +387,21 @@ function Dashboard() {
 
   if (!data || data.monthVideos === 0) {
     return (
-      <div className="zen-container-wide py-10">
-        <Header monthLabel={monthLabel} prev={goPrev} next={goNext} navBtn={navBtn} />
-        <div className="zen-card mt-8 p-10 text-center">
-          <p className="text-sm text-muted-foreground">
-            No watch data for <span className="text-foreground">{monthLabel}</span> yet.
-            Watch a video to start your insights.
-          </p>
+      <div className="flex flex-col overflow-hidden" style={{ height: "calc(100dvh - 3.5rem)" }}>
+        <div className="flex-none border-b border-border/60 bg-background">
+          <div className="zen-container-wide pb-5 pt-6">
+            <Header monthLabel={monthLabel} prev={goPrev} next={goNext} navBtn={navBtn} />
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto overscroll-contain">
+          <div className="zen-container-wide pb-24 pt-4 lg:pb-12">
+            <div className="zen-card p-10 text-center">
+              <p className="text-sm text-muted-foreground">
+                No watch data for <span className="text-foreground">{monthLabel}</span> yet.
+                Watch a video to start your insights.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -403,50 +411,39 @@ function Dashboard() {
   const tips = buildTips(data);
 
   return (
-    <div className="zen-container-wide py-10">
-      {/* Frozen overview — header + intent strip + KPI tiles stay pinned
-          while charts below scroll. Solid background + GPU compositing
-          layer prevents the sub-pixel "shake" Chromium shows when a
-          translucent + blurred sticky element repaints during scroll. */}
-      <div
-        className="sticky top-14 z-20 -mx-3 border-b border-border/40 bg-background px-3 pb-4 pt-3 sm:-mx-6 sm:px-6 relative"
-        style={{ transform: "translateZ(0)", willChange: "transform", backfaceVisibility: "hidden" }}
-      >
-        {/* Subtle gradient wash for visual polish — solid base, no blur, no jitter */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-full"
-          style={{
-            background:
-              "radial-gradient(1200px 220px at 20% 0%, color-mix(in oklab, var(--primary) 8%, transparent), transparent 60%), radial-gradient(900px 200px at 90% 0%, color-mix(in oklab, var(--accent) 10%, transparent), transparent 60%)",
-          }}
-        />
-        <Header monthLabel={monthLabel} prev={goPrev} next={goNext} navBtn={navBtn} />
+    <div className="flex flex-col overflow-hidden" style={{ height: "calc(100dvh - 3.5rem)" }}>
+      {/* Locked overview — a static block above its own scroll container.
+          The page itself never scrolls, so this header physically cannot
+          move, shake or resize while you scroll the charts below. */}
+      <div className="flex-none border-b border-border/60 bg-background">
+        <div className="zen-container-wide pb-5 pt-6">
+          <Header monthLabel={monthLabel} prev={goPrev} next={goNext} navBtn={navBtn} />
 
-        {/* Intent strip */}
-        <div
-          className="mt-5 grid grid-cols-2 overflow-hidden border border-border/60 bg-card/70 shadow-[var(--shadow-soft)] sm:grid-cols-5"
-          style={{ borderRadius: 16 }}
-        >
-          <StripItem label="All-time watched" value={fmtMin(data.totalAll)} sub="since you joined" />
-          <StripItem label="Learning" value={fmtMin(data.learn)} sub={`${data.learnPct}% of watch time`} valueColor={COLORS.learn} subColor="#0F6E56" labelColor="#085041" />
-          <StripItem label="Entertainment" value={fmtMin(data.ent)} sub={`${data.entPct}% of watch time`} valueColor={COLORS.ent} subColor="#993556" labelColor="#72243E" />
-          <StripItem label="Quick lookup" value={fmtMin(data.find)} sub={`${data.findPct}% of watch time`} valueColor={COLORS.amber} subColor="#854F0B" labelColor="#633806" />
-          <StripItem label="This month" value={fmtMin(data.monthEff)} sub={`${data.monthVideos} videos`} className="col-span-2 sm:col-span-1" />
-        </div>
+          {/* Intent strip */}
+          <div className="mt-5 grid grid-cols-2 overflow-hidden rounded-2xl border border-border/60 bg-card/70 shadow-[var(--shadow-soft)] sm:grid-cols-5">
+            <StripItem label="All-time watched" value={fmtMin(data.totalAll)} sub="since you joined" />
+            <StripItem label="Learning" value={fmtMin(data.learn)} sub={`${data.learnPct}% of watch time`} valueColor={COLORS.learn} subColor="#0F6E56" labelColor="#085041" />
+            <StripItem label="Entertainment" value={fmtMin(data.ent)} sub={`${data.entPct}% of watch time`} valueColor={COLORS.ent} subColor="#993556" labelColor="#72243E" />
+            <StripItem label="Quick lookup" value={fmtMin(data.find)} sub={`${data.findPct}% of watch time`} valueColor={COLORS.amber} subColor="#854F0B" labelColor="#633806" />
+            <StripItem label="This month" value={fmtMin(data.monthEff)} sub={`${data.monthVideos} videos`} className="col-span-2 sm:col-span-1" />
+          </div>
 
-        {/* KPI tiles — simple, useful at-a-glance numbers */}
-        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Kpi border={COLORS.learn} label="Best day" value={fmtTime(data.bestDaySec)} sub="Most watched day this month" valueColor={COLORS.learn} />
-          <Kpi border={COLORS.mint} label="Active days" value={`${data.activeDays}`} sub="Days you watched anything" valueColor={COLORS.mint} />
-          <Kpi border={COLORS.amber} label="Avg / video" value={fmtTime(data.avgPerVideoSec)} sub="Real time per video" valueColor={COLORS.amber} />
-          <Kpi border={COLORS.ent} label="Learn streak" value={`${data.streak} day${data.streak === 1 ? "" : "s"}`} sub="Consecutive learning days" valueColor={COLORS.ent} />
+          {/* KPI tiles — simple, useful at-a-glance numbers */}
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <Kpi border={COLORS.learn} label="Best day" value={fmtTime(data.bestDaySec)} sub="Most watched day this month" valueColor={COLORS.learn} />
+            <Kpi border={COLORS.mint} label="Active days" value={`${data.activeDays}`} sub="Days you watched anything" valueColor={COLORS.mint} />
+            <Kpi border={COLORS.amber} label="Avg / video" value={fmtTime(data.avgPerVideoSec)} sub="Real time per video" valueColor={COLORS.amber} />
+            <Kpi border={COLORS.ent} label="Learn streak" value={`${data.streak} day${data.streak === 1 ? "" : "s"}`} sub="Consecutive learning days" valueColor={COLORS.ent} />
+          </div>
         </div>
       </div>
 
+      {/* Scrollable analytics area */}
+      <div className="flex-1 overflow-y-auto overscroll-contain">
+        <div className="zen-container-wide pb-24 pt-4 lg:pb-12">
 
       {/* Card grid — two manual flex columns for true masonry without trailing gap */}
-      <div className="mt-3 grid gap-3 lg:grid-cols-2">
+      <div className="grid gap-3 lg:grid-cols-2">
         <div className="flex flex-col gap-3 min-w-0">
         {/* Stacked area */}
         <Card>
@@ -458,9 +455,9 @@ function Dashboard() {
                 <XAxis dataKey="day" stroke="var(--muted-foreground)" fontSize={10} tickLine={false} axisLine={false} />
                 <YAxis stroke="var(--muted-foreground)" fontSize={10} tickLine={false} axisLine={false} width={32} />
                 <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
-                <Area type="monotone" dataKey="learn" stackId="1" stroke={COLORS.learn} fill={COLORS.learn} fillOpacity={0.18} />
-                <Area type="monotone" dataKey="ent" stackId="1" stroke={COLORS.ent} fill={COLORS.ent} fillOpacity={0.14} />
-                <Area type="monotone" dataKey="other" stackId="1" stroke={COLORS.other} fill={COLORS.other} fillOpacity={0.12} />
+                <Area type="monotone" dataKey="learn" stackId="1" stroke={COLORS.learn} fill={COLORS.learn} fillOpacity={0.18} isAnimationActive={false} />
+                <Area type="monotone" dataKey="ent" stackId="1" stroke={COLORS.ent} fill={COLORS.ent} fillOpacity={0.14} isAnimationActive={false} />
+                <Area type="monotone" dataKey="other" stackId="1" stroke={COLORS.other} fill={COLORS.other} fillOpacity={0.12} isAnimationActive={false} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -538,8 +535,8 @@ function Dashboard() {
                 <PolarGrid stroke="var(--border)" />
                 <PolarAngleAxis dataKey="k" tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} />
                 <PolarRadiusAxis tick={false} axisLine={false} domain={[0, 100]} />
-                <Radar dataKey="goal" stroke={COLORS.goal} fill={COLORS.goal} fillOpacity={0.05} strokeDasharray="4 4" />
-                <Radar dataKey="you" stroke={COLORS.learn} fill={COLORS.learn} fillOpacity={0.18} />
+                <Radar dataKey="goal" stroke={COLORS.goal} fill={COLORS.goal} fillOpacity={0.05} strokeDasharray="4 4" isAnimationActive={false} />
+                <Radar dataKey="you" stroke={COLORS.learn} fill={COLORS.learn} fillOpacity={0.18} isAnimationActive={false} />
                 <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
               </RadarChart>
             </ResponsiveContainer>
@@ -590,8 +587,8 @@ function Dashboard() {
                 <XAxis dataKey="w" stroke="var(--muted-foreground)" fontSize={10} tickLine={false} axisLine={false} />
                 <YAxis stroke="var(--muted-foreground)" fontSize={10} tickLine={false} axisLine={false} width={40} domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
                 <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
-                <Line type="monotone" dataKey="learn" stroke={COLORS.learn} strokeWidth={2} dot={{ r: 3 }} />
-                <Line type="monotone" dataKey="ent" stroke={COLORS.ent} strokeDasharray="5 4" strokeWidth={1.5} dot={{ r: 2 }} />
+                <Line type="monotone" dataKey="learn" stroke={COLORS.learn} strokeWidth={2} dot={{ r: 3 }} isAnimationActive={false} />
+                <Line type="monotone" dataKey="ent" stroke={COLORS.ent} strokeDasharray="5 4" strokeWidth={1.5} dot={{ r: 2 }} isAnimationActive={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -686,7 +683,7 @@ function Dashboard() {
       </div>
 
       {/* Three things */}
-      <Card>
+      <Card className="mt-3">
         <div className="mb-3 text-sm font-medium text-foreground">Three things your data is saying</div>
         <div className="grid gap-3 md:grid-cols-3">
           {tips.map((t, i) => (
@@ -706,6 +703,8 @@ function Dashboard() {
           ))}
         </div>
       </Card>
+        </div>
+      </div>
     </div>
   );
 }
@@ -765,12 +764,12 @@ function CardLabel({ children, info }: { children: React.ReactNode; info?: strin
 function StripItem({ label, value, sub, valueColor, subColor, labelColor, className = "" }: { label: string; value: string; sub: string; valueColor?: string; subColor?: string; labelColor?: string; className?: string }) {
   return (
     <div
-      className={"flex flex-col gap-1 border-r border-border last:border-r-0 min-w-0 " + className}
-      style={{ paddingTop: 18, paddingBottom: 18, paddingLeft: 18, paddingRight: 18 }}
+      className={"flex flex-col gap-1 border-r border-border/60 last:border-r-0 min-w-0 " + className}
+      style={{ padding: "16px 18px" }}
     >
-      <div className="uppercase truncate" style={{ color: labelColor || "var(--muted-foreground)", fontSize: 13, fontWeight: 600, letterSpacing: "0.06em" }}>{label}</div>
-      <div className="truncate" style={{ color: valueColor || "var(--foreground)", fontSize: 26, fontWeight: 600 }}>{value}</div>
-      <div className="truncate" style={{ color: subColor || "var(--muted-foreground)", fontSize: 14 }}>{sub}</div>
+      <div className="uppercase truncate" style={{ color: labelColor || "var(--muted-foreground)", fontSize: 11, fontWeight: 600, letterSpacing: "0.1em" }}>{label}</div>
+      <div className="truncate" style={{ color: valueColor || "var(--foreground)", fontSize: 26, fontWeight: 650, letterSpacing: "-0.01em", lineHeight: 1.2, fontVariantNumeric: "tabular-nums" }}>{value}</div>
+      <div className="truncate" style={{ color: subColor || "var(--muted-foreground)", fontSize: 12.5 }}>{sub}</div>
     </div>
   );
 }
@@ -778,11 +777,11 @@ function Kpi({ border, label, value, sub, valueColor }: { border: string; label:
   return (
     <div
       className="rounded-2xl bg-background text-center overflow-hidden min-w-0"
-      style={{ padding: 20, borderTop: `3px solid ${border}`, borderRight: "1px solid var(--border)", borderBottom: "1px solid var(--border)", borderLeft: "1px solid var(--border)" }}
+      style={{ padding: "18px 16px", borderTop: `3px solid ${border}`, borderRight: "1px solid var(--border)", borderBottom: "1px solid var(--border)", borderLeft: "1px solid var(--border)" }}
     >
-      <div className="uppercase text-muted-foreground truncate" style={{ fontSize: 13, fontWeight: 600, letterSpacing: "0.06em" }}>{label}</div>
-      <div className="mt-1 truncate" style={{ color: valueColor, fontSize: 32, fontWeight: 600 }}>{value}</div>
-      <div className="mt-1 text-muted-foreground truncate" style={{ fontSize: 14 }}>{sub}</div>
+      <div className="uppercase text-muted-foreground truncate" style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.1em" }}>{label}</div>
+      <div className="mt-1 truncate" style={{ color: valueColor, fontSize: 30, fontWeight: 650, letterSpacing: "-0.01em", lineHeight: 1.2, fontVariantNumeric: "tabular-nums" }}>{value}</div>
+      <div className="mt-1 text-muted-foreground truncate" style={{ fontSize: 12.5 }}>{sub}</div>
     </div>
   );
 }

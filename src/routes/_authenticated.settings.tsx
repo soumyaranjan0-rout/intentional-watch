@@ -6,10 +6,11 @@ import { MODES, type Mode } from "@/lib/intent";
 import { toast } from "sonner";
 import {
   User, Clock, Palette, Shield, LogOut, Trash2, Mail, Key, ExternalLink,
-  HelpCircle, Sparkles, CheckCircle2,
+  HelpCircle, Sparkles, CheckCircle2, Bug,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getStoredYouTubeApiKey, setStoredYouTubeApiKey } from "@/lib/youtubeApiKey";
+import { ReportsSection } from "@/components/IssueReports";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({ meta: [{ title: "Settings — ZenTube" }] }),
@@ -23,13 +24,14 @@ type Prefs = {
   data_tracking: boolean;
 };
 
-type TabKey = "account" | "preferences" | "usage" | "privacy" | "apikey" | "help";
+type TabKey = "account" | "preferences" | "usage" | "privacy" | "reports" | "apikey" | "help";
 
 const TABS: { key: TabKey; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { key: "account", label: "Account", icon: User },
   { key: "preferences", label: "Preferences", icon: Palette },
   { key: "usage", label: "Usage", icon: Clock },
   { key: "privacy", label: "Privacy", icon: Shield },
+  { key: "reports", label: "Reports", icon: Bug },
   { key: "apikey", label: "API key", icon: Key },
   { key: "help", label: "Help", icon: HelpCircle },
 ];
@@ -291,6 +293,8 @@ function SettingsPage() {
             </div>
           </SectionGroup>
         )}
+
+        {tab === "reports" && <ReportsSection />}
 
         {tab === "apikey" && (
           <SectionGroup
