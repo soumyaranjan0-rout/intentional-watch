@@ -41,8 +41,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (event === "SIGNED_IN" && s) {
         const target = consumePostLoginPath();
         if (target && `${window.location.pathname}${window.location.search}` !== target) {
-          window.history.replaceState(null, "", target);
-          window.dispatchEvent(new PopStateEvent("popstate"));
+          // Hard navigation — avoids router coercion of complex search params
+          // which previously surfaced "Cannot convert object to primitive value".
+          window.location.replace(target);
         }
       }
     };
