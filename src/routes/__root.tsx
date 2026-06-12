@@ -1,14 +1,12 @@
 import { Outlet, Link, createRootRouteWithContext, HeadContent, Scripts, useRouterState } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { SessionStateProvider } from "@/contexts/SessionStateContext";
 import { AccountMenu } from "@/components/AccountMenu";
 import { ZenLogo } from "@/components/ZenLogo";
-import { getLastWatched, type LastWatched } from "@/lib/lastWatched";
-import { ArrowLeft, LayoutDashboard, BookmarkIcon, StickyNote, Home as HomeIcon, User as UserIcon } from "lucide-react";
+import { LayoutDashboard, BookmarkIcon, StickyNote, Home as HomeIcon, User as UserIcon } from "lucide-react";
 
 import appCss from "../styles.css?url";
 
@@ -107,8 +105,6 @@ function AppShell({ children }: { children: React.ReactNode }) {
               <span className="text-lg font-semibold tracking-tight">ZenTube</span>
             </Link>
 
-            <BackToVideoButton />
-
             <PrimaryNav />
 
             <div className="ml-auto flex items-center gap-1 lg:ml-1">
@@ -168,47 +164,6 @@ function MobileTabBar() {
   );
 }
 
-
-/** Shows a "Back to video" pill in the nav when the user navigated away
- *  from a watch page into Insights/Library/Notes/History/Settings. */
-function BackToVideoButton() {
-  const { location } = useRouterState();
-  const [last, setLast] = useState<LastWatched | null>(null);
-
-  useEffect(() => {
-    const sync = () => setLast(getLastWatched());
-    sync();
-    window.addEventListener("zentube:lastWatched", sync);
-    window.addEventListener("storage", sync);
-    return () => {
-      window.removeEventListener("zentube:lastWatched", sync);
-      window.removeEventListener("storage", sync);
-    };
-  }, []);
-
-  const SECONDARY = ["/history", "/library", "/notes", "/dashboard", "/settings"];
-  const onSecondary = SECONDARY.some((p) => location.pathname.startsWith(p));
-  if (!onSecondary || !last) return null;
-
-  return (
-    <Link
-      to="/watch/$videoId"
-      params={{ videoId: last.videoId }}
-      search={{
-        title: last.title,
-        channel: last.channel,
-        duration: last.duration,
-        thumbnail: last.thumbnail,
-        t: last.t,
-        intent: "",
-      }}
-      className="hidden items-center gap-1.5 rounded-full border border-border/60 bg-surface/60 px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-primary/50 hover:bg-surface md:inline-flex"
-      title={`Back to: ${last.title}`}
-    >
-      <ArrowLeft className="h-3.5 w-3.5" /> Back to video
-    </Link>
-  );
-}
 
 function PrimaryNav() {
   const { user } = useAuth();

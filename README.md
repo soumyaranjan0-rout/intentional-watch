@@ -1,156 +1,220 @@
-# ZenTube
+# ZenTube — Local Setup Guide
 
-A focused, intent-driven video player built on top of the YouTube Data API.
-ZenTube lets you search, watch, take timestamped notes, build playlists,
-and review your watch insights — without the infinite-scroll rabbit hole.
-
-> **Stack:** TanStack Start (React 19, Vite 7), Tailwind v4, Supabase
-> (Postgres + Auth), YouTube Data API v3.
+A calm, intent-driven YouTube companion. This document is written for someone
+who has never set up the project before. Follow it top-to-bottom — every step
+matters.
 
 ---
 
-## 1. Project Setup
+## 1. What you need before you start
 
-Clone the repository and install dependencies:
+Install these on your computer (one-time setup):
 
+| Tool         | Why                                              | Where to get it                                    |
+| ------------ | ------------------------------------------------ | -------------------------------------------------- |
+| **Node.js 20+** | Runs the build tools                          | https://nodejs.org (pick the LTS installer)        |
+| **Bun**         | Package manager + runtime used by this project | https://bun.sh (run the install command on their homepage) |
+| **Git**         | To clone the repo                              | https://git-scm.com                                |
+| **VS Code**     | The editor                                     | https://code.visualstudio.com                      |
+
+Recommended VS Code extensions (open Extensions tab and search):
+- **ESLint**
+- **Prettier**
+- **Tailwind CSS IntelliSense**
+
+Verify the installs in a terminal:
 ```bash
-git clone <your-repo-url> zentube
-cd zentube
-npm install
+node -v     # should print v20 or higher
+bun -v      # should print a version
+git --version
 ```
 
-> Bun also works (`bun install`) if you prefer it.
+---
+
+## 2. Get the code
+
+```bash
+git clone <YOUR-REPO-URL> zentube
+cd zentube
+code .          # opens the project in VS Code
+```
+
+Inside VS Code, open the integrated terminal: **Terminal → New Terminal**.
+
+Install dependencies:
+```bash
+bun install
+```
 
 ---
 
-## 2. Environment Setup
+## 3. Create the accounts you will need
 
-Create a `.env` file in the project root with the following values:
+You only need **two** external accounts. Both have generous free tiers.
+
+### 3a. Supabase (database, auth, storage)
+
+1. Go to https://supabase.com → **Start your project** → sign in with GitHub.
+2. Click **New project**.
+   - **Name**: `zentube` (anything)
+   - **Database password**: pick a strong one and save it in a password manager.
+   - **Region**: closest to you.
+3. Wait ~2 minutes for the project to provision.
+4. Once it's ready, open **Project Settings → API**. You'll need:
+   - **Project URL** (e.g. `https://xxxxxxxx.supabase.co`)
+   - **anon public key** (the long string labeled `anon` / `public`)
+
+### 3b. Google Cloud (YouTube Data API + Google sign-in)
+
+You need this for:
+- Letting users sign in with Google
+- Fetching YouTube search results & video metadata
+
+Steps:
+1. Go to https://console.cloud.google.com → create a new project (top-left dropdown → **New Project**).
+2. **Enable the YouTube Data API v3**:
+   - Menu → **APIs & Services → Library** → search "YouTube Data API v3" → **Enable**.
+3. **Create an API key** (for YouTube searches):
+   - **APIs & Services → Credentials → Create Credentials → API key**.
+   - Copy the key. (You can restrict it to "YouTube Data API v3" later.)
+4. **Create an OAuth Client ID** (for Google sign-in):
+   - **APIs & Services → OAuth consent screen** → choose **External** → fill in app name, your email, save.
+   - **Credentials → Create Credentials → OAuth client ID**:
+     - **Application type**: Web application
+     - **Authorized JavaScript origins**:
+       - `http://localhost:3000`
+       - your Supabase URL (e.g. `https://xxxxxxxx.supabase.co`)
+     - **Authorized redirect URIs**:
+       - `https://xxxxxxxx.supabase.co/auth/v1/callback`
+   - Copy the **Client ID** and **Client secret**.
+
+### 3c. Wire Google sign-in into Supabase
+
+1. In Supabase: **Authentication → Providers → Google** → enable it.
+2. Paste the **Client ID** and **Client secret** from step 3b.
+3. Save.
+4. In **Authentication → URL Configuration**:
+   - **Site URL**: `http://localhost:3000`
+   - **Redirect URLs**: add `http://localhost:3000/**`
+
+---
+
+## 4. Configure environment variables
+
+Create a file named `.env` in the project root (same folder as `package.json`).
+Paste this and fill in the values from step 3:
 
 ```env
-# Supabase (publishable / anon key — safe in the client)
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=your_publishable_or_anon_key
-VITE_SUPABASE_PROJECT_ID=your-project-ref
-
-# Same values for SSR / server functions
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_PUBLISHABLE_KEY=your_publishable_or_anon_key
-
-# Server-only secrets (never expose to the browser)
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-YOUTUBE_API_KEY=your_youtube_data_api_v3_key
+VITE_SUPABASE_URL=https://YOUR-PROJECT-ID.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=YOUR-SUPABASE-ANON-PUBLIC-KEY
+VITE_SUPABASE_PROJECT_ID=YOUR-PROJECT-ID
 ```
 
-Where to find these:
+> The **YouTube API key** is not put in `.env`. The app asks the user to paste
+> it in **Settings → YouTube API key** once they sign in, and stores it in
+> their browser. This is so each person uses their own quota.
 
-- **Supabase URL / keys** — Supabase Dashboard → *Project Settings → API*.
-- **YouTube API key** — Google Cloud Console → enable *YouTube Data API v3*
-  → *Credentials → Create API key*.
+⚠️ Never commit `.env` to git. It is already in `.gitignore`.
 
 ---
 
-## 3. Running the App
+## 5. Apply the database schema
+
+The app expects a set of tables (watch_history, notes, saved_videos, etc.).
+The migrations live in `supabase/migrations/`.
+
+Easiest path — use the Supabase web UI:
+
+1. Open your Supabase project → **SQL Editor → New query**.
+2. For **each file** in `supabase/migrations/` (in filename order), copy its
+   contents into the editor and click **Run**.
+3. Go to **Table Editor** and confirm tables like `watch_history`, `notes`,
+   `saved_videos`, `playlists`, `playlist_items`, `video_feedback`, `profiles`,
+   and `user_roles` exist.
+
+Alternative — use the Supabase CLI:
+```bash
+bun add -d supabase
+bunx supabase login
+bunx supabase link --project-ref YOUR-PROJECT-ID
+bunx supabase db push
+```
+
+---
+
+## 6. Run the app
 
 ```bash
-npm run dev
+bun run dev
 ```
 
-The app boots on **http://localhost:8080** by default (configured in
-`vite.config.ts`). Open it in your browser.
+Open http://localhost:3000 in your browser. You should see the ZenTube home
+page.
+
+### First-time inside the app
+
+1. Click **Sign in** (top right or below the search bar) → **Continue with Google**.
+2. Open **Settings → YouTube API key** and paste the key from step 3b.
+3. Search for any topic — results should now load.
 
 ---
 
-## 4. Supabase Setup
+## 7. Common mistakes and how to fix them
 
-In the Supabase Dashboard:
+| Symptom                                                              | Cause                                                              | Fix                                                                                              |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| `Failed to resolve import` on `bun run dev`                          | dependencies not installed                                         | run `bun install`                                                                                |
+| Blank page, console: `Missing Supabase env`                          | `.env` not created or variable names typed wrong                   | check `.env` exists, names start with `VITE_`, restart `bun run dev`                             |
+| Sign-in opens then says "Unsupported provider"                       | Google provider not enabled in Supabase                            | step 3c                                                                                          |
+| Sign-in redirects then drops you back on `/login`                    | Wrong **Redirect URLs** in Supabase Auth settings                  | add `http://localhost:3000/**`                                                                   |
+| Google popup says `redirect_uri_mismatch`                            | The Supabase callback URL isn't in the Google OAuth client         | step 3b — Authorized redirect URIs                                                                |
+| Search returns nothing / `403 quotaExceeded`                         | YouTube API key missing or daily quota hit                         | Settings → paste key; daily quota resets at midnight Pacific time                                |
+| `permission denied for table ...`                                    | Migrations weren't run, or RLS policies missing                    | re-run step 5                                                                                    |
+| Port 3000 already in use                                             | Another process is using it                                        | `bun run dev -- --port 3001` and update Supabase redirect URLs accordingly                       |
+| Changes to `.env` don't take effect                                  | Vite caches env at start                                           | stop the dev server (Ctrl+C) and run `bun run dev` again                                         |
 
-1. **Auth → URL Configuration**
-   - **Site URL:** `http://localhost:8080`
-   - **Additional redirect URLs:** add your production URL too
-     (e.g. `https://your-app.com`).
-2. **Auth → Providers → Google** — turn it on (see step 5).
-3. **Database** — the schema (tables: `profiles`, `preferences`,
-   `playlists`, `playlist_items`, `saved_videos`, `notes`,
-   `watch_history`, `video_feedback`) is defined under
-   `supabase/migrations/`. Run them with the Supabase CLI:
-
-   ```bash
-   supabase link --project-ref <your-project-ref>
-   supabase db push
-   ```
-
-   All tables ship with row-level-security policies that scope reads
-   and writes to the authenticated user.
+If something crashes inside the app, the error screen has a **Report this
+issue** button. Reports are saved under **Settings → Reports** with device
+info and reproduction steps — open one, screenshot it, and send it to the
+developer.
 
 ---
 
-## 5. Google OAuth Setup
+## 8. Useful commands
 
-In the Google Cloud Console:
-
-1. **APIs & Services → Credentials → Create OAuth client ID**
-   (type: *Web application*).
-2. **Authorized redirect URI** — add the Supabase callback:
-   ```
-   https://<your-project-ref>.supabase.co/auth/v1/callback
-   ```
-3. Copy the **Client ID** and **Client secret**.
-4. Back in Supabase → **Auth → Providers → Google**, paste both values
-   and save.
-
-That's it — no `VITE_GOOGLE_CLIENT_ID` is needed in `.env`; Supabase
-handles the OAuth handshake.
+```bash
+bun run dev          # local development at http://localhost:3000
+bun run build        # production build
+bun run preview      # preview the production build locally
+bun run lint         # lint the code
+bun run format       # auto-format with Prettier
+bun add <pkg>        # install a dependency
+bun remove <pkg>     # remove one
+```
 
 ---
 
-## 6. Common Errors & Fixes
-
-| Symptom | Likely cause | Fix |
-| --- | --- | --- |
-| `redirect_uri_mismatch` on Google sign-in | Callback URL in Google Cloud doesn't match Supabase | Add `https://<ref>.supabase.co/auth/v1/callback` exactly |
-| `Missing Supabase environment variables` on boot | `.env` not loaded | Restart `npm run dev` after editing `.env` |
-| Search returns "YouTube could not search at this moment" | `YOUTUBE_API_KEY` missing or quota exhausted | Check Google Cloud quota; rotate key |
-| Sign-in window opens and closes with "Something went wrong" | Site URL not whitelisted in Supabase | Add the current origin to *Auth → URL Configuration* |
-| Player shows "This video can't be played here" | Owner disabled embedding | Click *Watch on YouTube* — there's no workaround |
-
----
-
-## 7. Folder Structure
+## 9. Project layout (quick reference)
 
 ```
 src/
-├── components/        Reusable UI (Player, NavSearch, modals, shadcn primitives)
-├── contexts/          AuthContext, SessionStateContext
-├── integrations/
-│   ├── supabase/      Browser + server Supabase clients (auto-generated)
-│   └── lovable/       OAuth helper
-├── lib/               Shared helpers (intent ranking, system playlists, utils)
-├── routes/            File-based routes (TanStack Router)
-│   ├── _authenticated.*  Routes gated behind sign-in (library, history, notes…)
-│   ├── watch.$videoId.tsx
-│   ├── results.tsx
-│   └── …
-├── server/            createServerFn handlers (YouTube API, etc.)
-├── styles.css         Tailwind v4 design tokens
-└── router.tsx         Router bootstrap
-supabase/
-├── config.toml        Project config
-└── migrations/        SQL schema migrations
+  routes/                file-based routes (TanStack Router)
+    __root.tsx           top-level layout, header, mobile nav
+    index.tsx            home page
+    login.tsx            sign-in page
+    watch.$videoId.tsx   video player page
+    playlist.$playlistId.tsx
+    _authenticated.*     pages that require sign-in (dashboard, library, notes, settings, history)
+  components/            shared UI components
+  contexts/              React contexts (auth, session)
+  lib/                   helpers + server functions (*.functions.ts)
+  integrations/supabase/ auto-generated Supabase client (DO NOT EDIT)
+  styles.css             Tailwind v4 tokens + global styles
+supabase/migrations/     SQL migrations applied in step 5
 ```
 
 ---
 
-## 8. Production Build
-
-```bash
-npm run build      # builds the SSR bundle
-npm run preview    # serves the production build locally
-```
-
-Deploy the output to any platform that supports Cloudflare Workers /
-edge functions (the project ships with a `wrangler.jsonc`).
-
----
-
-Made with ❤️ — happy watching.
+That's it. If you followed every step you should have a working local copy.
+Bookmark this file — when you spin up a fresh machine, repeat sections 1, 2,
+4, and 6 only.
