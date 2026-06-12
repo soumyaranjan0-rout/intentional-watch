@@ -7,6 +7,7 @@ import { friendlyErrorMessage, saveIssueReport } from "./lib/issueReports";
 function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
   const [reported, setReported] = useState(false);
+  const [repro, setRepro] = useState("");
   const friendly = friendlyErrorMessage(error);
 
   const report = () => {
@@ -14,12 +15,13 @@ function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => vo
     saveIssueReport(
       error,
       typeof window !== "undefined" ? window.location.pathname + window.location.search : "",
+      { reproSteps: repro },
     );
     setReported(true);
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
       <div className="w-full max-w-md text-center">
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">Something went wrong</h1>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{friendly}</p>
@@ -31,7 +33,24 @@ function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => vo
             {error.message}
           </pre>
         )}
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+
+        {!reported && (
+          <div className="mt-5 text-left">
+            <label htmlFor="repro" className="text-xs font-medium text-muted-foreground">
+              What were you doing when this happened? (optional)
+            </label>
+            <textarea
+              id="repro"
+              value={repro}
+              onChange={(e) => setRepro(e.target.value)}
+              placeholder="e.g. I tapped the playlist, scrolled, then opened a video…"
+              rows={3}
+              className="mt-1 w-full resize-none rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+            />
+          </div>
+        )}
+
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
           <button
             onClick={() => { router.invalidate(); reset(); }}
             className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
@@ -51,8 +70,8 @@ function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => vo
         </div>
         {reported && (
           <p className="mt-3 text-xs text-muted-foreground">
-            Saved to <span className="text-foreground">Settings → Reports</span>. Open it there and
-            take a photo or screenshot to send it to the developer.
+            Saved to <span className="text-foreground">Settings → Reports</span> with your device info.
+            Open it there and take a screenshot to send to the developer.
           </p>
         )}
       </div>
@@ -62,7 +81,14 @@ function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => vo
 
 export const getRouter = () => {
   const queryClient = new QueryClient({
-    defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false } },
+    defaultOptions: {
+      queries: {
+        staleTime: 30_000,
+        gcTime: 5 * 60_000,
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
+      },
+    },
   });
 
   const router = createRouter({
