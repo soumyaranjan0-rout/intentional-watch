@@ -259,15 +259,17 @@ function PlaylistViewer({
         <ArrowLeft className="h-4 w-4" /> Back
       </Link>
 
-      <div className={"mt-4 grid gap-6 " + (isLearning ? "lg:grid-cols-[1fr_360px]" : "")}>
+      <div className="mt-4 grid gap-6">
         {/* LEFT: Player → metadata → playlist queue */}
         <div className="min-w-0">
-          <Player
-            ref={playerRef}
-            videoId={videoId}
-            onProgress={handleProgress}
-            onEnded={() => active < items.length - 1 && playAt(active + 1)}
-          />
+          <div className="lg:sticky lg:top-16 lg:z-10 lg:-mx-1 lg:bg-background lg:px-1 lg:pb-2 lg:pt-1">
+            <Player
+              ref={playerRef}
+              videoId={videoId}
+              onProgress={handleProgress}
+              onEnded={() => active < items.length - 1 && playAt(active + 1)}
+            />
+          </div>
 
           <h1 className="mt-4 text-xl font-semibold leading-snug text-foreground sm:text-2xl">{title}</h1>
 
