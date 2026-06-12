@@ -400,18 +400,6 @@ function PlaylistViewer({
             </ol>
           </div>
         </div>
-
-        {/* RIGHT: Notes panel only for learn intent */}
-        {isLearning && (
-          <aside className="lg:sticky lg:top-20 lg:self-start">
-            <NotesPanel
-              videoId={videoId}
-              videoTitle={title}
-              getCurrentSeconds={() => watchSecondsRef.current}
-              onJumpTo={(s) => playerRef.current?.seekTo(s)}
-            />
-          </aside>
-        )}
       </div>
 
       {saveOpen && (
