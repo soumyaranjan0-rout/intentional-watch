@@ -18,16 +18,16 @@ function LoginPage() {
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
 
-  // If already signed in, bounce to the requested page (no throw-in-effect).
+  // If already signed in, bounce to the requested page.
+  // Use window.location to avoid TanStack router coercing complex paths
+  // (paths with query strings can throw "Cannot convert object to primitive value").
   useEffect(() => {
     if (loading || !user) return;
     const target = typeof search.redirect === "string" && search.redirect.startsWith("/")
       ? search.redirect
       : "/";
-    navigate({ to: target as "/", replace: true }).catch(() => {
-      window.location.replace(target);
-    });
-  }, [user, loading, search.redirect, navigate]);
+    window.location.replace(target);
+  }, [user, loading, search.redirect]);
 
   const onGoogle = async () => {
     if (busy) return;
