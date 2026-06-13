@@ -411,19 +411,18 @@ function Dashboard() {
   const tips = buildTips(data);
 
   return (
-    <div className="flex flex-col overflow-hidden" style={{ height: "calc(100dvh - 3.5rem)" }}>
-      {/* Locked overview — a static block above its own scroll container.
-          The page itself never scrolls, so this header physically cannot
-          move, shake or resize while you scroll the charts below. */}
-      <div className="flex-none border-b border-border/60 bg-background">
-        <div className="zen-container-wide pb-5 pt-6">
-          <Header monthLabel={monthLabel} prev={goPrev} next={goNext} navBtn={navBtn} />
+    <div className="zen-container-wide pb-24 pt-6 lg:pb-12">
+      {/* Overview — sticks to top on large screens for context while scrolling charts.
+          On mobile it scrolls naturally with the page so every card is reachable. */}
+      <div className="lg:sticky lg:top-14 lg:z-10 lg:-mx-4 lg:bg-background/95 lg:px-4 lg:pb-4 lg:pt-2 lg:backdrop-blur lg:supports-[backdrop-filter]:bg-background/80">
+        <Header monthLabel={monthLabel} prev={goPrev} next={goNext} navBtn={navBtn} />
 
-          {/* Intent strip */}
-          <div className="mt-5 grid grid-cols-2 overflow-hidden rounded-2xl border border-border/60 bg-card/70 shadow-[var(--shadow-soft)] sm:grid-cols-5">
-            <StripItem label="All-time watched" value={fmtMin(data.totalAll)} sub="since you joined" />
-            <StripItem label="Learning" value={fmtMin(data.learn)} sub={`${data.learnPct}% of watch time`} valueColor={COLORS.learn} subColor="#0F6E56" labelColor="#085041" />
-            <StripItem label="Entertainment" value={fmtMin(data.ent)} sub={`${data.entPct}% of watch time`} valueColor={COLORS.ent} subColor="#993556" labelColor="#72243E" />
+        {/* Intent strip */}
+        <div className="mt-5 grid grid-cols-2 overflow-hidden rounded-2xl border border-border/60 bg-card/70 shadow-[var(--shadow-soft)] sm:grid-cols-5">
+          <StripItem label="All-time watched" value={fmtMin(data.totalAll)} sub="since you joined" />
+          <StripItem label="Learning" value={fmtMin(data.learn)} sub={`${data.learnPct}% of watch time`} valueColor={COLORS.learn} subColor="#0F6E56" labelColor="#085041" />
+          <StripItem label="Entertainment" value={fmtMin(data.ent)} sub={`${data.entPct}% of watch time`} valueColor={COLORS.ent} subColor="#993556" labelColor="#72243E" />
+
             <StripItem label="Quick lookup" value={fmtMin(data.find)} sub={`${data.findPct}% of watch time`} valueColor={COLORS.amber} subColor="#854F0B" labelColor="#633806" />
             <StripItem label="This month" value={fmtMin(data.monthEff)} sub={`${data.monthVideos} videos`} className="col-span-2 sm:col-span-1" />
           </div>
