@@ -394,25 +394,18 @@ function Dashboard() {
 
   if (!data || data.monthVideos === 0) {
     return (
-      <div className="flex flex-col overflow-hidden" style={{ height: "calc(100dvh - 3.5rem)" }}>
-        <div className="flex-none border-b border-border/60 bg-background">
-          <div className="zen-container-wide pb-5 pt-6">
-            <Header monthLabel={monthLabel} prev={goPrev} next={goNext} navBtn={navBtn} />
-          </div>
-        </div>
-        <div className="flex-1 overflow-y-auto overscroll-contain">
-          <div className="zen-container-wide pb-24 pt-4 lg:pb-12">
-            <div className="zen-card p-10 text-center">
-              <p className="text-sm text-muted-foreground">
-                No watch data for <span className="text-foreground">{monthLabel}</span> yet.
-                Watch a video to start your insights.
-              </p>
-            </div>
-          </div>
+      <div className="zen-container-wide pb-24 pt-6 lg:pb-12">
+        <Header monthLabel={monthLabel} prev={goPrev} next={goNext} navBtn={navBtn} />
+        <div className="zen-card mt-6 p-10 text-center">
+          <p className="text-sm text-muted-foreground">
+            No watch data for <span className="text-foreground">{monthLabel}</span> yet.
+            Watch a video to start your insights.
+          </p>
         </div>
       </div>
     );
   }
+
 
   // Three takeaways
   const tips = buildTips(data);
