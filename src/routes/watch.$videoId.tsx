@@ -9,14 +9,16 @@ import { Player, type PlayerHandle } from "@/components/Player";
 import { NotesPanel } from "@/components/NotesPanel";
 import { SessionPrompt } from "@/components/SessionPrompt";
 import { SaveToLibraryModal } from "@/components/SaveToLibraryModal";
-import { isInSystemPlaylist } from "@/lib/systemPlaylists";
+import { isInSystemPlaylist, addToSystemPlaylist, removeFromSystemPlaylist } from "@/lib/systemPlaylists";
 import { getVideoMeta } from "@/lib/youtube.functions";
 import { getStoredYouTubeApiKey } from "@/lib/youtubeApiKey";
 import { toast } from "sonner";
 import {
-  BookmarkPlus, BookmarkCheck, ArrowLeft, Share2, StickyNote,
+  BookmarkPlus, BookmarkCheck, ArrowLeft, Share2, StickyNote, ThumbsUp,
   Clock, Sparkles, Brain, Coffee, Search as SearchIcon,
 } from "lucide-react";
+
+
 
 export const Route = createFileRoute("/watch/$videoId")({
   validateSearch: (s: Record<string, unknown>): {
@@ -352,9 +354,48 @@ function WatchPage() {
               </div>
             )}
 
-            {/* Action cluster: Save · Notes · Share */}
+            {/* Action cluster: Like · Save · Notes · Share */}
             <div className="flex flex-wrap items-center gap-2">
               <button
+                onClick={async () => {
+                  if (!user) {
+                    toast.message("Sign in to like videos");
+                    navigate({ to: "/login", search: { redirect: window.location.pathname } });
+                    return;
+                  }
+                  const next = !liked;
+                  setLiked(next); // optimistic
+                  try {
+                    if (next) {
+                      await addToSystemPlaylist(user.id, "liked", {
+                        videoId,
+                        title,
+                        channel: channelName,
+                        thumbnail: search.thumbnail || meta?.channelThumbnail || "",
+                        durationSeconds: meta?.durationSeconds || search.duration || 0,
+                      });
+                      toast.success("Added to Liked videos");
+                    } else {
+                      await removeFromSystemPlaylist(user.id, "liked", videoId);
+                      toast.success("Removed from Liked");
+                    }
+                  } catch {
+                    setLiked(!next);
+                    toast.error("Could not update Liked");
+                  }
+                }}
+                aria-pressed={liked}
+                className={"inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-sm transition-colors " +
+                  (liked
+                    ? "bg-primary/15 text-primary hover:bg-primary/20"
+                    : "bg-secondary text-foreground hover:bg-accent")}
+              >
+                <ThumbsUp className={"h-4 w-4 " + (liked ? "fill-current" : "")} />
+                <span>{liked ? "Liked" : "Like"}</span>
+              </button>
+
+              <button
+
                 onClick={() => {
                   if (!user) {
                     toast.message("Sign in to save videos");

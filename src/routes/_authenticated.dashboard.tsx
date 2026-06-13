@@ -394,60 +394,51 @@ function Dashboard() {
 
   if (!data || data.monthVideos === 0) {
     return (
-      <div className="flex flex-col overflow-hidden" style={{ height: "calc(100dvh - 3.5rem)" }}>
-        <div className="flex-none border-b border-border/60 bg-background">
-          <div className="zen-container-wide pb-5 pt-6">
-            <Header monthLabel={monthLabel} prev={goPrev} next={goNext} navBtn={navBtn} />
-          </div>
-        </div>
-        <div className="flex-1 overflow-y-auto overscroll-contain">
-          <div className="zen-container-wide pb-24 pt-4 lg:pb-12">
-            <div className="zen-card p-10 text-center">
-              <p className="text-sm text-muted-foreground">
-                No watch data for <span className="text-foreground">{monthLabel}</span> yet.
-                Watch a video to start your insights.
-              </p>
-            </div>
-          </div>
+      <div className="zen-container-wide pb-24 pt-6 lg:pb-12">
+        <Header monthLabel={monthLabel} prev={goPrev} next={goNext} navBtn={navBtn} />
+        <div className="zen-card mt-6 p-10 text-center">
+          <p className="text-sm text-muted-foreground">
+            No watch data for <span className="text-foreground">{monthLabel}</span> yet.
+            Watch a video to start your insights.
+          </p>
         </div>
       </div>
     );
   }
 
+
   // Three takeaways
   const tips = buildTips(data);
 
   return (
-    <div className="flex flex-col overflow-hidden" style={{ height: "calc(100dvh - 3.5rem)" }}>
-      {/* Locked overview — a static block above its own scroll container.
-          The page itself never scrolls, so this header physically cannot
-          move, shake or resize while you scroll the charts below. */}
-      <div className="flex-none border-b border-border/60 bg-background">
-        <div className="zen-container-wide pb-5 pt-6">
-          <Header monthLabel={monthLabel} prev={goPrev} next={goNext} navBtn={navBtn} />
+    <div className="zen-container-wide pb-24 pt-6 lg:pb-12">
+      {/* Overview — sticks to top on large screens for context while scrolling charts.
+          On mobile it scrolls naturally with the page so every card is reachable. */}
+      <div className="lg:sticky lg:top-14 lg:z-10 lg:-mx-4 lg:bg-background/95 lg:px-4 lg:pb-4 lg:pt-2 lg:backdrop-blur lg:supports-[backdrop-filter]:bg-background/80">
+        <Header monthLabel={monthLabel} prev={goPrev} next={goNext} navBtn={navBtn} />
 
-          {/* Intent strip */}
-          <div className="mt-5 grid grid-cols-2 overflow-hidden rounded-2xl border border-border/60 bg-card/70 shadow-[var(--shadow-soft)] sm:grid-cols-5">
-            <StripItem label="All-time watched" value={fmtMin(data.totalAll)} sub="since you joined" />
-            <StripItem label="Learning" value={fmtMin(data.learn)} sub={`${data.learnPct}% of watch time`} valueColor={COLORS.learn} subColor="#0F6E56" labelColor="#085041" />
-            <StripItem label="Entertainment" value={fmtMin(data.ent)} sub={`${data.entPct}% of watch time`} valueColor={COLORS.ent} subColor="#993556" labelColor="#72243E" />
-            <StripItem label="Quick lookup" value={fmtMin(data.find)} sub={`${data.findPct}% of watch time`} valueColor={COLORS.amber} subColor="#854F0B" labelColor="#633806" />
-            <StripItem label="This month" value={fmtMin(data.monthEff)} sub={`${data.monthVideos} videos`} className="col-span-2 sm:col-span-1" />
-          </div>
+        {/* Intent strip */}
+        <div className="mt-5 grid grid-cols-2 overflow-hidden rounded-2xl border border-border/60 bg-card/70 shadow-[var(--shadow-soft)] sm:grid-cols-5">
+          <StripItem label="All-time watched" value={fmtMin(data.totalAll)} sub="since you joined" />
+          <StripItem label="Learning" value={fmtMin(data.learn)} sub={`${data.learnPct}% of watch time`} valueColor={COLORS.learn} subColor="#0F6E56" labelColor="#085041" />
+          <StripItem label="Entertainment" value={fmtMin(data.ent)} sub={`${data.entPct}% of watch time`} valueColor={COLORS.ent} subColor="#993556" labelColor="#72243E" />
+          <StripItem label="Quick lookup" value={fmtMin(data.find)} sub={`${data.findPct}% of watch time`} valueColor={COLORS.amber} subColor="#854F0B" labelColor="#633806" />
+          <StripItem label="This month" value={fmtMin(data.monthEff)} sub={`${data.monthVideos} videos`} className="col-span-2 sm:col-span-1" />
+        </div>
 
-          {/* KPI tiles — simple, useful at-a-glance numbers */}
-          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <Kpi border={COLORS.learn} label="Best day" value={fmtTime(data.bestDaySec)} sub="Most watched day this month" valueColor={COLORS.learn} />
-            <Kpi border={COLORS.mint} label="Active days" value={`${data.activeDays}`} sub="Days you watched anything" valueColor={COLORS.mint} />
-            <Kpi border={COLORS.amber} label="Avg / video" value={fmtTime(data.avgPerVideoSec)} sub="Real time per video" valueColor={COLORS.amber} />
-            <Kpi border={COLORS.ent} label="Learn streak" value={`${data.streak} day${data.streak === 1 ? "" : "s"}`} sub="Consecutive learning days" valueColor={COLORS.ent} />
-          </div>
+        {/* KPI tiles — simple, useful at-a-glance numbers */}
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <Kpi border={COLORS.learn} label="Best day" value={fmtTime(data.bestDaySec)} sub="Most watched day this month" valueColor={COLORS.learn} />
+          <Kpi border={COLORS.mint} label="Active days" value={`${data.activeDays}`} sub="Days you watched anything" valueColor={COLORS.mint} />
+          <Kpi border={COLORS.amber} label="Avg / video" value={fmtTime(data.avgPerVideoSec)} sub="Real time per video" valueColor={COLORS.amber} />
+          <Kpi border={COLORS.ent} label="Learn streak" value={`${data.streak} day${data.streak === 1 ? "" : "s"}`} sub="Consecutive learning days" valueColor={COLORS.ent} />
         </div>
       </div>
 
-      {/* Scrollable analytics area */}
-      <div className="flex-1 overflow-y-auto overscroll-contain">
-        <div className="zen-container-wide pb-24 pt-4 lg:pb-12">
+      {/* Analytics area — scrolls with the page */}
+      <div className="mt-4">
+
+
 
       {/* Card grid — two manual flex columns for true masonry without trailing gap */}
       <div className="grid gap-3 lg:grid-cols-2">
@@ -710,9 +701,9 @@ function Dashboard() {
           ))}
         </div>
       </Card>
-        </div>
       </div>
     </div>
+
   );
 }
 

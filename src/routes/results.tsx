@@ -137,12 +137,21 @@ function ResultsPage() {
         </div>
 
         <div className="mt-6">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-surface/60 px-2.5 py-0.5 text-xs text-muted-foreground">
-            <span aria-hidden>{cfg.emoji}</span>
-            {cfg.label}
-            {pages.length > 1 && <span className="text-muted-foreground/70">· {pages.length} pages</span>}
+          {/* Use-case confirmation chip — confirms which mode is shaping these results */}
+          <div
+            className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary"
+            aria-label={`Showing ${cfg.label} results for ${query}`}
+          >
+            <span aria-hidden className="text-base leading-none">{cfg.emoji}</span>
+            <span>{cfg.label} mode</span>
+            <span className="text-primary/60">applied to</span>
+            <span className="max-w-[12rem] truncate text-foreground">"{query}"</span>
           </div>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">"{query}"</h1>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {cfg.tagline ?? `Tuned for your ${cfg.label.toLowerCase()} intent.`}
+            {pages.length > 1 && <> · {pages.length} pages</>}
+          </p>
           {refinement?.chips && refinement.chips.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">
               {refinement.chips.map((c) => (
@@ -150,6 +159,7 @@ function ResultsPage() {
               ))}
             </div>
           )}
+
 
           {(firstPage?.effectiveQuery || firstPage?.hint) && (
             <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
