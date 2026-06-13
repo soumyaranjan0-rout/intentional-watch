@@ -14,9 +14,11 @@ import { getVideoMeta } from "@/lib/youtube.functions";
 import { getStoredYouTubeApiKey } from "@/lib/youtubeApiKey";
 import { toast } from "sonner";
 import {
-  BookmarkPlus, BookmarkCheck, ArrowLeft, Share2, StickyNote,
+  BookmarkPlus, BookmarkCheck, ArrowLeft, Share2, StickyNote, ThumbsUp,
   Clock, Sparkles, Brain, Coffee, Search as SearchIcon,
 } from "lucide-react";
+import { addToSystemPlaylist, removeFromSystemPlaylist } from "@/lib/systemPlaylists";
+
 
 export const Route = createFileRoute("/watch/$videoId")({
   validateSearch: (s: Record<string, unknown>): {
