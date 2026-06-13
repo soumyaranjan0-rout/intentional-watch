@@ -394,9 +394,8 @@ function WatchPage() {
                 <span>{liked ? "Liked" : "Like"}</span>
               </button>
 
-
-            <div className="flex flex-wrap items-center gap-2">
               <button
+
                 onClick={() => {
                   if (!user) {
                     toast.message("Sign in to save videos");
