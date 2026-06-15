@@ -710,7 +710,6 @@ function Dashboard() {
             { color: COLORS.ent, label: "Entertainment" },
           ]} />
         </Card>
-        </div>
       </div>
 
       {/* Three things */}
