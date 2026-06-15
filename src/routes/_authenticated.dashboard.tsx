@@ -462,19 +462,32 @@ function Dashboard() {
 
 
 
-      {/* Card grid — two manual flex columns for true masonry without trailing gap */}
-      <div className="grid gap-3 lg:grid-cols-2">
-        <div className="flex flex-col gap-3 min-w-0">
-        {/* Stacked area */}
+      {/* Card grid — CSS columns give true masonry (no trailing gaps in either column) */}
+      <div className="gap-3 lg:columns-2 [&>*]:mb-3 [&>*]:break-inside-avoid-column">
+        {/* Stacked area — full selected month */}
         <Card>
-          <CardLabel info="Daily minutes by intent. Each band shows how your watch time split between Learn, Entertainment and other over the last 14 days of the selected month.">Stacked intent — daily minutes</CardLabel>
+          <CardLabel info="Daily minutes by intent across the entire selected month. Each band shows how that day's watch time split between Learn, Entertainment and Other.">Daily watch minutes — Learn vs Entertainment</CardLabel>
           <div className="min-w-0 w-full overflow-hidden" style={{ height: 220 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data.days14} margin={{ top: 4, right: 4, left: -24, bottom: -4 }}>
+              <AreaChart data={data.daysMonth} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
                 <CartesianGrid stroke="var(--border)" vertical={false} />
-                <XAxis dataKey="day" stroke="var(--muted-foreground)" fontSize={10} tickLine={false} axisLine={false} />
-                <YAxis stroke="var(--muted-foreground)" fontSize={10} tickLine={false} axisLine={false} width={32} />
-                <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
+                <XAxis
+                  dataKey="dayNum"
+                  type="number"
+                  domain={[1, data.daysInMonth]}
+                  ticks={Array.from({ length: Math.ceil(data.daysInMonth / 5) }, (_, i) => 1 + i * 5).concat(data.daysInMonth)}
+                  stroke="var(--muted-foreground)"
+                  fontSize={10}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(v) => `${MONTHS[cur.m].slice(0,3)} ${v}`}
+                />
+                <YAxis stroke="var(--muted-foreground)" fontSize={10} tickLine={false} axisLine={false} width={36} tickFormatter={(v) => `${v}m`} />
+                <Tooltip
+                  contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
+                  labelFormatter={(v) => `${MONTHS[cur.m]} ${v}, ${cur.y}`}
+                  formatter={(val: number, name: string) => [`${val} min`, name === "learn" ? "Learn" : name === "ent" ? "Entertainment" : "Other"]}
+                />
                 <Area type="monotone" dataKey="learn" stackId="1" stroke={COLORS.learn} fill={COLORS.learn} fillOpacity={0.18} isAnimationActive={false} />
                 <Area type="monotone" dataKey="ent" stackId="1" stroke={COLORS.ent} fill={COLORS.ent} fillOpacity={0.14} isAnimationActive={false} />
                 <Area type="monotone" dataKey="other" stackId="1" stroke={COLORS.other} fill={COLORS.other} fillOpacity={0.12} isAnimationActive={false} />
