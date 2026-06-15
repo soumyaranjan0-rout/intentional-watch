@@ -576,9 +576,7 @@ function Dashboard() {
           </div>
           <Legend items={[{ color: COLORS.learn, label: "You" }, { color: COLORS.goal, label: "Goal", dashed: true }]} />
         </Card>
-        </div>
 
-        <div className="flex flex-col gap-3 min-w-0">
       {/* Watch map */}
       <Card>
         <div className="mb-1">
