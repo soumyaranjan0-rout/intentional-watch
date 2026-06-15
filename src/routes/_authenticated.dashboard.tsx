@@ -868,7 +868,7 @@ type TipShape = {
   totalEff: number;
   skippedSec: number;
   skippedPct: number;
-  days14: { day: string; learn: number; ent: number; other: number }[];
+  daysMonth: { day: string; dayNum: number; learn: number; ent: number; other: number }[];
 };
 
 type Tip = {
