@@ -114,12 +114,11 @@ function Dashboard() {
     if (!rows) return null;
     const monthStart = new Date(cur.y, cur.m, 1);
     const monthEnd = new Date(cur.y, cur.m + 1, 1);
+    const daysInMonth = new Date(cur.y, cur.m + 1, 0).getDate();
     const inMonth = rows.filter((r) => {
       const d = new Date(r.watched_at);
       return d >= monthStart && d < monthEnd;
     });
-    // periodAnchor = most recent day in selected month that has activity
-    // (falls back to last day of month if none). Fixes "empty session timeline".
     const periodAnchor = (() => {
       if (inMonth.length === 0) {
         const d = new Date(monthEnd); d.setDate(d.getDate() - 1); d.setHours(0,0,0,0); return d;
@@ -133,10 +132,36 @@ function Dashboard() {
     const periodAnchorEnd = new Date(periodAnchor);
     periodAnchorEnd.setDate(periodAnchorEnd.getDate() + 1);
 
-    // All-time
-    const totalAll = rows.reduce((s, r) => s + (r.effective_seconds || 0), 0);
+    // All-time totals by intent (drives top strip)
+    let allLearn = 0, allEnt = 0, allFind = 0, allExplore = 0, allOther = 0;
+    for (const r of rows) {
+      const sec = r.effective_seconds || 0;
+      const i = intentOf(r);
+      if (i === "learn") allLearn += sec;
+      else if (i === "relax") allEnt += sec;
+      else if (i === "find") allFind += sec;
+      else if (i === "explore") allExplore += sec;
+      else allOther += sec;
+    }
+    const totalAll = allLearn + allEnt + allFind + allExplore + allOther;
 
-    // Month totals & intent split (uses effective_seconds)
+    // Today (real-world) totals — drives the second strip row
+    const today0 = new Date(); today0.setHours(0, 0, 0, 0);
+    const today1 = new Date(today0); today1.setDate(today0.getDate() + 1);
+    let tdLearn = 0, tdEnt = 0, tdFind = 0, tdOther = 0, tdVideos = 0;
+    for (const r of rows) {
+      const t = new Date(r.watched_at).getTime();
+      if (t < today0.getTime() || t >= today1.getTime()) continue;
+      tdVideos++;
+      const sec = r.effective_seconds || 0;
+      const i = intentOf(r);
+      if (i === "learn") tdLearn += sec;
+      else if (i === "relax") tdEnt += sec;
+      else if (i === "find") tdFind += sec;
+      else tdOther += sec;
+    }
+    const tdTotal = tdLearn + tdEnt + tdFind + tdOther;
+
     let learn = 0, ent = 0, find = 0, explore = 0, other = 0;
     for (const r of inMonth) {
       const sec = r.effective_seconds || 0;
@@ -152,7 +177,6 @@ function Dashboard() {
     const monthVideos = inMonth.length;
     const totalSeeks = inMonth.reduce((s, r) => s + (r.seek_count || 0), 0);
 
-    // Completion
     const withDur = inMonth.filter((r) => (r.duration_seconds || 0) > 60);
     const finished = withDur.filter((r) => (r.effective_seconds || 0) / (r.duration_seconds || 1) >= 0.85).length;
     const completionPct = withDur.length ? Math.round((finished / withDur.length) * 100) : 0;
@@ -160,14 +184,12 @@ function Dashboard() {
       ? withDur.reduce((s, r) => s + Math.min(1, (r.effective_seconds || 0) / (r.duration_seconds || 1)), 0) / withDur.length
       : 0;
 
-    // Focus 0-100
     const seeksPerVideo = inMonth.length ? totalSeeks / inMonth.length : 0;
     const focus = Math.round(
       Math.max(0, Math.min(1, avgCompletion * 0.7 + Math.max(0, 1 - seeksPerVideo / 10) * 0.3)) * 100,
     );
     const focusLabel = focus > 70 ? "focused" : focus > 40 ? "drifting" : "scattered";
 
-    // Streak — consecutive days ending at the selected month's latest day
     let streak = 0;
     for (let i = 0; i < 60; i++) {
       const d = new Date(periodAnchor);
@@ -194,13 +216,13 @@ function Dashboard() {
       });
     })();
 
-    // Last 14 days of the selected month window
-    const days14: { day: string; learn: number; ent: number; other: number }[] = [];
-    for (let i = 13; i >= 0; i--) {
-      const d = new Date(periodAnchor); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - i);
+    // Full selected month — every day, labelled by day number.
+    const daysMonth: { day: string; dayNum: number; learn: number; ent: number; other: number }[] = [];
+    for (let i = 1; i <= daysInMonth; i++) {
+      const d = new Date(cur.y, cur.m, i); d.setHours(0, 0, 0, 0);
       const next = new Date(d); next.setDate(d.getDate() + 1);
       let l = 0, e = 0, o = 0;
-      for (const r of rows) {
+      for (const r of inMonth) {
         const t = new Date(r.watched_at).getTime();
         if (t < d.getTime() || t >= next.getTime()) continue;
         const sec = (r.effective_seconds || 0) || (r.watch_seconds || 0);
@@ -210,13 +232,12 @@ function Dashboard() {
         else if (i2 === "relax") e += min;
         else o += min;
       }
-      days14.push({
-        day: d.toLocaleDateString(undefined, { weekday: "narrow" }),
+      daysMonth.push({
+        day: String(i), dayNum: i,
         learn: Math.round(l), ent: Math.round(e), other: Math.round(o),
       });
     }
 
-    // 10-week heatmap ending at selected month, focus per day 0-100
     const heat: number[] = [];
     for (let w = 9; w >= 0; w--) {
       for (let d = 0; d < 7; d++) {
@@ -239,7 +260,6 @@ function Dashboard() {
       }
     }
 
-    // Hour-of-day distribution (entire month)
     const hourMin = new Array(24).fill(0);
     const hourLearnMin = new Array(24).fill(0);
     for (const r of inMonth) {
@@ -250,7 +270,6 @@ function Dashboard() {
     }
     const peakIdx = hourMin.indexOf(Math.max(...hourMin));
     const focusWindow = (() => {
-      // best 3-hour window by learn ratio (with at least some watch time)
       let best = { start: 9, score: 0 };
       for (let i = 0; i <= 21; i++) {
         const tot = hourMin[i] + hourMin[i+1] + hourMin[i+2];
@@ -262,7 +281,6 @@ function Dashboard() {
       return best;
     })();
 
-    // Watch map — top 8 videos by raw opened time, sorted by watch %
     const videos = inMonth
       .filter((r) => (r.duration_seconds || 0) > 30)
       .map((r) => {
@@ -279,7 +297,6 @@ function Dashboard() {
       .sort((a, b) => b.pct - a.pct)
       .slice(0, 8);
 
-    // 8-week intent drift (percent learn vs ent)
     const drift: { w: string; learn: number; ent: number }[] = [];
     for (let w = 7; w >= 0; w--) {
       const start = new Date(periodAnchor); start.setHours(0, 0, 0, 0);
@@ -302,7 +319,6 @@ function Dashboard() {
       });
     }
 
-    // Top channels (this month)
     const chMap: Record<string, number> = {};
     for (const r of inMonth) {
       const k = r.channel || "Unknown";
@@ -313,7 +329,6 @@ function Dashboard() {
       .sort((a, b) => b.min - a.min)
       .slice(0, 5);
 
-    // Today's session timeline
     const anchorRows = rows.filter((r) => {
       const t = new Date(r.watched_at).getTime();
       return t >= periodAnchor.getTime() && t < periodAnchorEnd.getTime();
@@ -327,20 +342,17 @@ function Dashboard() {
       return Math.max(0, ...Object.values(byDay));
     })();
     const activeDays = new Set(inMonth.map((r) => new Date(r.watched_at).toDateString())).size;
-
     const avgPerVideoSec = inMonth.length ? Math.round(monthEff / inMonth.length) : 0;
 
-    const sessions = anchorRows
-      .map((r) => {
-        const start = new Date(r.watched_at);
-        return {
-          start: start.getHours() + start.getMinutes() / 60,
-          dur: Math.max(1, Math.round(((r.effective_seconds || 0) || (r.watch_seconds || 0)) / 60)),
-          m: intentOf(r) === "learn" ? "l" : "r",
-        };
-      });
+    const sessions = anchorRows.map((r) => {
+      const start = new Date(r.watched_at);
+      return {
+        start: start.getHours() + start.getMinutes() / 60,
+        dur: Math.max(1, Math.round(((r.effective_seconds || 0) || (r.watch_seconds || 0)) / 60)),
+        m: intentOf(r) === "learn" ? "l" : "r",
+      };
+    });
 
-    // Behavior radar
     const radar = [
       { k: "Completion", you: Math.round(avgCompletion * 100), goal: 60 },
       { k: "Focus", you: focus, goal: 70 },
@@ -354,7 +366,6 @@ function Dashboard() {
     const entPct = monthEff ? Math.round((ent / monthEff) * 100) : 0;
     const findPct = monthEff ? Math.round((find / monthEff) * 100) : 0;
 
-    // Drift change (learn % now vs 4 weeks ago)
     const learnNow = drift[drift.length - 1]?.learn ?? 0;
     const learn4w = drift[Math.max(0, drift.length - 5)]?.learn ?? 0;
     const learnDelta = learnNow - learn4w;
@@ -366,10 +377,12 @@ function Dashboard() {
     const skippedPct = monthRaw ? Math.round((skippedSec / monthRaw) * 100) : 0;
 
     return {
-      totalAll, monthEff, monthRaw, monthVideos, videoCount: monthVideos, videosFinished, skippedSec, skippedPct, totalEff: monthEff,
+      totalAll, allLearn, allEnt, allFind,
+      tdTotal, tdLearn, tdEnt, tdFind, tdVideos,
+      monthEff, monthRaw, monthVideos, videoCount: monthVideos, videosFinished, skippedSec, skippedPct, totalEff: monthEff,
       learn, ent, find, learnPct, entPct, findPct,
       completionPct, finished, focus, focusLabel, streak, todayHasLearn,
-      days14, heat, hourMin, hourLearnMin, peakIdx, focusWindow,
+      daysMonth, daysInMonth, heat, hourMin, hourLearnMin, peakIdx, focusWindow,
       videos, drift, topChannels, sessions, radar, learnDelta, seeksPerVideo, avgCompletion,
       bestDaySec, activeDays, avgPerVideoSec,
     };
@@ -417,13 +430,22 @@ function Dashboard() {
       <div className="lg:sticky lg:top-14 lg:z-10 lg:-mx-4 lg:bg-background/95 lg:px-4 lg:pb-4 lg:pt-2 lg:backdrop-blur lg:supports-[backdrop-filter]:bg-background/80">
         <Header monthLabel={monthLabel} prev={goPrev} next={goNext} navBtn={navBtn} />
 
-        {/* Intent strip */}
+        {/* All-time strip — totals since the user joined, with this-month context as sub */}
         <div className="mt-5 grid grid-cols-2 overflow-hidden rounded-2xl border border-border/60 bg-card/70 shadow-[var(--shadow-soft)] sm:grid-cols-5">
           <StripItem label="All-time watched" value={fmtMin(data.totalAll)} sub="since you joined" />
-          <StripItem label="Learning" value={fmtMin(data.learn)} sub={`${data.learnPct}% of watch time`} valueColor={COLORS.learn} subColor="#0F6E56" labelColor="#085041" />
-          <StripItem label="Entertainment" value={fmtMin(data.ent)} sub={`${data.entPct}% of watch time`} valueColor={COLORS.ent} subColor="#993556" labelColor="#72243E" />
-          <StripItem label="Quick lookup" value={fmtMin(data.find)} sub={`${data.findPct}% of watch time`} valueColor={COLORS.amber} subColor="#854F0B" labelColor="#633806" />
+          <StripItem label="Learning · all-time" value={fmtMin(data.allLearn)} sub={`This month: ${fmtMin(data.learn)} · ${data.learnPct}%`} valueColor={COLORS.learn} subColor="#0F6E56" labelColor="#085041" />
+          <StripItem label="Entertainment · all-time" value={fmtMin(data.allEnt)} sub={`This month: ${fmtMin(data.ent)} · ${data.entPct}%`} valueColor={COLORS.ent} subColor="#993556" labelColor="#72243E" />
+          <StripItem label="Quick lookup · all-time" value={fmtMin(data.allFind)} sub={`This month: ${fmtMin(data.find)} · ${data.findPct}%`} valueColor={COLORS.amber} subColor="#854F0B" labelColor="#633806" />
           <StripItem label="This month" value={fmtMin(data.monthEff)} sub={`${data.monthVideos} videos`} className="col-span-2 sm:col-span-1" />
+        </div>
+
+        {/* Today strip — same shape, but scoped to today only */}
+        <div className="mt-3 grid grid-cols-2 overflow-hidden rounded-2xl border border-border/60 bg-card/70 shadow-[var(--shadow-soft)] sm:grid-cols-5">
+          <StripItem label="Today · total" value={fmtMin(data.tdTotal)} sub={`${data.tdVideos} video${data.tdVideos === 1 ? "" : "s"}`} />
+          <StripItem label="Today · learning" value={fmtMin(data.tdLearn)} sub={data.tdTotal ? `${Math.round((data.tdLearn / data.tdTotal) * 100)}% of today` : "no time yet"} valueColor={COLORS.learn} subColor="#0F6E56" labelColor="#085041" />
+          <StripItem label="Today · entertainment" value={fmtMin(data.tdEnt)} sub={data.tdTotal ? `${Math.round((data.tdEnt / data.tdTotal) * 100)}% of today` : "no time yet"} valueColor={COLORS.ent} subColor="#993556" labelColor="#72243E" />
+          <StripItem label="Today · quick lookup" value={fmtMin(data.tdFind)} sub={data.tdTotal ? `${Math.round((data.tdFind / data.tdTotal) * 100)}% of today` : "no time yet"} valueColor={COLORS.amber} subColor="#854F0B" labelColor="#633806" />
+          <StripItem label="Today · other" value={fmtMin(Math.max(0, data.tdTotal - data.tdLearn - data.tdEnt - data.tdFind))} sub="uncategorised time" className="col-span-2 sm:col-span-1" />
         </div>
 
         {/* KPI tiles — simple, useful at-a-glance numbers */}
@@ -440,19 +462,32 @@ function Dashboard() {
 
 
 
-      {/* Card grid — two manual flex columns for true masonry without trailing gap */}
-      <div className="grid gap-3 lg:grid-cols-2">
-        <div className="flex flex-col gap-3 min-w-0">
-        {/* Stacked area */}
+      {/* Card grid — CSS columns give true masonry (no trailing gaps in either column) */}
+      <div className="gap-3 lg:columns-2 [&>*]:mb-3 [&>*]:break-inside-avoid-column">
+        {/* Stacked area — full selected month */}
         <Card>
-          <CardLabel info="Daily minutes by intent. Each band shows how your watch time split between Learn, Entertainment and other over the last 14 days of the selected month.">Stacked intent — daily minutes</CardLabel>
+          <CardLabel info="Daily minutes by intent across the entire selected month. Each band shows how that day's watch time split between Learn, Entertainment and Other.">Daily watch minutes — Learn vs Entertainment</CardLabel>
           <div className="min-w-0 w-full overflow-hidden" style={{ height: 220 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data.days14} margin={{ top: 4, right: 4, left: -24, bottom: -4 }}>
+              <AreaChart data={data.daysMonth} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
                 <CartesianGrid stroke="var(--border)" vertical={false} />
-                <XAxis dataKey="day" stroke="var(--muted-foreground)" fontSize={10} tickLine={false} axisLine={false} />
-                <YAxis stroke="var(--muted-foreground)" fontSize={10} tickLine={false} axisLine={false} width={32} />
-                <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
+                <XAxis
+                  dataKey="dayNum"
+                  type="number"
+                  domain={[1, data.daysInMonth]}
+                  ticks={Array.from({ length: Math.ceil(data.daysInMonth / 5) }, (_, i) => 1 + i * 5).concat(data.daysInMonth)}
+                  stroke="var(--muted-foreground)"
+                  fontSize={10}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(v) => `${MONTHS[cur.m].slice(0,3)} ${v}`}
+                />
+                <YAxis stroke="var(--muted-foreground)" fontSize={10} tickLine={false} axisLine={false} width={36} tickFormatter={(v) => `${v}m`} />
+                <Tooltip
+                  contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
+                  labelFormatter={(v) => `${MONTHS[cur.m]} ${v}, ${cur.y}`}
+                  formatter={(val: number, name: string) => [`${val} min`, name === "learn" ? "Learn" : name === "ent" ? "Entertainment" : "Other"]}
+                />
                 <Area type="monotone" dataKey="learn" stackId="1" stroke={COLORS.learn} fill={COLORS.learn} fillOpacity={0.18} isAnimationActive={false} />
                 <Area type="monotone" dataKey="ent" stackId="1" stroke={COLORS.ent} fill={COLORS.ent} fillOpacity={0.14} isAnimationActive={false} />
                 <Area type="monotone" dataKey="other" stackId="1" stroke={COLORS.other} fill={COLORS.other} fillOpacity={0.12} isAnimationActive={false} />
@@ -541,9 +576,7 @@ function Dashboard() {
           </div>
           <Legend items={[{ color: COLORS.learn, label: "You" }, { color: COLORS.goal, label: "Goal", dashed: true }]} />
         </Card>
-        </div>
 
-        <div className="flex flex-col gap-3 min-w-0">
       {/* Watch map */}
       <Card>
         <div className="mb-1">
@@ -677,7 +710,6 @@ function Dashboard() {
             { color: COLORS.ent, label: "Entertainment" },
           ]} />
         </Card>
-        </div>
       </div>
 
       {/* Three things */}
@@ -836,7 +868,7 @@ type TipShape = {
   totalEff: number;
   skippedSec: number;
   skippedPct: number;
-  days14: { day: string; learn: number; ent: number; other: number }[];
+  daysMonth: { day: string; dayNum: number; learn: number; ent: number; other: number }[];
 };
 
 type Tip = {
