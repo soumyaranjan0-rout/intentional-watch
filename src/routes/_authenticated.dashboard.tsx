@@ -430,13 +430,22 @@ function Dashboard() {
       <div className="lg:sticky lg:top-14 lg:z-10 lg:-mx-4 lg:bg-background/95 lg:px-4 lg:pb-4 lg:pt-2 lg:backdrop-blur lg:supports-[backdrop-filter]:bg-background/80">
         <Header monthLabel={monthLabel} prev={goPrev} next={goNext} navBtn={navBtn} />
 
-        {/* Intent strip */}
+        {/* All-time strip — totals since the user joined, with this-month context as sub */}
         <div className="mt-5 grid grid-cols-2 overflow-hidden rounded-2xl border border-border/60 bg-card/70 shadow-[var(--shadow-soft)] sm:grid-cols-5">
           <StripItem label="All-time watched" value={fmtMin(data.totalAll)} sub="since you joined" />
-          <StripItem label="Learning" value={fmtMin(data.learn)} sub={`${data.learnPct}% of watch time`} valueColor={COLORS.learn} subColor="#0F6E56" labelColor="#085041" />
-          <StripItem label="Entertainment" value={fmtMin(data.ent)} sub={`${data.entPct}% of watch time`} valueColor={COLORS.ent} subColor="#993556" labelColor="#72243E" />
-          <StripItem label="Quick lookup" value={fmtMin(data.find)} sub={`${data.findPct}% of watch time`} valueColor={COLORS.amber} subColor="#854F0B" labelColor="#633806" />
+          <StripItem label="Learning · all-time" value={fmtMin(data.allLearn)} sub={`This month: ${fmtMin(data.learn)} · ${data.learnPct}%`} valueColor={COLORS.learn} subColor="#0F6E56" labelColor="#085041" />
+          <StripItem label="Entertainment · all-time" value={fmtMin(data.allEnt)} sub={`This month: ${fmtMin(data.ent)} · ${data.entPct}%`} valueColor={COLORS.ent} subColor="#993556" labelColor="#72243E" />
+          <StripItem label="Quick lookup · all-time" value={fmtMin(data.allFind)} sub={`This month: ${fmtMin(data.find)} · ${data.findPct}%`} valueColor={COLORS.amber} subColor="#854F0B" labelColor="#633806" />
           <StripItem label="This month" value={fmtMin(data.monthEff)} sub={`${data.monthVideos} videos`} className="col-span-2 sm:col-span-1" />
+        </div>
+
+        {/* Today strip — same shape, but scoped to today only */}
+        <div className="mt-3 grid grid-cols-2 overflow-hidden rounded-2xl border border-border/60 bg-card/70 shadow-[var(--shadow-soft)] sm:grid-cols-5">
+          <StripItem label="Today · total" value={fmtMin(data.tdTotal)} sub={`${data.tdVideos} video${data.tdVideos === 1 ? "" : "s"}`} />
+          <StripItem label="Today · learning" value={fmtMin(data.tdLearn)} sub={data.tdTotal ? `${Math.round((data.tdLearn / data.tdTotal) * 100)}% of today` : "no time yet"} valueColor={COLORS.learn} subColor="#0F6E56" labelColor="#085041" />
+          <StripItem label="Today · entertainment" value={fmtMin(data.tdEnt)} sub={data.tdTotal ? `${Math.round((data.tdEnt / data.tdTotal) * 100)}% of today` : "no time yet"} valueColor={COLORS.ent} subColor="#993556" labelColor="#72243E" />
+          <StripItem label="Today · quick lookup" value={fmtMin(data.tdFind)} sub={data.tdTotal ? `${Math.round((data.tdFind / data.tdTotal) * 100)}% of today` : "no time yet"} valueColor={COLORS.amber} subColor="#854F0B" labelColor="#633806" />
+          <StripItem label="Today · other" value={fmtMin(Math.max(0, data.tdTotal - data.tdLearn - data.tdEnt - data.tdFind))} sub="uncategorised time" className="col-span-2 sm:col-span-1" />
         </div>
 
         {/* KPI tiles — simple, useful at-a-glance numbers */}
