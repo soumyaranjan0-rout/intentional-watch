@@ -98,11 +98,11 @@ function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background pb-16 text-foreground lg:pb-0">
       {!onAuthPage && (
-        <header className="sticky top-0 z-30 border-b border-border/40 bg-background/75 backdrop-blur-xl">
-          <div className="zen-container-wide flex h-14 items-center gap-2 px-3 sm:gap-3 sm:px-6">
-            <Link to="/" className="flex items-center gap-2.5 text-foreground transition-opacity hover:opacity-80">
-              <ZenLogo size={34} />
-              <span className="text-lg font-semibold tracking-tight">ZenTube</span>
+        <header className="sticky top-0 z-30 border-b border-border bg-background">
+          <div className="zen-container-wide flex h-12 items-center gap-2 px-3 sm:gap-3 sm:px-6">
+            <Link to="/" className="flex items-center gap-2 text-foreground no-underline hover:no-underline">
+              <ZenLogo size={28} />
+              <span className="text-[15px] font-bold tracking-tight" style={{ color: "#cc181e" }}>ZenTube</span>
             </Link>
 
             <PrimaryNav />
