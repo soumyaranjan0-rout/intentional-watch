@@ -3,6 +3,7 @@ import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { Search } from "lucide-react";
 import { useSessionState } from "@/contexts/SessionStateContext";
 import { IntentSearchModal } from "./IntentSearchModal";
+import { SearchSuggestions, rememberSearchSuggestion } from "./SearchSuggestions";
 import type { Mode } from "@/lib/intent";
 
 /** Persistent search bar shown in the navbar on every page (except login & home).
@@ -10,6 +11,7 @@ import type { Mode } from "@/lib/intent";
 export function NavSearch() {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const { mode: sessionMode, setMode, setQuery } = useSessionState();
   const navigate = useNavigate();
@@ -36,6 +38,15 @@ export function NavSearch() {
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!q.trim()) return;
+    rememberSearchSuggestion(q);
+    setSuggestionsOpen(false);
+    setOpen(true);
+  };
+
+  const pickSuggestion = (value: string) => {
+    setQ(value);
+    rememberSearchSuggestion(value);
+    setSuggestionsOpen(false);
     setOpen(true);
   };
 
@@ -44,6 +55,7 @@ export function NavSearch() {
     if (!v) return;
     setMode(mode);
     setQuery(v);
+    rememberSearchSuggestion(v);
     setOpen(false);
     setQ("");
     if (mode === "find") navigate({ to: "/results" });
@@ -52,13 +64,15 @@ export function NavSearch() {
 
   return (
     <>
-      <form onSubmit={onSubmit} className="hidden flex-1 px-4 md:flex md:max-w-md">
+      <form onSubmit={onSubmit} className="relative hidden flex-1 px-4 md:flex md:max-w-md">
         <div className="zen-search-glow flex w-full items-center gap-2 rounded-full border border-border bg-surface/70 pl-4 pr-1 backdrop-blur transition-colors focus-within:border-primary/50">
           <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
           <input
             ref={inputRef}
             value={q}
-            onChange={(e) => setQ(e.target.value)}
+            onChange={(e) => { setQ(e.target.value); setSuggestionsOpen(true); }}
+            onFocus={() => setSuggestionsOpen(true)}
+            onBlur={() => window.setTimeout(() => setSuggestionsOpen(false), 120)}
             placeholder="Search videos…"
             className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none placeholder:text-muted-foreground"
             aria-label="Search"
@@ -72,6 +86,7 @@ export function NavSearch() {
             Search
           </button>
         </div>
+        <SearchSuggestions value={q} visible={suggestionsOpen && !open} onPick={pickSuggestion} />
       </form>
       {open && (
         <IntentSearchModal

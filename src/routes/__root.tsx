@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { SessionStateProvider } from "@/contexts/SessionStateContext";
 import { AccountMenu } from "@/components/AccountMenu";
 import { ZenLogo } from "@/components/ZenLogo";
+import { NavSearch } from "@/components/NavSearch";
 import { LayoutDashboard, BookmarkIcon, StickyNote, Home as HomeIcon, User as UserIcon } from "lucide-react";
 
 import appCss from "../styles.css?url";
@@ -105,6 +106,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
               <span className="text-[15px] font-bold tracking-tight" style={{ color: "#cc181e" }}>ZenTube</span>
             </Link>
 
+            <NavSearch />
             <PrimaryNav />
 
             <div className="ml-auto flex items-center gap-1 lg:ml-1">
