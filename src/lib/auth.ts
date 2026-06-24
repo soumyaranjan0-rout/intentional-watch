@@ -13,36 +13,13 @@ function rememberRedirect(path?: string) {
   }
 }
 
-function startFullPageGoogleRedirect() {
-  const params = new URLSearchParams({
-    provider: "google",
-    redirect_uri: window.location.origin,
-    state: crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}`,
-    prompt: "select_account",
-  });
-  const url = `/~oauth/initiate?${params.toString()}`;
-  try {
-    window.open(url, "_top");
-  } catch {
-    window.location.assign(url);
-  }
-}
-
 export async function signInWithGoogle(redirectPath?: string): Promise<AuthResult> {
   rememberRedirect(redirectPath);
 
-  const result = await lovable.auth.signInWithOAuth("google", {
+  return lovable.auth.signInWithOAuth("google", {
     redirect_uri: window.location.origin,
     extraParams: { prompt: "select_account" },
   });
-
-  const message = result?.error?.message || "";
-  if (result?.error && /sign in was cancelled|popup.*closed|cancelled|canceled/i.test(message)) {
-    startFullPageGoogleRedirect();
-    return { error: null, redirected: true } as AuthResult;
-  }
-
-  return result;
 }
 
 export function consumePostLoginPath() {
