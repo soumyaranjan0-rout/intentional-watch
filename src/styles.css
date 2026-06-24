@@ -5,17 +5,19 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * ZenTube design system v2 — premium, calm, focus-app feel.
- * Deep dark base, soft sage green accent, minimal glow.
+ * ZenTube — "Classic YouTube 2008–2011" re-skin.
+ * White background, light gray panels, thin 1px borders, red accents.
+ * Arial/Helvetica, sharp corners, no gradients, no glow, no fancy motion.
+ * Goal: feel like the early web — plain, fast, low-stimulation.
  */
 
 @theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-sm: 2px;
+  --radius-md: 2px;
+  --radius-lg: 3px;
+  --radius-xl: 3px;
+  --radius-2xl: 4px;
+  --radius-3xl: 4px;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -55,123 +57,122 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  --font-sans:
-    "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-display:
-    "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-sans: Arial, Helvetica, "Liberation Sans", sans-serif;
+  --font-display: Arial, Helvetica, "Liberation Sans", sans-serif;
 }
 
-/* Defaults to dark — lucid isometric graphite × aurora gradients */
+/* Default = Classic YouTube light theme */
 :root {
-  --radius: 0.875rem;
+  --radius: 3px;
 
-  --background: oklch(0.135 0.020 255);
-  --foreground: oklch(0.970 0.008 225);
-  --surface: oklch(0.185 0.026 255);
-  --surface-2: oklch(0.245 0.036 250);
+  --background: #ffffff;
+  --foreground: #222222;
+  --surface: #f9f9f9;
+  --surface-2: #f1f1f1;
 
-  --card: oklch(0.175 0.024 255);
-  --card-foreground: oklch(0.970 0.008 225);
-  --popover: oklch(0.205 0.030 252);
-  --popover-foreground: oklch(0.970 0.008 225);
+  --card: #ffffff;
+  --card-foreground: #222222;
+  --popover: #ffffff;
+  --popover-foreground: #222222;
 
-  --primary: oklch(0.760 0.150 178);
-  --primary-foreground: oklch(0.115 0.020 250);
-  --primary-soft: oklch(0.815 0.125 200);
+  /* YouTube red */
+  --primary: #cc181e;
+  --primary-foreground: #ffffff;
+  --primary-soft: #e62117;
+  --accent-violet: #167ac6; /* classic link blue, reused where "accent" appears */
 
-  --accent-violet: oklch(0.705 0.190 305);
+  --secondary: #f1f1f1;
+  --secondary-foreground: #222222;
 
-  --secondary: oklch(0.245 0.034 255);
-  --secondary-foreground: oklch(0.955 0.008 225);
+  --muted: #f5f5f5;
+  --muted-foreground: #767676;
 
-  --muted: oklch(0.250 0.028 252);
-  --muted-foreground: oklch(0.750 0.025 230);
+  --accent: #eeeeee;
+  --accent-foreground: #222222;
 
-  --accent: oklch(0.305 0.055 278);
-  --accent-foreground: oklch(0.975 0.006 225);
+  --destructive: #cc181e;
+  --destructive-foreground: #ffffff;
 
-  --destructive: oklch(0.64 0.21 22);
-  --destructive-foreground: oklch(0.98 0.006 80);
+  --border: #cccccc;
+  --input: #d3d3d3;
+  --ring: #999999;
 
-  --border: oklch(0.318 0.032 250);
-  --input: oklch(0.245 0.030 252);
-  --ring: oklch(0.760 0.150 178);
+  --chart-1: #cc181e;
+  --chart-2: #167ac6;
+  --chart-3: #767676;
+  --chart-4: #999999;
+  --chart-5: #444444;
 
-  --chart-1: oklch(0.78 0.135 195);
-  --chart-2: oklch(0.70 0.155 340);
-  --chart-3: oklch(0.76 0.13 145);
-  --chart-4: oklch(0.74 0.15 70);
-  --chart-5: oklch(0.72 0.15 265);
+  --sidebar: #f1f1f1;
+  --sidebar-foreground: #222222;
+  --sidebar-primary: #cc181e;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e7e7e7;
+  --sidebar-accent-foreground: #222222;
+  --sidebar-border: #cccccc;
+  --sidebar-ring: #999999;
 
-  --sidebar: oklch(0.165 0.010 245);
-  --sidebar-foreground: oklch(0.955 0.006 235);
-  --sidebar-primary: oklch(0.78 0.135 195);
-  --sidebar-primary-foreground: oklch(0.13 0.014 235);
-  --sidebar-accent: oklch(0.255 0.014 245);
-  --sidebar-accent-foreground: oklch(0.955 0.006 235);
-  --sidebar-border: oklch(0.300 0.014 245);
-  --sidebar-ring: oklch(0.78 0.135 195);
-
-  /* Gradients */
-  --gradient-brand:
-    linear-gradient(135deg, var(--primary) 0%, var(--accent-violet) 100%);
-  --gradient-hero:
-    linear-gradient(135deg, color-mix(in oklab, var(--primary) 10%, transparent), transparent 34%),
-    radial-gradient(ellipse 85% 48% at 22% -8%, color-mix(in oklab, var(--primary) 24%, transparent), transparent 70%),
-    radial-gradient(ellipse 80% 48% at 88% 108%, color-mix(in oklab, var(--accent-violet) 23%, transparent), transparent 68%);
-  --gradient-card:
-    linear-gradient(145deg, color-mix(in oklab, var(--surface) 94%, var(--primary) 6%) 0%, color-mix(in oklab, var(--surface) 90%, var(--accent-violet) 7%) 46%, color-mix(in oklab, var(--background) 92%, var(--surface) 8%) 100%);
-  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.26), 0 16px 44px -22px color-mix(in oklab, var(--primary) 38%, black);
-  --shadow-glow: 0 0 0 1px color-mix(in oklab, var(--primary) 30%, transparent),
-    0 10px 40px -12px color-mix(in oklab, var(--primary) 35%, transparent),
-    0 4px 24px -8px color-mix(in oklab, var(--accent-violet) 20%, transparent);
+  /* Flat. No gradients, no glow. */
+  --gradient-brand: none;
+  --gradient-hero: none;
+  --gradient-card: none;
+  --shadow-soft: 0 1px 0 #e5e5e5;
+  --shadow-glow: 0 0 0 1px #b3b3b3;
 }
 
-/* Light theme — Deepnote / Snyk-inspired soft gradient surface */
+/* Dark variant — kept muted so the retro feel doesn't break */
+.dark {
+  --background: #1f1f1f;
+  --foreground: #e8e8e8;
+  --surface: #262626;
+  --surface-2: #2e2e2e;
+  --card: #262626;
+  --card-foreground: #e8e8e8;
+  --popover: #262626;
+  --popover-foreground: #e8e8e8;
+  --primary: #cc181e;
+  --primary-foreground: #ffffff;
+  --secondary: #2e2e2e;
+  --secondary-foreground: #e8e8e8;
+  --muted: #2a2a2a;
+  --muted-foreground: #a0a0a0;
+  --accent: #333333;
+  --accent-foreground: #e8e8e8;
+  --border: #3a3a3a;
+  --input: #333333;
+  --ring: #666666;
+  --sidebar: #1a1a1a;
+  --sidebar-foreground: #e8e8e8;
+  --sidebar-accent: #2a2a2a;
+  --sidebar-accent-foreground: #e8e8e8;
+  --sidebar-border: #3a3a3a;
+  --shadow-soft: 0 1px 0 #000000;
+  --shadow-glow: 0 0 0 1px #555555;
+}
+
+/* `.light` was used by the previous theme. Map it to the retro defaults. */
 .light {
-  --background: oklch(0.985 0.012 250);
-  --foreground: oklch(0.20 0.018 260);
-  --surface: oklch(0.975 0.014 250);
-  --surface-2: oklch(0.95 0.018 255);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.20 0.018 260);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.20 0.018 260);
-
-  /* Primary: vivid indigo-violet */
-  --primary: oklch(0.55 0.20 275);
-  --primary-foreground: oklch(0.99 0.005 250);
-  --primary-soft: oklch(0.72 0.15 275);
-
-  /* Accent gradient pair: warm pink → cool teal (deepnote-ish) */
-  --accent-violet: oklch(0.66 0.20 330);
-
-  --secondary: oklch(0.94 0.012 250);
-  --secondary-foreground: oklch(0.22 0.018 260);
-  --muted: oklch(0.95 0.012 250);
-  --muted-foreground: oklch(0.48 0.020 260);
-  --accent: oklch(0.93 0.025 280);
-  --accent-foreground: oklch(0.22 0.018 260);
-  --destructive: oklch(0.58 0.22 25);
-  --destructive-foreground: oklch(0.99 0.005 250);
-  --border: oklch(0.91 0.012 250);
-  --input: oklch(0.94 0.012 250);
-  --ring: oklch(0.55 0.20 275);
-
-  --chart-1: oklch(0.55 0.20 275);
-  --chart-2: oklch(0.66 0.20 330);
-  --chart-3: oklch(0.65 0.16 195);
-  --chart-4: oklch(0.72 0.16 70);
-  --chart-5: oklch(0.60 0.18 145);
-
-  --gradient-hero:
-    radial-gradient(ellipse 90% 55% at 20% -10%, color-mix(in oklab, var(--primary) 18%, transparent), transparent 70%),
-    radial-gradient(ellipse 80% 50% at 90% 110%, color-mix(in oklab, var(--accent-violet) 20%, transparent), transparent 65%),
-    radial-gradient(ellipse 70% 50% at 50% 60%, color-mix(in oklab, oklch(0.85 0.16 195) 14%, transparent), transparent 70%);
-  --shadow-soft: 0 1px 2px rgb(15 23 42 / 0.04), 0 8px 30px -12px rgb(15 23 42 / 0.10);
-  --shadow-glow: 0 0 0 1px color-mix(in oklab, var(--primary) 25%, transparent),
-    0 12px 40px -10px color-mix(in oklab, var(--primary) 30%, transparent),
-    0 6px 24px -8px color-mix(in oklab, var(--accent-violet) 20%, transparent);
+  --background: #ffffff;
+  --foreground: #222222;
+  --surface: #f9f9f9;
+  --surface-2: #f1f1f1;
+  --card: #ffffff;
+  --card-foreground: #222222;
+  --popover: #ffffff;
+  --popover-foreground: #222222;
+  --primary: #cc181e;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f1f1;
+  --secondary-foreground: #222222;
+  --muted: #f5f5f5;
+  --muted-foreground: #767676;
+  --accent: #eeeeee;
+  --accent-foreground: #222222;
+  --destructive: #cc181e;
+  --destructive-foreground: #ffffff;
+  --border: #cccccc;
+  --input: #d3d3d3;
+  --ring: #999999;
 }
 
 @layer base {
@@ -180,10 +181,8 @@
     color: var(--color-foreground);
     min-height: 100%;
   }
-  /* Smoother taps on mobile — kill 300ms tap delay & accidental zoom */
   html { -webkit-tap-highlight-color: transparent; }
   button, a, [role="button"], input, select, textarea, label { touch-action: manipulation; }
-  /* Ensure YouTube IFrame fills its responsive container */
   .zen-yt-mount > iframe,
   iframe[src*="youtube.com/embed"],
   iframe[src*="youtube-nocookie.com/embed"] {
@@ -194,83 +193,89 @@
   }
   body {
     font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 1.4;
     -webkit-font-smoothing: antialiased;
-    text-rendering: optimizeLegibility;
-    font-feature-settings: "cv11", "ss01", "ss03";
   }
   * {
     border-color: var(--color-border);
   }
+  /* Classic blue links */
+  a { color: #167ac6; }
+  a:hover { text-decoration: underline; }
   ::selection {
-    background: color-mix(in oklab, var(--primary) 30%, transparent);
-    color: var(--foreground);
+    background: #b3d4fc;
+    color: #222222;
   }
+  /* Plain, boxy headings */
+  h1, h2, h3, h4, h5, h6 { font-weight: bold; color: #222222; }
 }
 
 @layer utilities {
   .zen-container {
-    @apply mx-auto w-full max-w-5xl px-6;
+    @apply mx-auto w-full max-w-5xl px-4;
   }
   .zen-container-wide {
-    @apply mx-auto w-full max-w-6xl px-6;
+    @apply mx-auto w-full max-w-6xl px-4;
   }
+  /* Plain boxy card — light gray border, optional faint fill */
   .zen-card {
-    background: var(--gradient-card);
+    background: var(--color-card);
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
+    border-radius: 3px;
   }
   .zen-card-hover {
-    transition: border-color 220ms ease, transform 220ms ease, background 220ms ease;
+    transition: border-color 120ms linear, background-color 120ms linear;
   }
   .zen-card-hover:hover {
-    border-color: color-mix(in oklab, var(--primary) 40%, var(--border));
-    transform: translateY(-1px);
+    border-color: #999999;
+    background-color: #fafafa;
   }
-  .zen-fade-in {
-    animation: zen-fade 280ms cubic-bezier(0.2, 0.6, 0.2, 1) both;
-  }
+  .zen-fade-in { animation: none; }
   .zen-hero-bg {
-    background: var(--gradient-hero), var(--color-background);
+    background: var(--color-background);
+    border-bottom: 1px solid var(--color-border);
   }
   .zen-search-glow {
     position: relative;
-    box-shadow: var(--shadow-soft);
-    transition: box-shadow 240ms ease, border-color 240ms ease, transform 240ms ease;
+    box-shadow: none;
+    border: 1px solid #cccccc;
+    background: #ffffff;
+    transition: border-color 120ms linear;
   }
-  .zen-search-glow:hover { transform: translateY(-1px); }
   .zen-search-glow:focus-within {
-    box-shadow: var(--shadow-glow);
-    border-color: color-mix(in oklab, var(--primary) 50%, var(--border));
+    border-color: #767676;
+    box-shadow: none;
   }
-  .zen-search-glow::before {
-    content: "";
-    position: absolute;
-    inset: -1px;
-    border-radius: inherit;
-    padding: 1px;
-    background: linear-gradient(120deg,
-      transparent 30%,
-      color-mix(in oklab, var(--primary) 35%, transparent) 50%,
-      transparent 70%);
-    background-size: 200% 100%;
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 300ms ease;
-    animation: zen-sheen 6s linear infinite;
+  .zen-search-glow::before { content: none; }
+
+  /* Classic gradient "pill" buttons (subtle vertical gradient like 2010 YT) */
+  .yt-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    font-size: 12px;
+    color: #222222;
+    background: linear-gradient(to bottom, #f8f8f8 0%, #e8e8e8 100%);
+    border: 1px solid #cccccc;
+    border-radius: 2px;
+    cursor: pointer;
   }
-  .zen-search-glow:focus-within::before { opacity: 1; }
-  @keyframes zen-sheen {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+  .yt-btn:hover {
+    background: linear-gradient(to bottom, #ffffff 0%, #e0e0e0 100%);
+    border-color: #999999;
   }
-  @keyframes zen-fade {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: none; }
+  .yt-btn-primary {
+    color: #ffffff;
+    background: linear-gradient(to bottom, #e8443f 0%, #cc181e 100%);
+    border-color: #b3151a;
   }
+  .yt-btn-primary:hover {
+    background: linear-gradient(to bottom, #f15a55 0%, #d61f25 100%);
+    border-color: #a3131a;
+  }
+
   @keyframes zen-shimmer {
     0% { background-position: -200% 0; }
     100% { background-position: 200% 0; }
@@ -278,12 +283,12 @@
   .zen-skeleton {
     background: linear-gradient(
       90deg,
-      var(--color-surface) 0%,
-      var(--color-surface-2) 50%,
-      var(--color-surface) 100%
+      #f1f1f1 0%,
+      #e7e7e7 50%,
+      #f1f1f1 100%
     );
     background-size: 200% 100%;
     animation: zen-shimmer 1.6s ease-in-out infinite;
-    border-radius: var(--radius-md);
+    border-radius: 2px;
   }
 }
