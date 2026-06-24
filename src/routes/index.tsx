@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ZenLogo } from "@/components/ZenLogo";
 import { IntentSearchModal } from "@/components/IntentSearchModal";
 import { ResumeBanner } from "@/components/ResumeBanner";
+import { SearchSuggestions, rememberSearchSuggestion } from "@/components/SearchSuggestions";
 import { Search, ArrowRight } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -26,10 +27,20 @@ function HomePage() {
   const { user } = useAuth();
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
 
   const onSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!q.trim()) return;
+    rememberSearchSuggestion(q);
+    setSuggestionsOpen(false);
+    setOpen(true);
+  };
+
+  const pickSuggestion = (value: string) => {
+    setQ(value);
+    rememberSearchSuggestion(value);
+    setSuggestionsOpen(false);
     setOpen(true);
   };
 
@@ -38,6 +49,7 @@ function HomePage() {
     if (!v) return;
     setMode(mode);
     setQuery(v);
+    rememberSearchSuggestion(v);
     setOpen(false);
     if (mode === "find") navigate({ to: "/results" });
     else navigate({ to: "/refine/$mode", params: { mode } });
@@ -66,12 +78,14 @@ function HomePage() {
             </span>
           </h1>
 
-          <form onSubmit={onSearch} className="mx-auto mt-12 max-w-2xl">
+          <form onSubmit={onSearch} className="relative mx-auto mt-12 max-w-2xl">
             <div className="zen-card zen-search-glow flex items-center gap-1 rounded-full border bg-card/80 p-1.5 pl-5 backdrop-blur">
               <Search className="h-5 w-5 shrink-0 text-muted-foreground" />
               <input
                 value={q}
-                onChange={(e) => setQ(e.target.value)}
+                onChange={(e) => { setQ(e.target.value); setSuggestionsOpen(true); }}
+                onFocus={() => setSuggestionsOpen(true)}
+                onBlur={() => window.setTimeout(() => setSuggestionsOpen(false), 120)}
                 placeholder="What are you looking for?"
                 className="min-w-0 flex-1 bg-transparent py-3 text-base outline-none placeholder:text-muted-foreground"
               />
@@ -84,6 +98,7 @@ function HomePage() {
                 <ArrowRight className="h-4 w-4" />
               </button>
             </div>
+            <SearchSuggestions value={q} visible={suggestionsOpen && !open} onPick={pickSuggestion} />
             <p className="mt-5 text-sm text-muted-foreground">
               We'll ask why you're here — then tune results to match.
             </p>

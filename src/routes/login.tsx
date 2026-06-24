@@ -18,25 +18,36 @@ function LoginPage() {
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
 
+  const safeRedirect = typeof search.redirect === "string" && search.redirect.startsWith("/") && !search.redirect.startsWith("/login")
+    ? search.redirect
+    : "/";
+
   // If already signed in, bounce to the requested page.
   // Use window.location to avoid TanStack router coercing complex paths
   // (paths with query strings can throw "Cannot convert object to primitive value").
   useEffect(() => {
     if (loading || !user) return;
-    const target = typeof search.redirect === "string" && search.redirect.startsWith("/")
-      ? search.redirect
-      : "/";
-    window.location.replace(target);
-  }, [user, loading, search.redirect]);
+    window.location.replace(safeRedirect);
+  }, [user, loading, safeRedirect]);
+
+  useEffect(() => {
+    if (!busy) return;
+    const reset = () => setBusy(false);
+    const timer = window.setTimeout(reset, 12000);
+    window.addEventListener("focus", reset);
+    window.addEventListener("pageshow", reset);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("focus", reset);
+      window.removeEventListener("pageshow", reset);
+    };
+  }, [busy]);
 
   const onGoogle = async () => {
     if (busy) return;
     setBusy(true);
     try {
-      const target = typeof search.redirect === "string" && search.redirect.startsWith("/")
-        ? search.redirect
-        : "/";
-      const result = await signInWithGoogle(target);
+      const result = await signInWithGoogle(safeRedirect);
 
       if (result?.error) {
         toast.error(result.error.message || "Google sign-in failed. Please try again.");
@@ -44,13 +55,15 @@ function LoginPage() {
         return;
       }
 
-      // The browser is being redirected to Google — keep the spinner.
+      // The browser is being redirected to Google — keep the spinner until
+      // navigation happens; the focus/pageshow watchdog above unlocks the UI
+      // if the popup is cancelled or the mobile browser returns here.
       if (result?.redirected) return;
 
       // Tokens were returned directly (popup-style). Session is already set;
       // navigate to the intended destination via a hard reload to avoid
       // router coercion of complex paths.
-      window.location.replace(target);
+      window.location.replace(safeRedirect);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Google sign-in failed");
       setBusy(false);
@@ -63,8 +76,7 @@ function LoginPage() {
         <button
           type="button"
           onClick={() => {
-            if (window.history.length > 1) window.history.back();
-            else navigate({ to: "/", replace: true });
+            window.location.replace(safeRedirect === "/login" ? "/" : safeRedirect);
           }}
           className="mb-6 inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-surface/60 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
         >
@@ -83,7 +95,7 @@ function LoginPage() {
 
           <button
             onClick={onGoogle}
-            disabled={busy || loading}
+            disabled={busy}
             className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleIcon />}
