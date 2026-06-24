@@ -76,7 +76,7 @@ function LoginPage() {
         <button
           type="button"
           onClick={() => {
-            navigate({ to: safeRedirect === "/login" ? "/" : safeRedirect, replace: true });
+            window.location.replace(safeRedirect === "/login" ? "/" : safeRedirect);
           }}
           className="mb-6 inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-surface/60 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
         >
