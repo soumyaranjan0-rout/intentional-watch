@@ -22,6 +22,7 @@ import { Route as AuthenticatedNotesRouteImport } from './routes/_authenticated.
 import { Route as AuthenticatedLibraryRouteImport } from './routes/_authenticated.library'
 import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated.history'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated.dashboard'
+import { Route as ApiPublicYtSuggestRouteImport } from './routes/api/public/yt-suggest'
 import { Route as AuthenticatedLibraryPlaylistIdRouteImport } from './routes/_authenticated.library_.$playlistId'
 
 const ResultsRoute = ResultsRouteImport.update({
@@ -88,6 +89,11 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const ApiPublicYtSuggestRoute = ApiPublicYtSuggestRouteImport.update({
+  id: '/api/public/yt-suggest',
+  path: '/api/public/yt-suggest',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedLibraryPlaylistIdRoute =
   AuthenticatedLibraryPlaylistIdRouteImport.update({
     id: '/library_/$playlistId',
@@ -109,6 +115,7 @@ export interface FileRoutesByFullPath {
   '/refine/$mode': typeof RefineModeRoute
   '/watch/$videoId': typeof WatchVideoIdRoute
   '/library/$playlistId': typeof AuthenticatedLibraryPlaylistIdRoute
+  '/api/public/yt-suggest': typeof ApiPublicYtSuggestRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -124,6 +131,7 @@ export interface FileRoutesByTo {
   '/refine/$mode': typeof RefineModeRoute
   '/watch/$videoId': typeof WatchVideoIdRoute
   '/library/$playlistId': typeof AuthenticatedLibraryPlaylistIdRoute
+  '/api/public/yt-suggest': typeof ApiPublicYtSuggestRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -141,6 +149,7 @@ export interface FileRoutesById {
   '/refine/$mode': typeof RefineModeRoute
   '/watch/$videoId': typeof WatchVideoIdRoute
   '/_authenticated/library_/$playlistId': typeof AuthenticatedLibraryPlaylistIdRoute
+  '/api/public/yt-suggest': typeof ApiPublicYtSuggestRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -158,6 +167,7 @@ export interface FileRouteTypes {
     | '/refine/$mode'
     | '/watch/$videoId'
     | '/library/$playlistId'
+    | '/api/public/yt-suggest'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -173,6 +183,7 @@ export interface FileRouteTypes {
     | '/refine/$mode'
     | '/watch/$videoId'
     | '/library/$playlistId'
+    | '/api/public/yt-suggest'
   id:
     | '__root__'
     | '/'
@@ -189,6 +200,7 @@ export interface FileRouteTypes {
     | '/refine/$mode'
     | '/watch/$videoId'
     | '/_authenticated/library_/$playlistId'
+    | '/api/public/yt-suggest'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -200,6 +212,7 @@ export interface RootRouteChildren {
   PlaylistPlaylistIdRoute: typeof PlaylistPlaylistIdRoute
   RefineModeRoute: typeof RefineModeRoute
   WatchVideoIdRoute: typeof WatchVideoIdRoute
+  ApiPublicYtSuggestRoute: typeof ApiPublicYtSuggestRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -295,6 +308,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/api/public/yt-suggest': {
+      id: '/api/public/yt-suggest'
+      path: '/api/public/yt-suggest'
+      fullPath: '/api/public/yt-suggest'
+      preLoaderRoute: typeof ApiPublicYtSuggestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/library_/$playlistId': {
       id: '/_authenticated/library_/$playlistId'
       path: '/library/$playlistId'
@@ -336,6 +356,7 @@ const rootRouteChildren: RootRouteChildren = {
   PlaylistPlaylistIdRoute: PlaylistPlaylistIdRoute,
   RefineModeRoute: RefineModeRoute,
   WatchVideoIdRoute: WatchVideoIdRoute,
+  ApiPublicYtSuggestRoute: ApiPublicYtSuggestRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

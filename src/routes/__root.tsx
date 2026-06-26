@@ -100,16 +100,19 @@ function AppShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background pb-16 text-foreground lg:pb-0">
       {!onAuthPage && (
         <header className="sticky top-0 z-30 border-b border-border bg-background">
-          <div className="zen-container-wide flex h-12 items-center gap-2 px-3 sm:gap-3 sm:px-6">
-            <Link to="/" className="flex items-center gap-2 text-foreground no-underline hover:no-underline">
+          <div className="zen-container-wide flex h-12 items-center gap-2 px-3 sm:gap-4 sm:px-6">
+            <Link to="/" className="flex shrink-0 items-center gap-2 text-foreground no-underline hover:no-underline">
               <ZenLogo size={28} />
               <span className="text-[15px] font-bold tracking-tight" style={{ color: "#cc181e" }}>ZenTube</span>
             </Link>
 
-            <NavSearch />
-            <PrimaryNav />
+            {/* Centered search — sits exactly between the logo and the right-side nav */}
+            <div className="flex min-w-0 flex-1 justify-center">
+              <NavSearch />
+            </div>
 
-            <div className="ml-auto flex items-center gap-1 lg:ml-1">
+            <PrimaryNav />
+            <div className="flex shrink-0 items-center gap-1">
               <AccountMenu />
             </div>
           </div>
@@ -169,12 +172,12 @@ function MobileTabBar() {
 
 function PrimaryNav() {
   const { user } = useAuth();
-  if (!user) return <div className="ml-auto" />;
+  if (!user) return null;
   const linkBase =
     "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground";
   const activeCls = "bg-accent text-foreground";
   return (
-    <nav className="ml-auto hidden items-center gap-0.5 lg:flex">
+    <nav className="hidden shrink-0 items-center gap-0.5 lg:flex">
       <Link to="/dashboard" className={linkBase} activeProps={{ className: linkBase + " " + activeCls }}>
         <LayoutDashboard className="h-4 w-4" /> Insights
       </Link>

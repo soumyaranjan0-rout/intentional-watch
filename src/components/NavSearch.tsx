@@ -64,7 +64,7 @@ export function NavSearch() {
 
   return (
     <>
-      <form onSubmit={onSubmit} className="relative hidden flex-1 px-4 md:flex md:max-w-md">
+      <form onSubmit={onSubmit} className="relative hidden w-full max-w-xl md:flex">
         <div className="zen-search-glow flex w-full items-center gap-2 rounded-full border border-border bg-surface/70 pl-4 pr-1 backdrop-blur transition-colors focus-within:border-primary/50">
           <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
           <input
