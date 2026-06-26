@@ -691,18 +691,35 @@ function StripItem({ label, value, sub, valueColor, subColor, labelColor, classN
     </div>
   );
 }
-function Kpi({ border, label, value, sub, valueColor }: { border: string; label: string; value: string; sub: string; valueColor: string }) {
+function Kpi({ border, label, value, sub, valueColor, info }: { border: string; label: string; value: string; sub: string; valueColor: string; info?: string }) {
   return (
     <div
-      className="rounded-2xl bg-background text-center overflow-hidden min-w-0"
+      className="relative rounded-2xl bg-background text-center overflow-hidden min-w-0"
       style={{ padding: "18px 16px", borderTop: `3px solid ${border}`, borderRight: "1px solid var(--border)", borderBottom: "1px solid var(--border)", borderLeft: "1px solid var(--border)" }}
     >
+      {info && (
+        <UITooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              aria-label="More info"
+              className="absolute right-2 top-2 rounded-full p-1 text-muted-foreground/60 transition-colors hover:text-foreground focus:text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40"
+            >
+              <Info className="h-3.5 w-3.5" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="top" align="end" className="max-w-[240px]">
+            {info}
+          </TooltipContent>
+        </UITooltip>
+      )}
       <div className="uppercase text-muted-foreground truncate" style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.1em" }}>{label}</div>
       <div className="mt-1 truncate" style={{ color: valueColor, fontSize: 30, fontWeight: 650, letterSpacing: "-0.01em", lineHeight: 1.2, fontVariantNumeric: "tabular-nums" }}>{value}</div>
       <div className="mt-1 text-muted-foreground truncate" style={{ fontSize: 12.5 }}>{sub}</div>
     </div>
   );
 }
+
 function Legend({ items, className = "" }: { items: { color: string; label: string; dashed?: boolean; dot?: boolean }[]; className?: string }) {
   return (
     <div className={"flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground " + className}>
