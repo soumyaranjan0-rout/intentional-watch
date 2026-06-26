@@ -424,7 +424,10 @@ function Dashboard() {
   return (
     <div className="zen-container-wide pb-24 pt-6 lg:pb-12">
       {/* Header + KPI strip — sticks on desktop, scrolls on mobile */}
-      <div className="lg:sticky lg:top-14 lg:z-10 lg:-mx-4 lg:bg-background/95 lg:px-4 lg:pb-4 lg:pt-2 lg:backdrop-blur lg:supports-[backdrop-filter]:bg-background/80">
+      <div
+        className="lg:sticky lg:top-14 lg:z-10 lg:-mx-4 lg:bg-background lg:px-4 lg:pb-4 lg:pt-2 lg:border-b lg:border-border/40"
+        style={{ transform: "translateZ(0)", willChange: "transform", backfaceVisibility: "hidden", contain: "layout paint" }}
+      >
         <Header monthLabel={monthLabel} prev={goPrev} next={goNext} navBtn={navBtn} />
 
         {/* Row 1 — this month at a glance */}
