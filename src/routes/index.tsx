@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { Mode } from "@/lib/intent";
 import { useSessionState } from "@/contexts/SessionStateContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -28,6 +28,7 @@ function HomePage() {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   const onSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,6 +83,7 @@ function HomePage() {
             <div className="zen-card zen-search-glow flex items-center gap-1 rounded-full border bg-card/80 p-1.5 pl-5 backdrop-blur">
               <Search className="h-5 w-5 shrink-0 text-muted-foreground" />
               <input
+                ref={inputRef}
                 value={q}
                 onChange={(e) => { setQ(e.target.value); setSuggestionsOpen(true); }}
                 onFocus={() => setSuggestionsOpen(true)}
@@ -98,7 +100,7 @@ function HomePage() {
                 <ArrowRight className="h-4 w-4" />
               </button>
             </div>
-            <SearchSuggestions value={q} visible={suggestionsOpen && !open} onPick={pickSuggestion} />
+            <SearchSuggestions value={q} visible={suggestionsOpen && !open} onPick={pickSuggestion} inputRef={inputRef} />
             <p className="mt-5 text-sm text-muted-foreground">
               We'll ask why you're here — then tune results to match.
             </p>
