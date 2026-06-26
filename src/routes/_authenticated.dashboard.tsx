@@ -5,8 +5,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid,
-  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
-  LineChart, Line,
 } from "recharts";
 import { ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -676,18 +674,6 @@ function CardLabel({ children, info }: { children: React.ReactNode; info?: strin
           </TooltipContent>
         </UITooltip>
       )}
-    </div>
-  );
-}
-function StripItem({ label, value, sub, valueColor, subColor, labelColor, className = "" }: { label: string; value: string; sub: string; valueColor?: string; subColor?: string; labelColor?: string; className?: string }) {
-  return (
-    <div
-      className={"flex flex-col gap-1 border-r border-border/60 last:border-r-0 min-w-0 " + className}
-      style={{ padding: "16px 18px" }}
-    >
-      <div className="uppercase truncate" style={{ color: labelColor || "var(--muted-foreground)", fontSize: 11, fontWeight: 600, letterSpacing: "0.1em" }}>{label}</div>
-      <div className="truncate" style={{ color: valueColor || "var(--foreground)", fontSize: 26, fontWeight: 650, letterSpacing: "-0.01em", lineHeight: 1.2, fontVariantNumeric: "tabular-nums" }}>{value}</div>
-      <div className="truncate" style={{ color: subColor || "var(--muted-foreground)", fontSize: 12.5 }}>{sub}</div>
     </div>
   );
 }
