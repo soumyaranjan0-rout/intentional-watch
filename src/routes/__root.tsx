@@ -172,7 +172,7 @@ function MobileTabBar() {
 
 function PrimaryNav() {
   const { user } = useAuth();
-  if (!user) return <div className="ml-auto" />;
+  if (!user) return null;
   const linkBase =
     "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground";
   const activeCls = "bg-accent text-foreground";
