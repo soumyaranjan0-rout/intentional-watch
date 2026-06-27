@@ -79,28 +79,34 @@ function HomePage() {
             </span>
           </h1>
 
-          <form onSubmit={onSearch} className="relative mx-auto mt-12 max-w-2xl">
-            <div className="zen-card zen-search-glow flex items-center gap-1 rounded-full border bg-card/80 p-1.5 pl-5 backdrop-blur">
-              <Search className="h-5 w-5 shrink-0 text-muted-foreground" />
-              <input
-                ref={inputRef}
-                value={q}
-                onChange={(e) => { setQ(e.target.value); setSuggestionsOpen(true); }}
-                onFocus={() => setSuggestionsOpen(true)}
-                onBlur={() => window.setTimeout(() => setSuggestionsOpen(false), 120)}
-                placeholder="What are you looking for?"
-                className="min-w-0 flex-1 bg-transparent py-3 text-base outline-none placeholder:text-muted-foreground"
-              />
-              <button
-                type="submit"
-                disabled={!q.trim()}
-                className="ml-1 inline-flex items-center gap-1.5 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
-              >
-                <span className="hidden sm:inline">Search</span>
-                <ArrowRight className="h-4 w-4" />
-              </button>
+          <form onSubmit={onSearch} className="mx-auto mt-12 max-w-2xl">
+            <div className="relative">
+              <div className="zen-card zen-search-glow flex items-center gap-1 rounded-xl border bg-card/80 p-1.5 pl-5 backdrop-blur">
+                <Search className="h-5 w-5 shrink-0 text-muted-foreground" />
+                <input
+                  ref={inputRef}
+                  value={q}
+                  onChange={(e) => { setQ(e.target.value); setSuggestionsOpen(true); }}
+                  onFocus={() => setSuggestionsOpen(true)}
+                  onBlur={() => window.setTimeout(() => setSuggestionsOpen(false), 120)}
+                  placeholder="What are you looking for?"
+                  className="min-w-0 flex-1 bg-transparent py-3 text-base outline-none placeholder:text-muted-foreground"
+                  role="combobox"
+                  aria-expanded={suggestionsOpen}
+                  aria-autocomplete="list"
+                  aria-controls="home-search-suggestions"
+                />
+                <button
+                  type="submit"
+                  disabled={!q.trim()}
+                  className="ml-1 inline-flex items-center gap-1.5 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
+                >
+                  <span className="hidden sm:inline">Search</span>
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
+              <SearchSuggestions id="home-search-suggestions" value={q} visible={suggestionsOpen && !open} onPick={pickSuggestion} inputRef={inputRef} />
             </div>
-            <SearchSuggestions value={q} visible={suggestionsOpen && !open} onPick={pickSuggestion} inputRef={inputRef} />
             <p className="mt-5 text-sm text-muted-foreground">
               We'll ask why you're here — then tune results to match.
             </p>
