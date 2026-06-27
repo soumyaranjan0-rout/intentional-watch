@@ -79,11 +79,13 @@ export function SearchSuggestions({
   visible,
   onPick,
   inputRef,
+  id = "search-suggestions",
 }: {
   value: string;
   visible: boolean;
   onPick: (query: string) => void;
   inputRef?: React.RefObject<HTMLInputElement | null>;
+  id?: string;
 }) {
   const [remote, setRemote] = useState<string[]>([]);
   const [active, setActive] = useState<number>(-1);
