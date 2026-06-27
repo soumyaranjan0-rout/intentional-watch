@@ -79,11 +79,13 @@ export function SearchSuggestions({
   visible,
   onPick,
   inputRef,
+  id = "search-suggestions",
 }: {
   value: string;
   visible: boolean;
   onPick: (query: string) => void;
   inputRef?: React.RefObject<HTMLInputElement | null>;
+  id?: string;
 }) {
   const [remote, setRemote] = useState<string[]>([]);
   const [active, setActive] = useState<number>(-1);
@@ -155,27 +157,32 @@ export function SearchSuggestions({
 
   return (
     <div
-      className="absolute left-0 right-0 top-[calc(100%+4px)] z-50 overflow-hidden rounded-sm border border-border bg-popover text-left shadow-[0_2px_5px_rgba(0,0,0,0.18)]"
+      id={id}
+      className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-lg border border-border bg-popover text-left shadow-lg ring-1 ring-black/5"
       role="listbox"
+      aria-label="Search suggestions"
     >
       {items.map((suggestion, i) => {
         const isActive = i === active;
         const Icon = recentSet.has(suggestion.toLowerCase()) ? Clock : clean ? Search : TrendingUp;
+        const optionId = `${id}-option-${i}`;
         return (
           <button
             key={suggestion}
+            id={optionId}
             type="button"
             role="option"
             aria-selected={isActive}
+            tabIndex={-1}
             onMouseDown={(event) => event.preventDefault()}
             onMouseEnter={() => setActive(i)}
             onClick={() => onPick(suggestion)}
             className={
-              "flex w-full items-center gap-2 border-b border-border/60 px-3 py-2 text-left text-sm last:border-b-0 " +
-              (isActive ? "bg-accent text-foreground" : "text-foreground hover:bg-accent")
+              "flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors " +
+              (isActive ? "bg-accent text-foreground" : "text-foreground hover:bg-accent/60")
             }
           >
-            <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
             <span className="min-w-0 flex-1 truncate">{suggestion}</span>
           </button>
         );
