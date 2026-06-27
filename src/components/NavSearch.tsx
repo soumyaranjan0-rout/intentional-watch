@@ -76,6 +76,10 @@ export function NavSearch() {
             placeholder="Search videos…"
             className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none placeholder:text-muted-foreground"
             aria-label="Search"
+            role="combobox"
+            aria-expanded={suggestionsOpen}
+            aria-autocomplete="list"
+            aria-controls="nav-search-suggestions"
           />
           <kbd className="hidden rounded bg-background/80 px-1.5 py-0.5 text-[10px] text-muted-foreground sm:inline">⌘K</kbd>
           <button
