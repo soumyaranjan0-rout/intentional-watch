@@ -426,7 +426,7 @@ function Dashboard() {
       {/* Header + KPI strip — sticks on desktop, scrolls on mobile */}
       <div
         className="lg:sticky lg:top-14 lg:z-10 lg:-mx-4 lg:bg-background lg:px-4 lg:pb-4 lg:pt-2 lg:border-b lg:border-border/40"
-        style={{ transform: "translateZ(0)", willChange: "transform", backfaceVisibility: "hidden", contain: "layout paint" }}
+        style={{ transform: "translate3d(0,0,0)", WebkitTransform: "translate3d(0,0,0)", willChange: "transform", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", contain: "layout paint style", isolation: "isolate" }}
       >
         <Header monthLabel={monthLabel} prev={goPrev} next={goNext} navBtn={navBtn} />
 
