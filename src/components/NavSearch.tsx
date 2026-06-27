@@ -90,7 +90,7 @@ export function NavSearch() {
             Search
           </button>
         </div>
-        <SearchSuggestions value={q} visible={suggestionsOpen && !open} onPick={pickSuggestion} inputRef={inputRef} />
+        <SearchSuggestions id="nav-search-suggestions" value={q} visible={suggestionsOpen && !open} onPick={pickSuggestion} inputRef={inputRef} />
       </form>
       {open && (
         <IntentSearchModal
