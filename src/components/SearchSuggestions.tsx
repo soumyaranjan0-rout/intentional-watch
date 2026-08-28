@@ -124,8 +124,21 @@ export function SearchSuggestions({
     setActive(-1);
   }, [items.length, value]);
 
+  // Keep aria-activedescendant on the parent input in sync for screen readers.
+  useEffect(() => {
+    const el = inputRef?.current;
+    if (!el) return;
+    if (visible && active >= 0 && active < items.length) {
+      el.setAttribute("aria-activedescendant", `${id}-option-${active}`);
+    } else {
+      el.removeAttribute("aria-activedescendant");
+    }
+    return () => el.removeAttribute("aria-activedescendant");
+  }, [active, visible, items.length, id, inputRef]);
+
   // Attach keyboard navigation to the parent input.
   useEffect(() => {
+
     const el = inputRef?.current;
     if (!el || !visible || items.length === 0) return;
     const onKey = (e: KeyboardEvent) => {
