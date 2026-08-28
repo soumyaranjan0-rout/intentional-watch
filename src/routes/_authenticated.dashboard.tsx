@@ -389,11 +389,11 @@ function Dashboard() {
   if (rows === null) {
     return (
       <div className="zen-container-wide py-10">
-        <Skeleton className="h-10 w-64" />
-        <div className="mt-8 grid gap-3 sm:grid-cols-5"><Skeleton className="h-24 sm:col-span-5" /></div>
-        <div className="mt-3 grid gap-3 sm:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28" />)}
+        <Skeleton className="h-28 w-full rounded-3xl" />
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-32 rounded-3xl" />)}
         </div>
+        <Skeleton className="mt-4 h-72 w-full rounded-3xl" />
       </div>
     );
   }
@@ -401,310 +401,308 @@ function Dashboard() {
   const monthLabel = `${MONTHS[cur.m]} ${cur.y}`;
   const goPrev = () => setCur((c) => (c.m === 0 ? { y: c.y - 1, m: 11 } : { ...c, m: c.m - 1 }));
   const goNext = () => setCur((c) => (c.m === 11 ? { y: c.y + 1, m: 0 } : { ...c, m: c.m + 1 }));
-  const navBtn = "inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-surface text-foreground hover:bg-accent transition-colors";
 
   if (!data || data.monthVideos === 0) {
     return (
       <div className="zen-container-wide pb-24 pt-6 lg:pb-12">
-        <Header monthLabel={monthLabel} prev={goPrev} next={goNext} navBtn={navBtn} />
-        <div className="zen-card mt-6 p-10 text-center">
+        <Hero monthLabel={monthLabel} prev={goPrev} next={goNext} headline="Nothing watched yet" sub="Your insights appear as soon as you watch something." />
+        <div className="ins-panel mt-5 p-12 text-center">
           <p className="text-sm text-muted-foreground">
-            No watch data for <span className="text-foreground">{monthLabel}</span> yet.
-            Watch a video to start your insights.
+            No watch data for <span className="font-medium text-foreground">{monthLabel}</span> yet.
           </p>
         </div>
       </div>
     );
   }
 
-
-  // Three takeaways
   const tips = buildTips(data);
+  const split = [
+    { label: "Learning", sec: data.learn, pct: data.learnPct, color: COLORS.learn },
+    { label: "Entertainment", sec: data.ent, pct: data.entPct, color: COLORS.ent },
+    { label: "Other", sec: Math.max(0, data.monthEff - data.learn - data.ent), pct: Math.max(0, 100 - data.learnPct - data.entPct), color: COLORS.other },
+  ];
 
   return (
     <div className="zen-container-wide pb-24 pt-6 lg:pb-12">
-      {/* Header + KPI strip — sticks on desktop, scrolls on mobile */}
-      <div
-        className="lg:sticky lg:top-14 lg:z-10 lg:-mx-4 lg:bg-background lg:px-4 lg:pb-4 lg:pt-2 lg:border-b lg:border-border/40"
-        style={{ transform: "translate3d(0,0,0)", WebkitTransform: "translate3d(0,0,0)", willChange: "transform", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", contain: "layout paint style", isolation: "isolate" }}
-      >
-        <Header monthLabel={monthLabel} prev={goPrev} next={goNext} navBtn={navBtn} />
+      <Hero
+        monthLabel={monthLabel}
+        prev={goPrev}
+        next={goNext}
+        headline={fmtTime(data.monthEff)}
+        sub={`focused watch time across ${data.monthVideos} video${data.monthVideos === 1 ? "" : "s"} in ${monthLabel}`}
+      />
 
-        {/* Row 1 — this month at a glance */}
-        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Kpi
-            border={COLORS.learn}
-            label="This month"
-            value={fmtMin(data.monthEff)}
-            sub={`${data.monthVideos} video${data.monthVideos === 1 ? "" : "s"}`}
-            valueColor="var(--foreground)"
-            info="Total focused watch time across all categories for the selected month."
-          />
-          <Kpi
-            border={COLORS.learn}
-            label="Learning"
-            value={fmtMin(data.learn)}
-            sub={`${data.learnPct}% of month`}
-            valueColor={COLORS.learn}
-            info="Time on tutorials, courses and how-to content this month."
-          />
-          <Kpi
-            border={COLORS.ent}
-            label="Entertainment"
-            value={fmtMin(data.ent)}
-            sub={`${data.entPct}% of month`}
-            valueColor={COLORS.ent}
-            info="Time on music, shows and casual viewing this month."
-          />
-          <Kpi
-            border={COLORS.amber}
-            label="Learn streak"
-            value={`${data.streak} day${data.streak === 1 ? "" : "s"}`}
-            sub={data.todayHasLearn ? "active today" : "watch one to keep it"}
-            valueColor={COLORS.amber}
-            info="Consecutive days you've watched at least one learning video."
-          />
-        </div>
+      {/* Balance + headline stats */}
+      <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.45fr)]">
+        <Panel
+          title="Where your month went"
+          info="How this month's real watch time splits between learning, entertainment and everything else."
+        >
+          <div className="flex items-center gap-6">
+            <Donut segments={split} centerTop={`${data.learnPct}%`} centerSub="learning" />
+            <div className="min-w-0 flex-1 space-y-3">
+              {split.map((s) => (
+                <div key={s.label} className="min-w-0">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="inline-flex items-center gap-2 truncate text-[13px] font-medium text-foreground">
+                      <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: s.color }} />
+                      {s.label}
+                    </span>
+                    <span className="shrink-0 text-[13px] tabular-nums text-muted-foreground">{fmtTime(s.sec)}</span>
+                  </div>
+                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
+                    <div className="h-full rounded-full transition-[width] duration-500" style={{ width: `${s.pct}%`, background: s.color }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Panel>
 
-        {/* Row 2 — today + lifetime context */}
-        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Kpi
-            border={COLORS.mint}
-            label="Today"
-            value={fmtTime(data.tdTotal)}
-            sub={`${data.tdVideos} video${data.tdVideos === 1 ? "" : "s"} today`}
-            valueColor={COLORS.mint}
-            info="Real watch time today (skips and background tabs removed)."
-          />
-          <Kpi
-            border={COLORS.other}
-            label="All-time watched"
-            value={fmtMin(data.totalAll)}
-            sub="since you joined"
-            valueColor="var(--foreground)"
-            info="Lifetime focused watch time across every category."
-          />
-          <Kpi
-            border={COLORS.mint}
-            label="Active days"
-            value={`${data.activeDays}`}
-            sub="days watched this month"
-            valueColor={COLORS.mint}
-            info="Number of days in this month with at least one watched video."
-          />
-          <Kpi
-            border={COLORS.learn}
-            label="Best day"
-            value={fmtTime(data.bestDaySec)}
-            sub="most watched day this month"
-            valueColor={COLORS.learn}
-            info="Your highest single-day watch time within the selected month."
-          />
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+          <Tile label="Today" value={fmtTime(data.tdTotal)} sub={`${data.tdVideos} video${data.tdVideos === 1 ? "" : "s"}`} accent={COLORS.mint} info="Real watch time today — skips and background tabs removed." />
+          <Tile label="Learn streak" value={`${data.streak}d`} sub={data.todayHasLearn ? "active today" : "keep it alive"} accent={COLORS.amber} info="Consecutive days with at least one learning video." />
+          <Tile label="Active days" value={`${data.activeDays}`} sub={`of ${data.daysInMonth} days`} accent={COLORS.learn} info="Days this month with at least one watched video." />
+          <Tile label="Best day" value={fmtTime(data.bestDaySec)} sub="peak single day" accent={COLORS.ent} info="Your highest single-day watch time this month." />
+          <Tile label="Avg / video" value={fmtTime(data.avgPerVideoSec)} sub="attention per video" accent={COLORS.other} info="Average real watch time per video opened this month." />
+          <Tile label="All time" value={fmtMin(data.totalAll)} sub="since you joined" accent={COLORS.learn} info="Lifetime focused watch time across every category." />
         </div>
       </div>
 
-      {/* Charts — kept lean: a daily trend, an hourly rhythm, and your top channels. */}
-      <div className="mt-4 grid gap-3 lg:grid-cols-2">
-        {/* Daily watch minutes — full selected month */}
-        <Card className="lg:col-span-2">
-          <CardLabel info="Daily minutes by intent across the entire selected month. Each band shows how that day's watch time split between Learn, Entertainment and Other.">
-            Daily watch minutes — Learn vs Entertainment
-          </CardLabel>
-          <div className="min-w-0 w-full overflow-hidden" style={{ height: 240 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data.daysMonth} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
-                <CartesianGrid stroke="var(--border)" vertical={false} />
-                <XAxis
-                  dataKey="dayNum"
-                  type="number"
-                  domain={[1, data.daysInMonth]}
-                  ticks={Array.from({ length: Math.ceil(data.daysInMonth / 5) }, (_, i) => 1 + i * 5).concat(data.daysInMonth)}
-                  stroke="var(--muted-foreground)"
-                  fontSize={10}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(v) => `${MONTHS[cur.m].slice(0,3)} ${v}`}
-                />
-                <YAxis stroke="var(--muted-foreground)" fontSize={10} tickLine={false} axisLine={false} width={36} tickFormatter={(v) => `${v}m`} />
-                <Tooltip
-                  contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
-                  labelFormatter={(v) => `${MONTHS[cur.m]} ${v}, ${cur.y}`}
-                  formatter={(val: number, name: string) => [`${val} min`, name === "learn" ? "Learn" : name === "ent" ? "Entertainment" : "Other"]}
-                />
-                <Area type="monotone" dataKey="learn" stackId="1" stroke={COLORS.learn} fill={COLORS.learn} fillOpacity={0.18} isAnimationActive={false} />
-                <Area type="monotone" dataKey="ent" stackId="1" stroke={COLORS.ent} fill={COLORS.ent} fillOpacity={0.14} isAnimationActive={false} />
-                <Area type="monotone" dataKey="other" stackId="1" stroke={COLORS.other} fill={COLORS.other} fillOpacity={0.12} isAnimationActive={false} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-          <Legend items={[
-            { color: COLORS.learn, label: "Learn" },
-            { color: COLORS.ent, label: "Entertainment" },
-            { color: COLORS.other, label: "Other" },
-          ]}/>
-        </Card>
+      {/* Daily trend */}
+      <Panel
+        className="mt-4"
+        title={`Daily rhythm — ${monthLabel}`}
+        info="Minutes watched each day of the selected month, split by intent. Hover any day for exact numbers."
+        right={<Legend items={[
+          { color: COLORS.learn, label: "Learn", dot: true },
+          { color: COLORS.ent, label: "Entertainment", dot: true },
+          { color: COLORS.other, label: "Other", dot: true },
+        ]} />}
+      >
+        <div className="min-w-0 w-full overflow-hidden" style={{ height: 260 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data.daysMonth} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
+              <defs>
+                <linearGradient id="gLearn" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={COLORS.learn} stopOpacity={0.45} />
+                  <stop offset="100%" stopColor={COLORS.learn} stopOpacity={0.02} />
+                </linearGradient>
+                <linearGradient id="gEnt" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={COLORS.ent} stopOpacity={0.4} />
+                  <stop offset="100%" stopColor={COLORS.ent} stopOpacity={0.02} />
+                </linearGradient>
+                <linearGradient id="gOther" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={COLORS.other} stopOpacity={0.35} />
+                  <stop offset="100%" stopColor={COLORS.other} stopOpacity={0.02} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid stroke="var(--border)" strokeOpacity={0.6} vertical={false} />
+              <XAxis
+                dataKey="dayNum"
+                type="number"
+                domain={[1, data.daysInMonth]}
+                ticks={Array.from({ length: Math.ceil(data.daysInMonth / 5) }, (_, i) => 1 + i * 5).concat(data.daysInMonth)}
+                stroke="var(--muted-foreground)"
+                fontSize={11}
+                tickLine={false}
+                axisLine={false}
+                tickFormatter={(v) => `${MONTHS[cur.m].slice(0, 3)} ${v}`}
+              />
+              <YAxis stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} width={40} tickFormatter={(v) => `${v}m`} />
+              <Tooltip
+                cursor={{ stroke: "var(--border)", strokeWidth: 1 }}
+                contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 14, fontSize: 12, boxShadow: "0 12px 30px -12px rgba(0,0,0,.35)", padding: "10px 12px" }}
+                labelStyle={{ fontWeight: 600, marginBottom: 4 }}
+                labelFormatter={(v) => `${MONTHS[cur.m]} ${v}, ${cur.y}`}
+                formatter={(val: number, name: string) => [`${val} min`, name === "learn" ? "Learn" : name === "ent" ? "Entertainment" : "Other"]}
+              />
+              <Area type="monotone" dataKey="learn" stackId="1" stroke={COLORS.learn} strokeWidth={2} fill="url(#gLearn)" isAnimationActive={false} />
+              <Area type="monotone" dataKey="ent" stackId="1" stroke={COLORS.ent} strokeWidth={2} fill="url(#gEnt)" isAnimationActive={false} />
+              <Area type="monotone" dataKey="other" stackId="1" stroke={COLORS.other} strokeWidth={2} fill="url(#gOther)" isAnimationActive={false} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </Panel>
 
-        {/* Watch time by hour */}
-        <Card>
-          <CardLabel info="When you actually watch, hour by hour. Green hours skew toward learning; pink hours skew toward entertainment.">
-            Watch time by hour
-          </CardLabel>
-          <div className="flex min-w-0 w-full items-end gap-[2px] overflow-hidden" style={{ height: 180 }}>
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        {/* Hours */}
+        <Panel title="When you watch" info="Your watch time hour by hour. Green hours lean toward learning, pink toward entertainment.">
+          <div className="flex min-w-0 w-full items-end gap-[3px] overflow-hidden" style={{ height: 168 }}>
             {data.hourMin.map((v, i) => {
               const max = Math.max(...data.hourMin, 1);
-              const pct = Math.max(2, Math.round((v / max) * 100));
+              const pct = Math.max(3, Math.round((v / max) * 100));
               const isL = data.hourMin[i] > 0 && data.hourLearnMin[i] / data.hourMin[i] > 0.4;
               return (
-                <div key={i} className="flex-1 self-end rounded-t-sm"
-                  style={{ height: `${pct}%`, background: isL ? COLORS.learn : COLORS.ent, opacity: v === 0 ? 0.1 : 0.82 }}
-                  title={`${i}:00 · ${Math.round(v)} min`} />
+                <div
+                  key={i}
+                  className="group relative flex-1 self-end rounded-full transition-opacity hover:opacity-100"
+                  style={{ height: `${pct}%`, background: isL ? COLORS.learn : COLORS.ent, opacity: v === 0 ? 0.12 : 0.85 }}
+                  title={`${fmtHour(i)} · ${fmtTime(Math.round(v * 60))}`}
+                />
               );
             })}
           </div>
-          <div className="mt-1 flex justify-between text-[9px] text-muted-foreground">
+          <div className="mt-2 flex justify-between text-[10px] tabular-nums text-muted-foreground">
             <span>12am</span><span>6am</span><span>12pm</span><span>6pm</span><span>11pm</span>
           </div>
-          <div className="mt-2 rounded-lg bg-surface px-3 py-2">
-            <div className="text-xs font-medium text-foreground">
-              Peak: {fmtHour(data.peakIdx)} · {data.peakIdx >= 18 || data.peakIdx < 6 ? "evening" : data.peakIdx < 12 ? "morning" : "afternoon"}
+          <div className="mt-4 rounded-2xl border border-border/60 bg-surface px-4 py-3">
+            <div className="text-[13px] font-medium text-foreground">
+              Peak hour · {fmtHour(data.peakIdx)} ({data.peakIdx >= 18 || data.peakIdx < 6 ? "evening" : data.peakIdx < 12 ? "morning" : "afternoon"})
             </div>
-            <div className="text-xs text-muted-foreground">
+            <div className="mt-0.5 text-xs text-muted-foreground">
               {data.focusWindow.score > 0
                 ? `Best focus window: ${fmtHour(data.focusWindow.start)}–${fmtHour(data.focusWindow.start + 3)}. Protect it.`
-                : "Add a learning session to find your focus window."}
+                : "Add a learning session to reveal your focus window."}
             </div>
           </div>
-        </Card>
+        </Panel>
 
-        {/* Top channels */}
-        <Card>
-          <CardLabel info="Channels you spent the most real time on this month (skipped time excluded).">
-            Top channels
-          </CardLabel>
+        {/* Channels */}
+        <Panel title="Top channels" info="Channels you spent the most real time on this month.">
           {data.topChannels.length === 0 ? (
             <div className="text-sm text-muted-foreground">No channels this month.</div>
           ) : (
-            <div>
+            <div className="space-y-3.5">
               {data.topChannels.map((c, i) => {
                 const max = data.topChannels[0].min || 1;
                 return (
-                  <div key={i} className="flex items-center gap-2 border-b border-border/60 py-1.5 last:border-0">
-                    <div className="min-w-[110px] truncate text-xs font-medium text-foreground">{c.name}</div>
-                    <div className="h-1 min-w-[30px] flex-1 overflow-hidden rounded bg-muted">
-                      <div className="h-1 rounded" style={{ width: `${(c.min / max) * 100}%`, background: i === 0 ? COLORS.learn : COLORS.ent }} />
+                  <div key={i} className="min-w-0">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className="truncate text-[13px] font-medium text-foreground">{c.name}</span>
+                      <span className="shrink-0 text-[12px] tabular-nums text-muted-foreground">{c.min} min</span>
                     </div>
-                    <span className="whitespace-nowrap text-[11px] text-muted-foreground">{c.min} min</span>
+                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="h-full rounded-full"
+                        style={{ width: `${(c.min / max) * 100}%`, background: i === 0 ? COLORS.learn : i === 1 ? COLORS.ent : COLORS.other }}
+                      />
+                    </div>
                   </div>
                 );
               })}
             </div>
           )}
-        </Card>
+        </Panel>
       </div>
 
-      {/* Three takeaway tips */}
-      <Card className="mt-3">
-        <div className="mb-3 text-sm font-medium text-foreground">Three things your data is saying</div>
-        <div className="grid gap-3 md:grid-cols-3">
+      {/* Takeaways */}
+      <div className="mt-4">
+        <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">What your data is saying</div>
+        <div className="grid gap-4 md:grid-cols-3">
           {tips.map((t, i) => (
             <div
               key={i}
-              style={{
-                borderRadius: 10,
-                padding: 14,
-                background: t.bg || "var(--muted)",
-                borderLeft: `3px solid ${t.color}`,
-                minHeight: 100,
-              }}
+              className="ins-panel relative overflow-hidden p-5"
+              style={{ background: t.bg }}
             >
-              <div className="text-xs font-medium" style={{ color: t.titleColor || "var(--foreground)" }}>{t.title}</div>
-              <div className="mt-1 text-[11px] leading-relaxed" style={{ color: t.bodyColor || "var(--muted-foreground)" }}>{t.body}</div>
+              <span className="absolute inset-y-0 left-0 w-1" style={{ background: t.color }} />
+              <div className="text-[13px] font-semibold" style={{ color: t.titleColor }}>{t.title}</div>
+              <div className="mt-1.5 text-xs leading-relaxed" style={{ color: t.bodyColor }}>{t.body}</div>
             </div>
           ))}
         </div>
-      </Card>
-    </div>
-  );
-}
-
-
-function Header({ monthLabel, prev, next, navBtn }: { monthLabel: string; prev: () => void; next: () => void; navBtn: string }) {
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Your insights</div>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
-          Watching in <span style={{ color: COLORS.learn }}>{monthLabel}</span>
-        </h1>
-        <p className="mt-1 text-xs text-muted-foreground">
-          Only time you truly watched counts — skips and background tabs removed.
-        </p>
-      </div>
-      <div className="flex items-center gap-2">
-        <button className={navBtn} onClick={prev} aria-label="Previous month"><ChevronLeft className="h-4 w-4" /></button>
-        <div className="min-w-[100px] text-center text-sm font-medium text-foreground">{monthLabel}</div>
-        <button className={navBtn} onClick={next} aria-label="Next month"><ChevronRight className="h-4 w-4" /></button>
       </div>
     </div>
   );
 }
 
-function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={"zen-card overflow-hidden shadow-[var(--shadow-soft)] " + className} style={{ padding: 22, minWidth: 0 }}>{children}</div>;
-}
-function CardLabel({ children, info }: { children: React.ReactNode; info?: string }) {
+function Hero({ monthLabel, prev, next, headline, sub }: { monthLabel: string; prev: () => void; next: () => void; headline: string; sub: string }) {
+  const navBtn =
+    "inline-flex h-9 w-9 items-center justify-center rounded-full text-foreground transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background";
   return (
-    <div className="mb-3 flex items-start justify-between gap-2">
-      <div
-        className="uppercase text-muted-foreground"
-        style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.08em", lineHeight: 1.3, whiteSpace: "normal", overflowWrap: "break-word" }}
-      >
-        {children}
+    <div className="ins-hero relative overflow-hidden p-6 sm:p-8">
+      <div className="relative flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Your insights</div>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight tabular-nums sm:text-4xl">{headline}</h1>
+          <p className="mt-1.5 max-w-md text-sm text-muted-foreground">{sub}</p>
+        </div>
+        <div className="flex items-center gap-1 rounded-full border border-border bg-background/70 p-1 backdrop-blur">
+          <button className={navBtn} onClick={prev} aria-label="Previous month"><ChevronLeft className="h-4 w-4" /></button>
+          <div className="min-w-[120px] px-1 text-center text-[13px] font-medium text-foreground">{monthLabel}</div>
+          <button className={navBtn} onClick={next} aria-label="Next month"><ChevronRight className="h-4 w-4" /></button>
+        </div>
       </div>
-      {info && (
-        <UITooltip>
-          <TooltipTrigger asChild>
-            <button
-              type="button"
-              aria-label="More info"
-              className="shrink-0 rounded-full p-1 text-muted-foreground/70 transition-colors hover:text-foreground focus:text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40"
-            >
-              <Info className="h-3.5 w-3.5" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="left" align="start" className="max-w-[260px]">
-            {info}
-          </TooltipContent>
-        </UITooltip>
-      )}
     </div>
   );
 }
-function Kpi({ border, label, value, sub, valueColor, info }: { border: string; label: string; value: string; sub: string; valueColor: string; info?: string }) {
+
+function Panel({
+  title, info, children, className = "", right,
+}: { title: string; info?: string; children: React.ReactNode; className?: string; right?: React.ReactNode }) {
   return (
-    <div
-      className="relative rounded-2xl bg-background text-center overflow-hidden min-w-0"
-      style={{ padding: "18px 16px", borderTop: `3px solid ${border}`, borderRight: "1px solid var(--border)", borderBottom: "1px solid var(--border)", borderLeft: "1px solid var(--border)" }}
-    >
-      {info && (
-        <UITooltip>
-          <TooltipTrigger asChild>
-            <button
-              type="button"
-              aria-label="More info"
-              className="absolute right-2 top-2 rounded-full p-1 text-muted-foreground/60 transition-colors hover:text-foreground focus:text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40"
-            >
-              <Info className="h-3.5 w-3.5" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="top" align="end" className="max-w-[240px]">
-            {info}
-          </TooltipContent>
-        </UITooltip>
-      )}
-      <div className="uppercase text-muted-foreground truncate" style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.1em" }}>{label}</div>
-      <div className="mt-1 truncate" style={{ color: valueColor, fontSize: 30, fontWeight: 650, letterSpacing: "-0.01em", lineHeight: 1.2, fontVariantNumeric: "tabular-nums" }}>{value}</div>
-      <div className="mt-1 text-muted-foreground truncate" style={{ fontSize: 12.5 }}>{sub}</div>
+    <section className={"ins-panel p-5 sm:p-6 " + className}>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="flex items-center gap-1.5 text-[13px] font-semibold tracking-tight text-foreground">
+          {title}
+          {info && <InfoDot text={info} />}
+        </h2>
+        {right}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function InfoDot({ text, side = "top" }: { text: string; side?: "top" | "left" }) {
+  return (
+    <UITooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          aria-label="More info"
+          className="rounded-full p-0.5 text-muted-foreground/70 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        >
+          <Info className="h-3.5 w-3.5" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side={side} align="center" className="max-w-[260px] leading-relaxed">
+        {text}
+      </TooltipContent>
+    </UITooltip>
+  );
+}
+
+function Tile({ label, value, sub, accent, info }: { label: string; value: string; sub: string; accent: string; info?: string }) {
+  return (
+    <div className="ins-panel ins-tile group relative min-w-0 p-4">
+      <div className="flex items-center justify-between gap-1">
+        <span className="truncate text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{label}</span>
+        {info && <InfoDot text={info} />}
+      </div>
+      <div className="mt-2 truncate text-[22px] font-semibold leading-tight tabular-nums" style={{ color: accent }}>{value}</div>
+      <div className="mt-0.5 truncate text-[11.5px] text-muted-foreground">{sub}</div>
+    </div>
+  );
+}
+
+function Donut({ segments, centerTop, centerSub }: { segments: { label: string; pct: number; color: string }[]; centerTop: string; centerSub: string }) {
+  const r = 46, c = 2 * Math.PI * r;
+  let offset = 0;
+  return (
+    <div className="relative h-[132px] w-[132px] shrink-0">
+      <svg viewBox="0 0 120 120" className="h-full w-full -rotate-90">
+        <circle cx="60" cy="60" r={r} fill="none" stroke="var(--muted)" strokeWidth="12" />
+        {segments.map((s) => {
+          const len = (Math.max(0, s.pct) / 100) * c;
+          const el = (
+            <circle
+              key={s.label}
+              cx="60" cy="60" r={r} fill="none"
+              stroke={s.color} strokeWidth="12" strokeLinecap="butt"
+              strokeDasharray={`${len} ${c - len}`}
+              strokeDashoffset={-offset}
+            />
+          );
+          offset += len;
+          return el;
+        })}
+      </svg>
+      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-xl font-semibold tabular-nums text-foreground">{centerTop}</span>
+        <span className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">{centerSub}</span>
+      </div>
     </div>
   );
 }
@@ -714,18 +712,14 @@ function Legend({ items, className = "" }: { items: { color: string; label: stri
     <div className={"flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground " + className}>
       {items.map((it, i) => (
         <span key={i} className="inline-flex items-center gap-1.5">
-          {it.dot ? (
-            <span className="inline-block h-2 w-2 rounded-full" style={{ background: it.color }} />
-          ) : (
-            <span className="inline-block h-[10px] w-[10px] rounded-sm"
-              style={{ background: it.dashed ? "transparent" : it.color, border: it.dashed ? `2px dashed ${it.color}` : "none" }} />
-          )}
+          <span className="inline-block h-2 w-2 rounded-full" style={{ background: it.color }} />
           {it.label}
         </span>
       ))}
     </div>
   );
 }
+
 
 function fmtHour(h: number) {
   const i = ((h % 24) + 24) % 24;
