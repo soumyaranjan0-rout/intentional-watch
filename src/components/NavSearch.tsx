@@ -65,8 +65,8 @@ export function NavSearch() {
   return (
     <>
       <form onSubmit={onSubmit} className="relative hidden w-full max-w-xl md:flex">
-        <div className="zen-search-glow flex w-full items-center gap-2 rounded-full border border-border bg-surface/70 pl-4 pr-1 backdrop-blur transition-colors focus-within:border-primary/50">
-          <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <div className="zen-searchbar flex w-full items-center gap-2 rounded-full border border-border bg-background pl-4 pr-1 transition-[border-color,box-shadow] duration-150">
+          <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
           <input
             ref={inputRef}
             value={q}
@@ -81,15 +81,16 @@ export function NavSearch() {
             aria-autocomplete="list"
             aria-controls="nav-search-suggestions"
           />
-          <kbd className="hidden rounded bg-background/80 px-1.5 py-0.5 text-[10px] text-muted-foreground sm:inline">⌘K</kbd>
+          <kbd className="hidden rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground sm:inline">⌘K</kbd>
           <button
             type="submit"
             disabled={!q.trim()}
-            className="ml-1 rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
+            className="zen-focus-ring ml-1 rounded-full bg-primary px-4 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
           >
             Search
           </button>
         </div>
+
         <SearchSuggestions id="nav-search-suggestions" value={q} visible={suggestionsOpen && !open} onPick={pickSuggestion} inputRef={inputRef} />
       </form>
       {open && (

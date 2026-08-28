@@ -124,8 +124,21 @@ export function SearchSuggestions({
     setActive(-1);
   }, [items.length, value]);
 
+  // Keep aria-activedescendant on the parent input in sync for screen readers.
+  useEffect(() => {
+    const el = inputRef?.current;
+    if (!el) return;
+    if (visible && active >= 0 && active < items.length) {
+      el.setAttribute("aria-activedescendant", `${id}-option-${active}`);
+    } else {
+      el.removeAttribute("aria-activedescendant");
+    }
+    return () => el.removeAttribute("aria-activedescendant");
+  }, [active, visible, items.length, id, inputRef]);
+
   // Attach keyboard navigation to the parent input.
   useEffect(() => {
+
     const el = inputRef?.current;
     if (!el || !visible || items.length === 0) return;
     const onKey = (e: KeyboardEvent) => {
@@ -152,13 +165,14 @@ export function SearchSuggestions({
 
   if (!visible || items.length === 0) return null;
 
+
   const recentSet = new Set(recentSearches().map((r) => r.toLowerCase()));
   const clean = normalize(value).toLowerCase();
 
   return (
     <div
       id={id}
-      className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-lg border border-border bg-popover text-left shadow-lg ring-1 ring-black/5"
+      className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-xl border border-border bg-popover py-1 text-left shadow-[0_16px_40px_-18px_rgba(0,0,0,0.45)]"
       role="listbox"
       aria-label="Search suggestions"
     >
@@ -173,16 +187,17 @@ export function SearchSuggestions({
             type="button"
             role="option"
             aria-selected={isActive}
+            data-active={isActive ? "true" : "false"}
             tabIndex={-1}
             onMouseDown={(event) => event.preventDefault()}
             onMouseEnter={() => setActive(i)}
             onClick={() => onPick(suggestion)}
             className={
-              "flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors " +
-              (isActive ? "bg-accent text-foreground" : "text-foreground hover:bg-accent/60")
+              "zen-suggest-item flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors " +
+              (isActive ? "font-medium text-foreground" : "text-foreground hover:bg-accent/60")
             }
           >
-            <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <Icon className={"h-4 w-4 shrink-0 " + (isActive ? "text-foreground" : "text-muted-foreground")} aria-hidden />
             <span className="min-w-0 flex-1 truncate">{suggestion}</span>
           </button>
         );
@@ -190,3 +205,4 @@ export function SearchSuggestions({
     </div>
   );
 }
+
