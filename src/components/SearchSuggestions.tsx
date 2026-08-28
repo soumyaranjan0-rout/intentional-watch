@@ -152,6 +152,7 @@ export function SearchSuggestions({
 
   if (!visible || items.length === 0) return null;
 
+
   const recentSet = new Set(recentSearches().map((r) => r.toLowerCase()));
   const clean = normalize(value).toLowerCase();
 
