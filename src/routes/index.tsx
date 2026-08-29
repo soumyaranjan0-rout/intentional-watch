@@ -81,8 +81,8 @@ function HomePage() {
 
           <form onSubmit={onSearch} className="mx-auto mt-12 max-w-2xl">
             <div className="relative">
-              <div className="zen-card zen-search-glow flex items-center gap-1 rounded-xl border bg-card/80 p-1.5 pl-5 backdrop-blur">
-                <Search className="h-5 w-5 shrink-0 text-muted-foreground" />
+              <div className="zen-searchbar flex items-center gap-2 rounded-full border border-border bg-card/80 p-1.5 pl-5 backdrop-blur transition-colors">
+                <Search className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden />
                 <input
                   ref={inputRef}
                   value={q}
@@ -90,7 +90,8 @@ function HomePage() {
                   onFocus={() => setSuggestionsOpen(true)}
                   onBlur={() => window.setTimeout(() => setSuggestionsOpen(false), 120)}
                   placeholder="What are you looking for?"
-                  className="min-w-0 flex-1 bg-transparent py-3 text-base outline-none placeholder:text-muted-foreground"
+                  aria-label="Search videos"
+                  className="zen-focus-ring min-w-0 flex-1 bg-transparent py-3 text-base outline-none placeholder:text-muted-foreground"
                   role="combobox"
                   aria-expanded={suggestionsOpen}
                   aria-autocomplete="list"
@@ -99,12 +100,13 @@ function HomePage() {
                 <button
                   type="submit"
                   disabled={!q.trim()}
-                  className="ml-1 inline-flex items-center gap-1.5 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
+                  className="zen-focus-ring ml-1 inline-flex items-center gap-1.5 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
                 >
                   <span className="hidden sm:inline">Search</span>
-                  <ArrowRight className="h-4 w-4" />
+                  <ArrowRight className="h-4 w-4" aria-hidden />
                 </button>
               </div>
+
               <SearchSuggestions id="home-search-suggestions" value={q} visible={suggestionsOpen && !open} onPick={pickSuggestion} inputRef={inputRef} />
             </div>
             <p className="mt-5 text-sm text-muted-foreground">
