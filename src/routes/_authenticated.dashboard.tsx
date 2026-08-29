@@ -171,7 +171,7 @@ function Dashboard() {
       else other += sec;
     }
     const monthEff = learn + ent + find + explore + other;
-    const monthRaw = inMonth.reduce((s, r) => s + (r.watch_seconds || 0), 0);
+    const monthRaw = inMonth.reduce((s, r) => s + Math.max(r.watch_seconds || 0, r.effective_seconds || 0), 0);
     const monthVideos = inMonth.length;
     const totalSeeks = inMonth.reduce((s, r) => s + (r.seek_count || 0), 0);
 
@@ -223,7 +223,7 @@ function Dashboard() {
       for (const r of inMonth) {
         const t = new Date(r.watched_at).getTime();
         if (t < d.getTime() || t >= next.getTime()) continue;
-        const sec = (r.effective_seconds || 0) || (r.watch_seconds || 0);
+        const sec = (r.effective_seconds || 0);
         const min = sec / 60;
         const i2 = intentOf(r);
         if (i2 === "learn") l += min;
@@ -335,7 +335,7 @@ function Dashboard() {
       const byDay: Record<string, number> = {};
       for (const r of inMonth) {
         const key = new Date(r.watched_at).toDateString();
-        byDay[key] = (byDay[key] || 0) + ((r.effective_seconds || 0) || (r.watch_seconds || 0));
+        byDay[key] = (byDay[key] || 0) + ((r.effective_seconds || 0));
       }
       return Math.max(0, ...Object.values(byDay));
     })();
@@ -346,7 +346,7 @@ function Dashboard() {
       const start = new Date(r.watched_at);
       return {
         start: start.getHours() + start.getMinutes() / 60,
-        dur: Math.max(1, Math.round(((r.effective_seconds || 0) || (r.watch_seconds || 0)) / 60)),
+        dur: Math.max(1, Math.round(((r.effective_seconds || 0)) / 60)),
         m: intentOf(r) === "learn" ? "l" : "r",
       };
     });

@@ -176,25 +176,34 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoId]);
 
-  // Progress + seek detection
+  // Progress + seek detection.
+  // Emits *watched* segments continuously (every tick) so skipped/seeked time is
+  // never counted: only the intervals actually played forward are reported.
   useEffect(() => {
     const id = window.setInterval(() => {
       const p = playerRef.current;
       if (!p) return;
       try {
         const t = p.getCurrentTime();
-        const delta = t - lastTimeRef.current;
+        const prev = lastTimeRef.current;
+        const delta = t - prev;
         if (Math.abs(delta) > 1.6) {
+          // Jump (seek / skip): drop the gap entirely and restart the segment.
           flushSegment();
           if (playingRef.current) segmentStartRef.current = t;
           onSeek?.();
+        } else if (playingRef.current && delta > 0) {
+          // Real playback: report the tiny interval we just watched.
+          onSegmentPlayed?.(prev, t);
+          segmentStartRef.current = t;
         }
         lastTimeRef.current = t;
         onProgress?.(t);
       } catch {}
-    }, 1000);
+    }, 500);
     return () => window.clearInterval(id);
-  }, [onProgress, onSeek, flushSegment]);
+  }, [onProgress, onSeek, onSegmentPlayed, flushSegment]);
+
 
   return (
     <div className="zen-player relative aspect-video w-full overflow-hidden bg-black sm:rounded-2xl sm:shadow-[0_12px_50px_-15px_rgba(0,0,0,0.7)]">
