@@ -91,7 +91,7 @@ function HomePage() {
                   onBlur={() => window.setTimeout(() => setSuggestionsOpen(false), 120)}
                   placeholder="What are you looking for?"
                   aria-label="Search videos"
-                  className="zen-focus-ring min-w-0 flex-1 bg-transparent py-3 text-base outline-none placeholder:text-muted-foreground"
+                  className="min-w-0 flex-1 bg-transparent py-3 text-base outline-none ring-0 focus:outline-none focus-visible:outline-none placeholder:text-muted-foreground"
                   role="combobox"
                   aria-expanded={suggestionsOpen}
                   aria-autocomplete="list"
