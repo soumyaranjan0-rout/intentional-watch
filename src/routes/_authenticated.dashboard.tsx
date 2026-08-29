@@ -171,7 +171,7 @@ function Dashboard() {
       else other += sec;
     }
     const monthEff = learn + ent + find + explore + other;
-    const monthRaw = inMonth.reduce((s, r) => s + (r.effective_seconds || 0), 0);
+    const monthRaw = inMonth.reduce((s, r) => s + Math.max(r.watch_seconds || 0, r.effective_seconds || 0), 0);
     const monthVideos = inMonth.length;
     const totalSeeks = inMonth.reduce((s, r) => s + (r.seek_count || 0), 0);
 
