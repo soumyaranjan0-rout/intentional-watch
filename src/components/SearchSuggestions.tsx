@@ -172,7 +172,7 @@ export function SearchSuggestions({
   return (
     <div
       id={id}
-      className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-xl border border-border bg-popover py-1 text-left shadow-[0_16px_40px_-18px_rgba(0,0,0,0.45)]"
+      className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-[1.5rem] border border-border bg-popover p-1.5 text-left shadow-[0_18px_44px_-20px_rgba(0,0,0,0.5)]"
       role="listbox"
       aria-label="Search suggestions"
     >
@@ -193,7 +193,7 @@ export function SearchSuggestions({
             onMouseEnter={() => setActive(i)}
             onClick={() => onPick(suggestion)}
             className={
-              "zen-suggest-item flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors " +
+              "zen-suggest-item flex w-full items-center gap-3 rounded-full px-4 py-2.5 text-left text-sm transition-colors " +
               (isActive ? "font-medium text-foreground" : "text-foreground hover:bg-accent/60")
             }
           >
