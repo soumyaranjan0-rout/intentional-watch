@@ -424,17 +424,21 @@ function SettingsPage() {
           </div>
         )}
 
-        <div className="sticky bottom-4 z-10 flex justify-end pt-2">
-          <button
-            onClick={save}
-            disabled={saving}
-            className="rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground shadow-lg hover:opacity-90 disabled:opacity-60"
-          >
-            {saving ? "Saving…" : "Save changes"}
-          </button>
-        </div>
+        {tab !== "reports" && tab !== "help" && (
+          <div className="sticky bottom-4 z-10 flex justify-end pt-2">
+            <button
+              onClick={save}
+              disabled={saving}
+              className="rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground shadow-lg hover:opacity-90 disabled:opacity-60"
+            >
+              {saving ? "Saving…" : "Save changes"}
+            </button>
+          </div>
+        )}
+      </div>
       </div>
     </div>
+
   );
 }
 
