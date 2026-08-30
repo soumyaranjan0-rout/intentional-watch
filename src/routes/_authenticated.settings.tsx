@@ -491,9 +491,9 @@ function SectionGroup({
   children: React.ReactNode;
 }) {
   return (
-    <section className="zen-card p-5 sm:p-6">
-      <header className="flex items-start gap-3 border-b border-border/60 pb-4">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+    <section className="ins-panel p-5 sm:p-6">
+      <header className="flex items-start gap-3 border-b border-border/50 pb-4">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/12 text-primary ring-1 ring-primary/20">
           <Icon className="h-4 w-4" />
         </div>
         <div>
