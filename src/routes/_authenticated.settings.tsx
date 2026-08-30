@@ -146,40 +146,71 @@ function SettingsPage() {
     );
   }
 
+  const activeTab = TABS.find((t) => t.key === tab)!;
+
   return (
-    <div className="zen-container py-10">
-      <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Adjust ZenTube to your pace.</p>
+    <div className="zen-container py-6 sm:py-8">
+      {/* Hero header */}
+      <header className="ins-hero relative overflow-hidden p-5 sm:p-7">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="min-w-0">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              ZenTube control room
+            </div>
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">Settings</h1>
+            <p className="mt-1 max-w-xl text-sm text-muted-foreground">
+              Tune how ZenTube keeps your watching intentional — intent defaults, daily limits,
+              privacy and your own API key.
+            </p>
+          </div>
+          <div className="flex items-center gap-3 rounded-2xl border border-border/70 bg-card/70 px-4 py-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-sm font-semibold text-primary">
+              {(displayName || user?.email || "?").slice(0, 1).toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <div className="truncate text-sm font-medium text-foreground">
+                {displayName || "Your profile"}
+              </div>
+              <div className="truncate text-xs text-muted-foreground">{user?.email}</div>
+            </div>
+          </div>
+        </div>
+      </header>
 
-      {/* Tabs */}
-      <div
-        role="tablist"
-        aria-label="Settings sections"
-        className="mt-6 flex gap-1 overflow-x-auto rounded-xl border border-border bg-surface/50 p-1"
-      >
-        {TABS.map((t) => {
-          const Icon = t.icon;
-          const active = tab === t.key;
-          return (
-            <button
-              key={t.key}
-              role="tab"
-              aria-selected={active}
-              onClick={() => setTab(t.key)}
-              className={
-                "inline-flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-colors " +
-                (active
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground")
-              }
-            >
-              <Icon className="h-4 w-4" /> {t.label}
-            </button>
-          );
-        })}
-      </div>
+      <div className="mt-6 gap-6 lg:grid lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start">
+        {/* Sidebar navigation */}
+        <nav
+          role="tablist"
+          aria-label="Settings sections"
+          className="ins-panel flex gap-1 overflow-x-auto p-2 lg:sticky lg:top-16 lg:flex-col lg:overflow-visible"
+        >
+          {TABS.map((t) => {
+            const Icon = t.icon;
+            const active = tab === t.key;
+            return (
+              <button
+                key={t.key}
+                role="tab"
+                aria-selected={active}
+                onClick={() => setTab(t.key)}
+                className={
+                  "inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-3 py-2 text-sm font-medium transition-colors lg:w-full " +
+                  (active
+                    ? "bg-primary/12 text-foreground shadow-sm ring-1 ring-primary/30"
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground")
+                }
+              >
+                <Icon className="h-4 w-4 shrink-0" /> {t.label}
+              </button>
+            );
+          })}
+        </nav>
 
-      <div className="mt-5 space-y-6">
+      <div className="mt-5 space-y-6 lg:mt-0">
+        <div className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground lg:hidden">
+          {activeTab.label}
+        </div>
+
         {tab === "account" && (
           <SectionGroup icon={User} title="Account" description="Your basic profile">
             <Field label="Display name">
