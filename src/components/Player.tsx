@@ -75,6 +75,7 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
   const playerRef = useRef<YTPlayer | null>(null);
   const segmentStartRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(0);
+  const lastTickAtRef = useRef<number>(0);
   const playingRef = useRef(false);
 
   const [unavailable, setUnavailable] = useState(false);
@@ -144,15 +145,19 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
               playingRef.current = true;
               setHasPlayed(true);
               setEnded(false);
+              try { lastTimeRef.current = p.getCurrentTime(); } catch {}
+              lastTickAtRef.current = performance.now();
               if (segmentStartRef.current == null) {
                 try { segmentStartRef.current = p.getCurrentTime(); } catch {}
               }
             } else if (st === window.YT.PlayerState.PAUSED) {
               playingRef.current = false;
-              flushSegment();
+              segmentStartRef.current = null;
+              lastTickAtRef.current = 0;
             } else if (st === window.YT.PlayerState.ENDED) {
               playingRef.current = false;
-              flushSegment();
+              segmentStartRef.current = null;
+              lastTickAtRef.current = 0;
               setEnded(true);
               onEnded?.();
             }
@@ -187,14 +192,19 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
         const t = p.getCurrentTime();
         const prev = lastTimeRef.current;
         const delta = t - prev;
-        if (Math.abs(delta) > 1.6) {
+        const now = performance.now();
+        const wallDelta = lastTickAtRef.current ? (now - lastTickAtRef.current) / 1000 : 0;
+        lastTickAtRef.current = now;
+        // A played interval must move forward at roughly real time. This rejects
+        // seeks (including small scrubber jumps), buffering and hidden-tab stalls.
+        const isRealPlayback = playingRef.current && delta > 0 && wallDelta > 0 && delta <= Math.min(1.25, wallDelta + 0.3);
+        if (playingRef.current && !isRealPlayback && Math.abs(delta) > 0.05) {
           // Jump (seek / skip): drop the gap entirely and restart the segment.
-          flushSegment();
-          if (playingRef.current) segmentStartRef.current = t;
+          segmentStartRef.current = t;
           onSeek?.();
-        } else if (playingRef.current && delta > 0) {
-          // Real playback: report the tiny interval we just watched.
-          onSegmentPlayed?.(prev, t);
+        } else if (isRealPlayback) {
+          // Count no more than elapsed real time, even if the media clock races.
+          onSegmentPlayed?.(prev, prev + Math.min(delta, wallDelta));
           segmentStartRef.current = t;
         }
         lastTimeRef.current = t;

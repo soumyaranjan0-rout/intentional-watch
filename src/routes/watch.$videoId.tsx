@@ -12,6 +12,7 @@ import { SaveToLibraryModal } from "@/components/SaveToLibraryModal";
 import { isInSystemPlaylist, addToSystemPlaylist, removeFromSystemPlaylist } from "@/lib/systemPlaylists";
 import { getVideoMeta } from "@/lib/youtube.functions";
 import { getStoredYouTubeApiKey } from "@/lib/youtubeApiKey";
+import { setLastWatched, updateLastWatchedPosition } from "@/lib/lastWatched";
 import { toast } from "sonner";
 import {
   BookmarkPlus, BookmarkCheck, ArrowLeft, Share2, StickyNote, ThumbsUp,
@@ -69,7 +70,7 @@ function WatchPage() {
   const watchSecondsRef = useRef(0);
   const effectiveSecondsRef = useRef(0);
   const seekCountRef = useRef(0);
-  const segmentsRef = useRef<Array<[number, number]>>([]);
+  const resumePositionRef = useRef(search.t || 0);
 
   const lastSyncedRef = useRef(0);
   const recordedFinalRef = useRef(false);
@@ -147,24 +148,17 @@ function WatchPage() {
     return () => window.clearInterval(id);
   }, [sessionStartedAt]);
 
-  const mergeSegment = (start: number, end: number) => {
-    if (end <= start) return;
-    const segs = segmentsRef.current.slice();
-    segs.push([start, end]);
-    segs.sort((a, b) => a[0] - b[0]);
-    const merged: Array<[number, number]> = [];
-    for (const [s, e] of segs) {
-      if (merged.length && s <= merged[merged.length - 1][1]) {
-        merged[merged.length - 1][1] = Math.max(merged[merged.length - 1][1], e);
-      } else {
-        merged.push([s, e]);
-      }
-    }
-    segmentsRef.current = merged;
-    effectiveSecondsRef.current = Math.round(
-      merged.reduce((acc, [s, e]) => acc + (e - s), 0),
-    );
-  };
+  useEffect(() => {
+    setLastWatched({
+      videoId,
+      title: meta?.title || search.title || "Current video",
+      channel: meta?.channel || search.channel || "",
+      thumbnail: search.thumbnail || "",
+      t: resumePositionRef.current,
+      duration: meta?.durationSeconds || search.duration || 0,
+      updatedAt: Date.now(),
+    });
+  }, [videoId, meta?.title, meta?.channel, meta?.durationSeconds, search.title, search.channel, search.thumbnail, search.duration]);
 
   const syncHistory = useCallback(async () => {
     if (!user) return;
@@ -214,14 +208,17 @@ function WatchPage() {
 
   const handleProgress = useCallback(
     (s: number) => {
-      if (s > watchSecondsRef.current) watchSecondsRef.current = s;
+      watchSecondsRef.current = s;
+      resumePositionRef.current = s;
+      if (Math.floor(s) % 5 === 0) updateLastWatchedPosition(videoId, s);
       void syncHistory();
     },
-    [syncHistory],
+    [syncHistory, videoId],
   );
 
   const handleSegment = useCallback((start: number, end: number) => {
-    mergeSegment(start, end);
+    const played = end - start;
+    if (played > 0 && played <= 1.25) effectiveSecondsRef.current += played;
   }, []);
 
   const handleSeek = useCallback(() => {
@@ -230,19 +227,20 @@ function WatchPage() {
 
   useEffect(() => {
     return () => {
+      updateLastWatchedPosition(videoId, resumePositionRef.current);
       if (user && historyIdRef.current) {
         supabase
           .from("watch_history")
           .update({
             watch_seconds: Math.round(watchSecondsRef.current),
-            effective_seconds: effectiveSecondsRef.current,
+            effective_seconds: Math.round(effectiveSecondsRef.current),
             seek_count: seekCountRef.current,
           })
           .eq("id", historyIdRef.current)
           .then(() => {});
       }
     };
-  }, [user]);
+  }, [user, videoId]);
 
   const handleEnded = async () => {
     setEnded(true);

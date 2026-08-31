@@ -212,7 +212,7 @@ function HistoryPage() {
                             <span>·</span>
                             <span>{m ? `${m.emoji} ${m.label}` : intent}</span>
                             <span>·</span>
-                            <span>{formatDuration(it.effective_seconds || it.watch_seconds)} watched</span>
+                            <span>{formatDuration(it.effective_seconds || 0)} watched</span>
                             <span>·</span>
                             <span>{new Date(it.watched_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>
                           </div>

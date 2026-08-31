@@ -123,6 +123,11 @@ function AppShell({ children }: { children: React.ReactNode }) {
       <main>
         {children}
       </main>
+      {!onAuthPage && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-[calc(3.25rem+env(safe-area-inset-bottom))] z-40 flex justify-center px-4 lg:hidden">
+          <div className="pointer-events-auto"><NowPlayingChip mobile /></div>
+        </div>
+      )}
       {!onAuthPage && <MobileTabBar />}
     </div>
   );

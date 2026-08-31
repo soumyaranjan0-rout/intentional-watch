@@ -171,7 +171,9 @@ function Dashboard() {
       else other += sec;
     }
     const monthEff = learn + ent + find + explore + other;
-    const monthRaw = inMonth.reduce((s, r) => s + Math.max(r.watch_seconds || 0, r.effective_seconds || 0), 0);
+    // Playback position is deliberately excluded from analytics: seeking to
+    // minute 40 must never look like 40 minutes watched.
+    const monthRaw = monthEff;
     const monthVideos = inMonth.length;
     const totalSeeks = inMonth.reduce((s, r) => s + (r.seek_count || 0), 0);
 
