@@ -20,6 +20,12 @@ export function setLastWatched(v: LastWatched) {
   } catch {}
 }
 
+export function updateLastWatchedPosition(videoId: string, t: number) {
+  const current = getLastWatched();
+  if (!current || current.videoId !== videoId) return;
+  setLastWatched({ ...current, t: Math.max(0, t), updatedAt: Date.now() });
+}
+
 export function getLastWatched(): LastWatched | null {
   try {
     const raw = localStorage.getItem(KEY);
