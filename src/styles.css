@@ -289,7 +289,21 @@
     border-color: #999999;
     background-color: #fafafa;
   }
-  .zen-fade-in { animation: none; }
+  @keyframes zen-enter {
+    from { opacity: 0; transform: translateY(8px) scale(.985); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes zen-chip-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .zen-fade-in { animation: zen-enter 260ms cubic-bezier(.2,.8,.2,1) both; }
+  .intent-dialog { animation-duration: 260ms; }
+  .intent-option { transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease; }
+  .intent-option:hover { transform: translateY(-2px); }
+  .intent-option[aria-pressed="true"] { transform: translateY(-1px); }
+  .resume-chip { animation: zen-chip-in 260ms ease-out both; transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease; }
+  .resume-chip:hover { transform: translateY(-2px); box-shadow: 0 10px 24px -16px color-mix(in oklab, var(--color-primary) 70%, transparent); }
   .zen-hero-bg {
     background: var(--color-background);
     border-bottom: 1px solid var(--color-border);
@@ -400,6 +414,11 @@
     background-size: 200% 100%;
     animation: zen-shimmer 1.6s ease-in-out infinite;
     border-radius: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .zen-fade-in, .intent-dialog, .resume-chip, .zen-skeleton { animation: none !important; }
+    .intent-option, .resume-chip, .ins-tile { transition: none !important; transform: none !important; }
   }
 
 }
