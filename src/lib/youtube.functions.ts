@@ -398,9 +398,11 @@ export const searchVideos = createServerFn({ method: "POST" })
 
       // Tokens used for both filtering and ranking. Strip stopwords and short tokens.
       const STOP = new Set(["the","and","for","with","video","videos","new","latest","best","top","you","your","this","that","from","into","what","how","why","2024","2025","2026","2027"]);
-      const qNorm = data.query.toLowerCase().trim();
-      const allTokens = qNorm.split(/\s+/).filter((t) => t.length >= 3);
+      const normalize = (value: string) => value.toLowerCase().replace(/&amp;/g, "and").replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+      const qNorm = normalize(data.query);
+      const allTokens = qNorm.split(/\s+/).filter((t) => t.length >= 2);
       const coreTokens = allTokens.filter((t) => !STOP.has(t));
+      const refinementTokens = normalize([...(data.chips ?? []), data.freeform ?? ""].join(" ")).split(/\s+/).filter((t) => t.length >= 3 && !STOP.has(t));
       const channelNameNorm = channel ? channel.title.toLowerCase() : null;
       const nowMs = Date.now();
 
@@ -446,9 +448,9 @@ export const searchVideos = createServerFn({ method: "POST" })
       results.sort((a, b) => {
         const score = (v: ResultVideo) => {
           let s = fitScore(bucket, v.durationSeconds, v.viewCount);
-          const titleN = v.title.toLowerCase();
-          const descN = (v.description || "").toLowerCase();
-          const chN = v.channel.toLowerCase();
+           const titleN = normalize(v.title);
+           const descN = normalize(v.description || "");
+           const chN = normalize(v.channel);
           const matched = allTokens.filter((t) => titleN.includes(t)).length;
           const coreMatched = coreTokens.filter((t) => titleN.includes(t)).length;
           const coreCoverage = coreTokens.length ? coreMatched / coreTokens.length : 1;
@@ -462,6 +464,17 @@ export const searchVideos = createServerFn({ method: "POST" })
           else if (channelNameNorm && chN.includes(channelNameNorm)) s += 28;
           if (qNorm.length >= 4 && titleN.includes(qNorm)) s += 18;
           if (qNorm.length >= 4 && titleN.startsWith(qNorm)) s += 10;
+           const refinementCoverage = refinementTokens.length
+             ? refinementTokens.filter((t) => titleN.includes(t) || descN.includes(t)).length / refinementTokens.length
+             : 0;
+           s += refinementCoverage * 18;
+           if (/official|verified/.test(data.chips?.join(" ").toLowerCase() ?? "") && /official/.test(titleN)) s += 24;
+           if (/tutorial|course|lesson|explained|guide|lecture/.test(titleN) && data.mode === "learn") s += 16;
+           if (/ambient|relax|chill|lofi|music|comedy/.test(titleN) && data.mode === "relax") s += 14;
+           if (/compilation|reaction|shorts?|#short/i.test(titleN) && data.mode !== "relax") s -= 28;
+           if (/you won.t believe|must watch|shocking|insane/i.test(titleN)) s -= 12;
+           // Popularity is a trust signal, not the goal: cap it so relevance wins.
+           s += Math.min(8, Math.log10(Math.max(v.viewCount, 1)));
           // Recency boost for freshness queries (decays over ~60 days)
           if (intentInfo.freshness && v.publishedAt) {
             const ageDays = (nowMs - +new Date(v.publishedAt)) / 86_400_000;
