@@ -416,9 +416,47 @@
     border-radius: 2px;
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    .zen-fade-in, .intent-dialog, .resume-chip, .zen-skeleton { animation: none !important; }
-    .intent-option, .resume-chip, .ins-tile { transition: none !important; transform: none !important; }
+  /* ---- Restrained motion utilities (transform/opacity only) ---- */
+  .zen-press { transition: transform 120ms ease; }
+  .zen-press:active { transform: scale(0.97); }
+
+  .zen-tab {
+    transition: color 140ms ease, background-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
   }
+  .zen-tab:hover { transform: translateY(-1px); }
+  .zen-tab:active { transform: translateY(0) scale(0.98); }
+
+  /* Staggered entrance for a list/grid of panels */
+  .zen-stagger > * { animation: zen-enter 300ms cubic-bezier(.2,.8,.2,1) both; }
+  .zen-stagger > *:nth-child(1) { animation-delay: 0ms; }
+  .zen-stagger > *:nth-child(2) { animation-delay: 45ms; }
+  .zen-stagger > *:nth-child(3) { animation-delay: 90ms; }
+  .zen-stagger > *:nth-child(4) { animation-delay: 135ms; }
+  .zen-stagger > *:nth-child(5) { animation-delay: 180ms; }
+  .zen-stagger > *:nth-child(n + 6) { animation-delay: 210ms; }
+
+  @keyframes zen-collapse-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .zen-collapse { animation: zen-collapse-in 200ms ease-out both; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+    .zen-fade-in, .intent-dialog, .resume-chip, .zen-skeleton,
+    .zen-stagger > *, .zen-collapse { animation: none !important; }
+    .intent-option, .resume-chip, .ins-tile, .zen-tab, .zen-press {
+      transition: none !important;
+      transform: none !important;
+    }
+  }
+
 
 }
