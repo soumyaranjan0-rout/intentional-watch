@@ -162,7 +162,7 @@ function SettingsPage() {
   const active = SECTIONS.find((s) => s.key === section)!;
 
   return (
-    <div className="zen-container py-6 sm:py-8">
+    <div className="zen-container pb-28 pt-6 sm:pt-8 lg:pb-10">
       {/* Hero header */}
       <header className="ins-hero zen-fade-in relative overflow-hidden p-5 sm:p-7">
         <div className="grid grid-cols-[minmax(0,1fr)] items-center gap-4 sm:flex sm:flex-wrap sm:justify-between">
@@ -462,7 +462,7 @@ function SettingsPage() {
           )}
 
           {SAVEABLE.includes(section) && (
-            <div className="sticky bottom-4 z-10 flex justify-end pt-2">
+            <div className="sticky bottom-20 z-10 flex justify-end pt-2 lg:bottom-4">
               <button
                 onClick={save}
                 disabled={saving}
