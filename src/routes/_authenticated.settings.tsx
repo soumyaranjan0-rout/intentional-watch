@@ -164,7 +164,7 @@ function SettingsPage() {
   return (
     <div className="zen-container py-6 sm:py-8">
       {/* Hero header */}
-      <header className="ins-hero relative overflow-hidden p-5 sm:p-7">
+      <header className="ins-hero zen-fade-in relative overflow-hidden p-5 sm:p-7">
         <div className="grid grid-cols-[minmax(0,1fr)] items-center gap-4 sm:flex sm:flex-wrap sm:justify-between">
           <div className="min-w-0">
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
@@ -196,7 +196,7 @@ function SettingsPage() {
           role="tablist"
           aria-label="Settings sections"
           aria-orientation="vertical"
-          className="ins-panel flex gap-1 overflow-x-auto p-2 lg:sticky lg:top-16 lg:flex-col lg:overflow-visible"
+          className="ins-panel zen-fade-in flex gap-1 overflow-x-auto p-2 lg:sticky lg:top-16 lg:flex-col lg:overflow-visible"
         >
           {SECTIONS.map((s) => {
             const Icon = s.icon;
@@ -208,7 +208,7 @@ function SettingsPage() {
                 aria-selected={isActive}
                 onClick={() => setSection(s.key)}
                 className={
-                  "inline-flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-xl px-3 py-2 text-left text-sm font-medium transition-colors lg:w-full " +
+                  "zen-tab zen-press inline-flex min-h-11 shrink-0 items-center gap-2.5 whitespace-nowrap rounded-xl px-3 py-2 text-left text-sm font-medium lg:w-full " +
                   (isActive
                     ? "bg-primary/12 text-foreground shadow-sm ring-1 ring-primary/30"
                     : "text-muted-foreground hover:bg-accent hover:text-foreground")
@@ -226,7 +226,7 @@ function SettingsPage() {
           })}
         </nav>
 
-        <div className="mt-5 space-y-6 lg:mt-0">
+        <div key={section} className="zen-stagger mt-5 space-y-6 lg:mt-0">
           <div className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground lg:hidden">
             {active.label}
           </div>
@@ -466,7 +466,7 @@ function SettingsPage() {
               <button
                 onClick={save}
                 disabled={saving}
-                className="rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground shadow-lg hover:opacity-90 disabled:opacity-60"
+                className="zen-press min-h-11 rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground shadow-lg hover:opacity-90 disabled:opacity-60"
               >
                 {saving ? "Saving…" : "Save changes"}
               </button>
@@ -496,7 +496,7 @@ function Advanced({
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        className="grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 p-4 text-left hover:bg-accent/40 sm:p-5"
+        className="zen-press grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 p-4 text-left hover:bg-accent/40 sm:p-5"
       >
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-muted/60 text-muted-foreground ring-1 ring-border">
           <Icon className="h-4 w-4" />
@@ -509,7 +509,7 @@ function Advanced({
           className={"h-4 w-4 shrink-0 text-muted-foreground transition-transform " + (open ? "rotate-180" : "")}
         />
       </button>
-      {open && <div className="space-y-5 border-t border-border/50 p-4 sm:p-5">{children}</div>}
+      {open && <div className="zen-collapse space-y-5 border-t border-border/50 p-4 sm:p-5">{children}</div>}
     </section>
   );
 }
