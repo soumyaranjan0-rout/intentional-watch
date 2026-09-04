@@ -15,12 +15,9 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
   const { user, loading } = useAuth();
   const search = Route.useSearch();
-  const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
 
-  const safeRedirect = typeof search.redirect === "string" && search.redirect.startsWith("/") && !search.redirect.startsWith("/login")
-    ? search.redirect
-    : "/";
+  const safeRedirect = isSafePath(search.redirect) ? search.redirect : "/";
 
   // If already signed in, bounce to the requested page.
   // Use window.location to avoid TanStack router coercing complex paths
