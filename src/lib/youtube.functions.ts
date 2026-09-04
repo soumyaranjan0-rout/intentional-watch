@@ -415,6 +415,9 @@ export const searchVideos = createServerFn({ method: "POST" })
       const refinementTokens = normalize([...(data.chips ?? []), data.freeform ?? ""].join(" ")).split(/\s+/).filter((t) => t.length >= 3 && !STOP.has(t));
       const channelNameNorm = channel ? channel.title.toLowerCase() : null;
       const nowMs = Date.now();
+      const familiarChannels = new Set((data.history?.channels ?? []).map((c) => normalize(c)));
+      const familiarTopics = (data.history?.topics ?? []).map((t) => normalize(t)).filter(Boolean);
+      const alreadyWatched = new Set(data.history?.watched ?? []);
 
       let results: ResultVideo[] = mergedItems
         .map((it) => {
