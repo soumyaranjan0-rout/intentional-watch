@@ -1,8 +1,6 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/contexts/AuthContext";
-import { signInWithGoogle } from "@/lib/auth";
 import { Loader2, Lock } from "lucide-react";
-import { useState } from "react";
 
 export const Route = createFileRoute("/_authenticated")({
   component: AuthGate,
@@ -10,7 +8,8 @@ export const Route = createFileRoute("/_authenticated")({
 
 function AuthGate() {
   const { user, loading } = useAuth();
-  const [busy, setBusy] = useState(false);
+  const navigate = useNavigate();
+
 
   if (loading) {
     return (
@@ -21,13 +20,13 @@ function AuthGate() {
   }
 
   if (!user) {
-    const signIn = async () => {
-      setBusy(true);
-      try {
-        await signInWithGoogle(window.location.pathname + window.location.search);
-      } finally {
-        setBusy(false);
-      }
+    // Single sign-in path: always go through /login so mobile full-page
+    // redirects and desktop popups behave identically.
+    const signIn = () => {
+      const redirect = `${window.location.pathname}${window.location.search}`;
+      navigate({ to: "/login", search: { redirect } }).catch(() => {
+        window.location.assign(`/login?redirect=${encodeURIComponent(redirect)}`);
+      });
     };
     return (
       <div className="flex min-h-[70vh] items-center justify-center px-6">
@@ -41,7 +40,7 @@ function AuthGate() {
           </p>
           <button
             onClick={signIn}
-            disabled={busy}
+            
             className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60"
           >
             <GoogleIcon /> Continue with Google

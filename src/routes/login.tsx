@@ -1,7 +1,7 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { signInWithGoogle } from "@/lib/auth";
+import { consumePostLoginPath, isSafePath, signInWithGoogle } from "@/lib/auth";
 import { Loader2 } from "lucide-react";
 import { ZenLogo } from "@/components/ZenLogo";
 import { toast } from "sonner";
@@ -15,19 +15,19 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
   const { user, loading } = useAuth();
   const search = Route.useSearch();
-  const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
 
-  const safeRedirect = typeof search.redirect === "string" && search.redirect.startsWith("/") && !search.redirect.startsWith("/login")
-    ? search.redirect
-    : "/";
+  const safeRedirect = isSafePath(search.redirect) ? search.redirect : "/";
 
   // If already signed in, bounce to the requested page.
   // Use window.location to avoid TanStack router coercing complex paths
   // (paths with query strings can throw "Cannot convert object to primitive value").
   useEffect(() => {
     if (loading || !user) return;
-    window.location.replace(safeRedirect);
+    // A full-page OAuth redirect (mobile) lands back here already signed in —
+    // prefer the path stored before the redirect, else the ?redirect param.
+    const stored = consumePostLoginPath();
+    window.location.replace(stored ?? safeRedirect);
   }, [user, loading, safeRedirect]);
 
   useEffect(() => {
@@ -49,21 +49,19 @@ function LoginPage() {
     try {
       const result = await signInWithGoogle(safeRedirect);
 
-      if (result?.error) {
-        toast.error(result.error.message || "Google sign-in failed. Please try again.");
+      // The browser is being redirected to Google — keep the spinner until
+      // navigation happens; the focus/pageshow watchdog above unlocks the UI
+      // if the popup is cancelled or the mobile browser returns here.
+      if (result.redirected) return;
+
+      if (!result.ok) {
+        toast.error(result.error || "Google sign-in failed. Please try again.");
         setBusy(false);
         return;
       }
 
-      // The browser is being redirected to Google — keep the spinner until
-      // navigation happens; the focus/pageshow watchdog above unlocks the UI
-      // if the popup is cancelled or the mobile browser returns here.
-      if (result?.redirected) return;
-
-      // Tokens were returned directly (popup-style). Session is already set;
-      // navigate to the intended destination via a hard reload to avoid
-      // router coercion of complex paths.
-      window.location.replace(safeRedirect);
+      // Session confirmed readable — hard navigate so guarded routes see it.
+      window.location.replace(consumePostLoginPath() ?? safeRedirect);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Google sign-in failed");
       setBusy(false);

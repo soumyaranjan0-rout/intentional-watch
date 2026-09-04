@@ -11,6 +11,16 @@ const SearchInput = z.object({
   variation: z.number().int().min(0).max(20).optional(),
   pageToken: z.string().max(200).optional(),
   apiKey: z.string().max(200).optional(),
+  /** Compact signal derived from the viewer's own watch history. Used to
+   *  favour familiar, trusted sources and to avoid re-serving what they've
+   *  already watched (deliberately non-addictive). */
+  history: z
+    .object({
+      channels: z.array(z.string().max(120)).max(12).optional(),
+      topics: z.array(z.string().max(40)).max(24).optional(),
+      watched: z.array(z.string().max(40)).max(80).optional(),
+    })
+    .optional(),
 });
 
 type Input = z.infer<typeof SearchInput>;
@@ -405,6 +415,9 @@ export const searchVideos = createServerFn({ method: "POST" })
       const refinementTokens = normalize([...(data.chips ?? []), data.freeform ?? ""].join(" ")).split(/\s+/).filter((t) => t.length >= 3 && !STOP.has(t));
       const channelNameNorm = channel ? channel.title.toLowerCase() : null;
       const nowMs = Date.now();
+      const familiarChannels = new Set((data.history?.channels ?? []).map((c) => normalize(c)));
+      const familiarTopics = (data.history?.topics ?? []).map((t) => normalize(t)).filter(Boolean);
+      const alreadyWatched = new Set(data.history?.watched ?? []);
 
       let results: ResultVideo[] = mergedItems
         .map((it) => {
@@ -454,7 +467,11 @@ export const searchVideos = createServerFn({ method: "POST" })
           const matched = allTokens.filter((t) => titleN.includes(t)).length;
           const coreMatched = coreTokens.filter((t) => titleN.includes(t)).length;
           const coreCoverage = coreTokens.length ? coreMatched / coreTokens.length : 1;
+          const descCoreMatched = coreTokens.filter((t) => descN.includes(t)).length;
+          const descCoverage = coreTokens.length ? descCoreMatched / coreTokens.length : 0;
           s += matched * 8 + coreMatched * 6;
+          // Description confirms the topic — meaningful, but weaker than title.
+          s += descCoverage * 12;
           if (coreTokens.length >= 2 && coreCoverage < 0.5) s -= 35;
           if (coreTokens.length >= 1 && coreMatched === 0) {
             const descMatched = coreTokens.filter((t) => descN.includes(t)).length;
@@ -475,6 +492,19 @@ export const searchVideos = createServerFn({ method: "POST" })
            if (/you won.t believe|must watch|shocking|insane/i.test(titleN)) s -= 12;
            // Popularity is a trust signal, not the goal: cap it so relevance wins.
            s += Math.min(8, Math.log10(Math.max(v.viewCount, 1)));
+
+           // --- Watch-history signals (deliberately gentle) ----------------
+           // Familiar channel: a small trust nudge, capped so it can never
+           // outrank actual topical relevance.
+           if (familiarChannels.size && familiarChannels.has(chN)) s += 12;
+           // Familiar topics: tiny boost, capped, so interests stay broad.
+           if (familiarTopics.length) {
+             const hay = `${titleN} ${descN}`;
+             const overlap = familiarTopics.filter((t) => hay.includes(t)).length;
+             s += Math.min(8, overlap * 3);
+           }
+           // Non-addictive: never re-serve something already watched.
+           if (alreadyWatched.has(v.videoId)) s -= 60;
           // Recency boost for freshness queries (decays over ~60 days)
           if (intentInfo.freshness && v.publishedAt) {
             const ageDays = (nowMs - +new Date(v.publishedAt)) / 86_400_000;

@@ -9,6 +9,7 @@ import { formatCount, formatDuration, MODES, detectMismatch, type Mode, type Res
 import { ResumeBanner } from "@/components/ResumeBanner";
 import { MatchExplanation } from "@/components/MatchExplanation";
 import { getStoredYouTubeApiKey } from "@/lib/youtubeApiKey";
+import { loadWatchAffinity } from "@/lib/watchAffinity";
 import { ArrowLeft, Loader2, Search as SearchIcon, AlertCircle, ListVideo, ChevronDown, Play, ChevronRight, Users, Clock, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
@@ -53,8 +54,9 @@ function ResultsPage() {
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
-    queryFn: () =>
-      searchVideos({
+    queryFn: async () => {
+      const history = await loadWatchAffinity();
+      return searchVideos({
         data: {
           query,
           mode: mode!,
@@ -62,8 +64,10 @@ function ResultsPage() {
           freeform: refinement?.freeform ?? "",
           pageToken,
           apiKey: getStoredYouTubeApiKey(),
+          history,
         },
-      }),
+      });
+    },
   });
 
   // REPLACE behavior: each "Show new results" click discards old set and
