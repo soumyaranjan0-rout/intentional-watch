@@ -20,13 +20,13 @@ function AuthGate() {
   }
 
   if (!user) {
-    const signIn = async () => {
-      setBusy(true);
-      try {
-        await signInWithGoogle(window.location.pathname + window.location.search);
-      } finally {
-        setBusy(false);
-      }
+    // Single sign-in path: always go through /login so mobile full-page
+    // redirects and desktop popups behave identically.
+    const signIn = () => {
+      const redirect = `${window.location.pathname}${window.location.search}`;
+      navigate({ to: "/login", search: { redirect } }).catch(() => {
+        window.location.assign(`/login?redirect=${encodeURIComponent(redirect)}`);
+      });
     };
     return (
       <div className="flex min-h-[70vh] items-center justify-center px-6">
