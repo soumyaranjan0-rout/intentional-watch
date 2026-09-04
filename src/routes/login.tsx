@@ -49,21 +49,19 @@ function LoginPage() {
     try {
       const result = await signInWithGoogle(safeRedirect);
 
-      if (result?.error) {
-        toast.error(result.error.message || "Google sign-in failed. Please try again.");
+      // The browser is being redirected to Google — keep the spinner until
+      // navigation happens; the focus/pageshow watchdog above unlocks the UI
+      // if the popup is cancelled or the mobile browser returns here.
+      if (result.redirected) return;
+
+      if (!result.ok) {
+        toast.error(result.error || "Google sign-in failed. Please try again.");
         setBusy(false);
         return;
       }
 
-      // The browser is being redirected to Google — keep the spinner until
-      // navigation happens; the focus/pageshow watchdog above unlocks the UI
-      // if the popup is cancelled or the mobile browser returns here.
-      if (result?.redirected) return;
-
-      // Tokens were returned directly (popup-style). Session is already set;
-      // navigate to the intended destination via a hard reload to avoid
-      // router coercion of complex paths.
-      window.location.replace(safeRedirect);
+      // Session confirmed readable — hard navigate so guarded routes see it.
+      window.location.replace(consumePostLoginPath() ?? safeRedirect);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Google sign-in failed");
       setBusy(false);
