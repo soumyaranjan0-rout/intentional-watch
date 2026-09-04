@@ -8,7 +8,8 @@ export const Route = createFileRoute("/_authenticated")({
 
 function AuthGate() {
   const { user, loading } = useAuth();
-  const [busy, setBusy] = useState(false);
+  const navigate = useNavigate();
+
 
   if (loading) {
     return (
