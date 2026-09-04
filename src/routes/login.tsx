@@ -24,7 +24,10 @@ function LoginPage() {
   // (paths with query strings can throw "Cannot convert object to primitive value").
   useEffect(() => {
     if (loading || !user) return;
-    window.location.replace(safeRedirect);
+    // A full-page OAuth redirect (mobile) lands back here already signed in —
+    // prefer the path stored before the redirect, else the ?redirect param.
+    const stored = consumePostLoginPath();
+    window.location.replace(stored ?? safeRedirect);
   }, [user, loading, safeRedirect]);
 
   useEffect(() => {
