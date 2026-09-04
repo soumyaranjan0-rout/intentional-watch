@@ -1,8 +1,6 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/contexts/AuthContext";
-import { signInWithGoogle } from "@/lib/auth";
 import { Loader2, Lock } from "lucide-react";
-import { useState } from "react";
 
 export const Route = createFileRoute("/_authenticated")({
   component: AuthGate,
