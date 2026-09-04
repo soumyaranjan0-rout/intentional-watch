@@ -492,6 +492,19 @@ export const searchVideos = createServerFn({ method: "POST" })
            if (/you won.t believe|must watch|shocking|insane/i.test(titleN)) s -= 12;
            // Popularity is a trust signal, not the goal: cap it so relevance wins.
            s += Math.min(8, Math.log10(Math.max(v.viewCount, 1)));
+
+           // --- Watch-history signals (deliberately gentle) ----------------
+           // Familiar channel: a small trust nudge, capped so it can never
+           // outrank actual topical relevance.
+           if (familiarChannels.size && familiarChannels.has(chN)) s += 12;
+           // Familiar topics: tiny boost, capped, so interests stay broad.
+           if (familiarTopics.length) {
+             const hay = `${titleN} ${descN}`;
+             const overlap = familiarTopics.filter((t) => hay.includes(t)).length;
+             s += Math.min(8, overlap * 3);
+           }
+           // Non-addictive: never re-serve something already watched.
+           if (alreadyWatched.has(v.videoId)) s -= 60;
           // Recency boost for freshness queries (decays over ~60 days)
           if (intentInfo.freshness && v.publishedAt) {
             const ageDays = (nowMs - +new Date(v.publishedAt)) / 86_400_000;
