@@ -11,6 +11,16 @@ const SearchInput = z.object({
   variation: z.number().int().min(0).max(20).optional(),
   pageToken: z.string().max(200).optional(),
   apiKey: z.string().max(200).optional(),
+  /** Compact signal derived from the viewer's own watch history. Used to
+   *  favour familiar, trusted sources and to avoid re-serving what they've
+   *  already watched (deliberately non-addictive). */
+  history: z
+    .object({
+      channels: z.array(z.string().max(120)).max(12).optional(),
+      topics: z.array(z.string().max(40)).max(24).optional(),
+      watched: z.array(z.string().max(40)).max(80).optional(),
+    })
+    .optional(),
 });
 
 type Input = z.infer<typeof SearchInput>;
