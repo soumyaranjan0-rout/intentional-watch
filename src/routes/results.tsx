@@ -53,8 +53,9 @@ function ResultsPage() {
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
-    queryFn: () =>
-      searchVideos({
+    queryFn: async () => {
+      const history = await loadWatchAffinity();
+      return searchVideos({
         data: {
           query,
           mode: mode!,
@@ -62,8 +63,10 @@ function ResultsPage() {
           freeform: refinement?.freeform ?? "",
           pageToken,
           apiKey: getStoredYouTubeApiKey(),
+          history,
         },
-      }),
+      });
+    },
   });
 
   // REPLACE behavior: each "Show new results" click discards old set and
