@@ -9,6 +9,7 @@ import { formatCount, formatDuration, MODES, detectMismatch, type Mode, type Res
 import { ResumeBanner } from "@/components/ResumeBanner";
 import { MatchExplanation } from "@/components/MatchExplanation";
 import { getStoredYouTubeApiKey } from "@/lib/youtubeApiKey";
+import { loadWatchAffinity } from "@/lib/watchAffinity";
 import { ArrowLeft, Loader2, Search as SearchIcon, AlertCircle, ListVideo, ChevronDown, Play, ChevronRight, Users, Clock, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
