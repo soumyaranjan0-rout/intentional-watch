@@ -467,7 +467,11 @@ export const searchVideos = createServerFn({ method: "POST" })
           const matched = allTokens.filter((t) => titleN.includes(t)).length;
           const coreMatched = coreTokens.filter((t) => titleN.includes(t)).length;
           const coreCoverage = coreTokens.length ? coreMatched / coreTokens.length : 1;
+          const descCoreMatched = coreTokens.filter((t) => descN.includes(t)).length;
+          const descCoverage = coreTokens.length ? descCoreMatched / coreTokens.length : 0;
           s += matched * 8 + coreMatched * 6;
+          // Description confirms the topic — meaningful, but weaker than title.
+          s += descCoverage * 12;
           if (coreTokens.length >= 2 && coreCoverage < 0.5) s -= 35;
           if (coreTokens.length >= 1 && coreMatched === 0) {
             const descMatched = coreTokens.filter((t) => descN.includes(t)).length;
