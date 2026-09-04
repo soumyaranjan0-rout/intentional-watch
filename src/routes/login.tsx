@@ -1,7 +1,7 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { signInWithGoogle } from "@/lib/auth";
+import { consumePostLoginPath, isSafePath, signInWithGoogle } from "@/lib/auth";
 import { Loader2 } from "lucide-react";
 import { ZenLogo } from "@/components/ZenLogo";
 import { toast } from "sonner";
