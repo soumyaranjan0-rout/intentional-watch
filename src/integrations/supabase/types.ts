@@ -14,6 +14,95 @@ export type Database = {
   }
   public: {
     Tables: {
+      intent_segments: {
+        Row: {
+          category: string
+          created_at: string
+          ended_at: string | null
+          id: string
+          keywords: string[]
+          raw_intent: string
+          session_id: string
+          started_at: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          keywords?: string[]
+          raw_intent: string
+          session_id: string
+          started_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          keywords?: string[]
+          raw_intent?: string
+          session_id?: string
+          started_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intent_segments_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "intent_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      intent_sessions: {
+        Row: {
+          active_seconds: number
+          alignment_score: number | null
+          created_at: string
+          ended_at: string | null
+          id: string
+          last_activity_at: string
+          primary_category: string
+          primary_intent: string
+          started_at: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active_seconds?: number
+          alignment_score?: number | null
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          last_activity_at?: string
+          primary_category: string
+          primary_intent: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active_seconds?: number
+          alignment_score?: number | null
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          last_activity_at?: string
+          primary_category?: string
+          primary_intent?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notes: {
         Row: {
           content: string
@@ -244,6 +333,102 @@ export type Database = {
         }
         Relationships: []
       }
+      video_interactions: {
+        Row: {
+          category: string | null
+          channel: string | null
+          completion_percent: number
+          created_at: string
+          description: string | null
+          effective_seconds: number
+          ended_at: string | null
+          id: string
+          relevance_class: string
+          relevance_factors: Json
+          relevance_score: number
+          replayed: boolean
+          search_query: string | null
+          segment_id: string
+          session_id: string
+          skipped: boolean
+          started_at: string
+          tags: string[]
+          title: string | null
+          updated_at: string
+          user_id: string
+          video_duration_seconds: number | null
+          video_id: string
+          watch_seconds: number
+        }
+        Insert: {
+          category?: string | null
+          channel?: string | null
+          completion_percent?: number
+          created_at?: string
+          description?: string | null
+          effective_seconds?: number
+          ended_at?: string | null
+          id?: string
+          relevance_class?: string
+          relevance_factors?: Json
+          relevance_score?: number
+          replayed?: boolean
+          search_query?: string | null
+          segment_id: string
+          session_id: string
+          skipped?: boolean
+          started_at?: string
+          tags?: string[]
+          title?: string | null
+          updated_at?: string
+          user_id: string
+          video_duration_seconds?: number | null
+          video_id: string
+          watch_seconds?: number
+        }
+        Update: {
+          category?: string | null
+          channel?: string | null
+          completion_percent?: number
+          created_at?: string
+          description?: string | null
+          effective_seconds?: number
+          ended_at?: string | null
+          id?: string
+          relevance_class?: string
+          relevance_factors?: Json
+          relevance_score?: number
+          replayed?: boolean
+          search_query?: string | null
+          segment_id?: string
+          session_id?: string
+          skipped?: boolean
+          started_at?: string
+          tags?: string[]
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+          video_duration_seconds?: number | null
+          video_id?: string
+          watch_seconds?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_interactions_segment_id_fkey"
+            columns: ["segment_id"]
+            isOneToOne: false
+            referencedRelation: "intent_segments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_interactions_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "intent_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       watch_history: {
         Row: {
           category: string | null
@@ -298,6 +483,51 @@ export type Database = {
           video_id?: string
           watch_seconds?: number
           watched_at?: string
+        }
+        Relationships: []
+      }
+      weekly_reports: {
+        Row: {
+          alignment_score: number
+          generated_at: string
+          id: string
+          relevant_watch_seconds: number
+          report_data: Json
+          seen: boolean
+          total_sessions: number
+          total_watch_seconds: number
+          unrelated_watch_seconds: number
+          user_id: string
+          week_end: string
+          week_start: string
+        }
+        Insert: {
+          alignment_score?: number
+          generated_at?: string
+          id?: string
+          relevant_watch_seconds?: number
+          report_data?: Json
+          seen?: boolean
+          total_sessions?: number
+          total_watch_seconds?: number
+          unrelated_watch_seconds?: number
+          user_id: string
+          week_end: string
+          week_start: string
+        }
+        Update: {
+          alignment_score?: number
+          generated_at?: string
+          id?: string
+          relevant_watch_seconds?: number
+          report_data?: Json
+          seen?: boolean
+          total_sessions?: number
+          total_watch_seconds?: number
+          unrelated_watch_seconds?: number
+          user_id?: string
+          week_end?: string
+          week_start?: string
         }
         Relationships: []
       }
