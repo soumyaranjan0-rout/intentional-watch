@@ -27,17 +27,6 @@ type Input = z.infer<typeof SearchInput>;
 
 const YT_BASE = "https://www.googleapis.com/youtube/v3";
 
-const VARIATION_SUFFIX = [
-  "",
-  "best",
-  "explained",
-  "complete",
-  "popular",
-  "recommended",
-  "in depth",
-  "top",
-];
-
 // --- Smart query intent detection ----------------------------------------
 const FRESHNESS_RX = /\b(new|latest|recent|today|just\s+uploaded|upload|this\s+week)\b/i;
 const CONTENT_TYPE_RX: Array<{ rx: RegExp; add: string }> = [
@@ -66,65 +55,6 @@ export function detectQueryIntent(raw: string): {
   return { cleaned, freshness, contentHint, hint };
 }
 
-function buildSearchQuery(input: Input): {
-  q: string;
-  videoDuration?: "short" | "medium" | "long" | "any";
-  order: "relevance" | "viewCount" | "date";
-  hint: string | null;
-} {
-  const { query, mode, freeform, chips = [], variation = 0 } = input;
-  const intent = detectQueryIntent(query);
-  const parts: string[] = [intent.cleaned];
-  if (intent.contentHint) parts.push(intent.contentHint);
-
-  let videoDuration: "short" | "medium" | "long" | "any" = "any";
-  let order: "relevance" | "viewCount" | "date" = intent.freshness ? "date" : "relevance";
-
-  const chipText = chips.join(" ").toLowerCase();
-  if (/under 15|\bshort\b|5 min/.test(chipText)) videoDuration = "short";
-  else if (/around 1 hour|\bmedium\b/.test(chipText)) videoDuration = "medium";
-  else if (/full course|\blong\b/.test(chipText)) videoDuration = "long";
-
-  if (mode === "learn") {
-    if (/beginner/.test(chipText)) parts.push("for beginners");
-    if (/advanced/.test(chipText)) parts.push("advanced");
-    if (/step-by-step|crash course/.test(chipText)) parts.push("tutorial");
-    if (/deep dive/.test(chipText)) parts.push("in depth");
-    if (/overview/.test(chipText)) parts.push("explained");
-    for (const c of chips) {
-      if (!/beginner|intermediate|advanced|step-by-step|overview|deep dive|crash course|under 15|around 1 hour|full course|short|medium|long/i.test(c)) {
-        parts.push(c);
-      }
-    }
-  } else if (mode === "relax") {
-    for (const c of chips) {
-      if (!/short|medium|long/i.test(c)) parts.push(c);
-    }
-  } else if (mode === "explore") {
-    if (/playlist/.test(chipText)) parts.push("series guide");
-    else if (!intent.freshness) parts.push("best");
-    for (const c of chips) {
-      if (!/intro|intermediate|expert|3 best picks|structured playlist|different angles/i.test(c)) {
-        parts.push(c);
-      }
-    }
-  } else if (mode === "find") {
-    if (/official/.test(chipText)) parts.push("official");
-    if (/latest/.test(chipText)) { parts.push("latest"); order = "date"; }
-  }
-
-  if (freeform && freeform.trim()) parts.push(freeform.trim());
-
-  const v = variation % VARIATION_SUFFIX.length;
-  if (v > 0 && !intent.freshness) {
-    parts.push(VARIATION_SUFFIX[v]);
-    if (v % 3 === 0) order = "viewCount";
-    else if (v % 3 === 2) order = "date";
-  }
-
-  return { q: parts.filter(Boolean).join(" "), videoDuration, order, hint: intent.hint };
-}
-
 function reasonFor(
   mode: Mode,
   v: { channel: string; durationSeconds: number; viewCount: number; title: string },
@@ -149,20 +79,6 @@ function reasonFor(
   return `Curated from ${v.channel}`;
 }
 
-function fitScore(
-  durationBucket: "short" | "medium" | "long" | "any",
-  durationSeconds: number,
-  views: number,
-): number {
-  const viewScore = Math.log10(Math.max(views, 1)) * 2;
-  let durationFit = 1;
-  if (durationBucket === "short") durationFit = durationSeconds <= 15 * 60 ? 1.5 : 0.6;
-  else if (durationBucket === "medium")
-    durationFit = durationSeconds >= 5 * 60 && durationSeconds <= 70 * 60 ? 1.5 : 0.7;
-  else if (durationBucket === "long") durationFit = durationSeconds >= 30 * 60 ? 1.5 : 0.6;
-  return viewScore * durationFit;
-}
-
 export type ResultPlaylist = {
   playlistId: string;
   title: string;
@@ -182,123 +98,6 @@ export type ResultChannel = {
   subscriberCount: number;
   videoCount: number;
 };
-
-async function fetchPlaylists(apiKey: string, q: string): Promise<ResultPlaylist[]> {
-  try {
-    const params = new URLSearchParams({
-      part: "snippet", q, maxResults: "5", type: "playlist",
-      safeSearch: "moderate", key: apiKey,
-    });
-    const res = await fetch(`${YT_BASE}/search?${params.toString()}`);
-    if (!res.ok) return [];
-    const json = (await res.json()) as {
-      items: Array<{
-        id: { playlistId: string };
-        snippet: {
-          title: string; channelTitle: string; channelId: string; description: string;
-          thumbnails: { medium?: { url: string }; high?: { url: string } };
-        };
-      }>;
-    };
-    const ids = json.items.map((i) => i.id.playlistId).filter(Boolean);
-    if (ids.length === 0) return [];
-
-    const dParams = new URLSearchParams({ part: "contentDetails", id: ids.join(","), key: apiKey });
-    const dRes = await fetch(`${YT_BASE}/playlists?${dParams.toString()}`);
-    const dJson = dRes.ok
-      ? ((await dRes.json()) as { items: Array<{ id: string; contentDetails: { itemCount: number } }> })
-      : { items: [] };
-    const countMap = new Map(dJson.items.map((d) => [d.id, d.contentDetails.itemCount]));
-
-    return json.items
-      .map((it) => ({
-        playlistId: it.id.playlistId,
-        title: it.snippet.title,
-        channel: it.snippet.channelTitle,
-        channelId: it.snippet.channelId,
-        description: it.snippet.description,
-        thumbnail: it.snippet.thumbnails.high?.url || it.snippet.thumbnails.medium?.url || "",
-        itemCount: countMap.get(it.id.playlistId) || 0,
-        reason: `Curated series · ${countMap.get(it.id.playlistId) || 0} videos`,
-      }))
-      .filter((p) => p.itemCount >= 3)
-      .slice(0, 3);
-  } catch {
-    return [];
-  }
-}
-
-/** Detect if a query strongly matches a channel name. Returns the channel
- *  if YouTube finds a confident match, else null. */
-async function fetchTopChannelMatch(apiKey: string, rawQuery: string): Promise<ResultChannel | null> {
-  try {
-    // Strip freshness/topic noise so "mr beast new video" becomes "mr beast"
-    const cleaned = rawQuery
-      .replace(FRESHNESS_RX, "")
-      .replace(/\b(video|videos|channel|youtube)\b/gi, "")
-      .replace(/\s+/g, " ")
-      .trim();
-    if (cleaned.length < 2) return null;
-
-    const params = new URLSearchParams({
-      part: "snippet", q: cleaned, maxResults: "3", type: "channel",
-      key: apiKey,
-    });
-    const res = await fetch(`${YT_BASE}/search?${params.toString()}`);
-    if (!res.ok) return null;
-    const json = (await res.json()) as {
-      items: Array<{
-        id: { channelId: string };
-        snippet: { title: string; description: string; thumbnails: { medium?: { url: string }; high?: { url: string } } };
-      }>;
-    };
-    if (!json.items.length) return null;
-
-    const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
-    const qn = norm(cleaned);
-    // Find the strongest name match
-    const scored = json.items
-      .map((it) => {
-        const tn = norm(it.snippet.title);
-        let score = 0;
-        if (tn === qn) score = 100;
-        else if (tn.startsWith(qn)) score = 80;
-        else if (qn.startsWith(tn) && tn.length >= 4) score = 70;
-        else if (tn.includes(qn) && qn.length >= 4) score = 60;
-        else if (qn.includes(tn) && tn.length >= 4) score = 50;
-        return { it, score };
-      })
-      .sort((a, b) => b.score - a.score);
-    const best = scored[0];
-    if (!best || best.score < 60) return null;
-
-    // Hydrate with stats
-    const cParams = new URLSearchParams({
-      part: "snippet,statistics", id: best.it.id.channelId, key: apiKey,
-    });
-    const cRes = await fetch(`${YT_BASE}/channels?${cParams.toString()}`);
-    if (!cRes.ok) return null;
-    const cJson = (await cRes.json()) as {
-      items: Array<{
-        id: string;
-        snippet: { title: string; description: string; thumbnails: { medium?: { url: string }; high?: { url: string } } };
-        statistics: { subscriberCount?: string; videoCount?: string };
-      }>;
-    };
-    const ch = cJson.items[0];
-    if (!ch) return null;
-    return {
-      channelId: ch.id,
-      title: ch.snippet.title,
-      description: ch.snippet.description,
-      thumbnail: ch.snippet.thumbnails.medium?.url || ch.snippet.thumbnails.high?.url || "",
-      subscriberCount: parseInt(ch.statistics.subscriberCount || "0", 10),
-      videoCount: parseInt(ch.statistics.videoCount || "0", 10),
-    };
-  } catch {
-    return null;
-  }
-}
 
 export const searchVideos = createServerFn({ method: "POST" })
   .inputValidator((input: Input) => SearchInput.parse(input))
