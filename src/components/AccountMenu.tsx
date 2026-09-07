@@ -51,6 +51,9 @@ export function AccountMenu() {
     };
 
     setBusy(true);
+    // Never leave the button stuck on "Opening Google…" if the popup is
+    // closed, blocked, or the provider never answers.
+    const watchdog = window.setTimeout(() => setBusy(false), 12000);
     try {
       const result = await signInWithGoogle(redirect);
       if (result.redirected) return;
@@ -59,11 +62,12 @@ export function AccountMenu() {
         window.location.replace(consumePostLoginPath() ?? redirect);
         return;
       }
-      toast.error(result.error || "Google sign-in failed. Please try again.");
+      toast.error(result.error || "Google sign-in failed. Opening the sign-in page…");
       goToLoginPage();
     } catch {
       goToLoginPage();
     } finally {
+      window.clearTimeout(watchdog);
       setBusy(false);
     }
   };
@@ -115,7 +119,7 @@ export function AccountMenu() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-40 mt-2 w-64 overflow-hidden rounded-xl border border-border bg-popover/95 shadow-2xl backdrop-blur-xl zen-fade-in">
+        <div className="absolute right-0 top-full z-[80] mt-2 w-64 overflow-hidden rounded-xl border border-border bg-popover/95 shadow-2xl backdrop-blur-xl zen-fade-in">
           {user ? (
             <>
               <div className="flex items-center gap-3 px-4 py-3 border-b border-border/60">
