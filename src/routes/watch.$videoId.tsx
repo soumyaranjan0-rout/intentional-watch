@@ -4,6 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSessionState } from "@/contexts/SessionStateContext";
+import { useIntentSession } from "@/contexts/IntentSessionContext";
+import { recordInteraction } from "@/lib/videoInteractions";
 import { formatDuration, formatCount, inferIntentFromVideo, resolveFinalIntent, MODES, type Mode } from "@/lib/intent";
 import { Player, type PlayerHandle } from "@/components/Player";
 import { NotesPanel } from "@/components/NotesPanel";
