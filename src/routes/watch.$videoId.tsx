@@ -211,14 +211,53 @@ function WatchPage() {
     }
   }, [user, videoId, sessionMode, finalIntent, inferred, search.title, search.channel, search.thumbnail, search.duration, meta]);
 
+  // Snapshot of what we know about this video, for intent-relevance recording.
+  const videoInfoRef = useRef<{
+    title: string; description: string; channel: string; category: string; tags: string[]; duration: number;
+  }>({ title: "", description: "", channel: "", category: "", tags: [], duration: 0 });
+  videoInfoRef.current = {
+    title: meta?.title || search.title || "",
+    description: (meta as { description?: string } | undefined)?.description || "",
+    channel: meta?.channel || search.channel || "",
+    category: (meta as { categoryId?: string } | undefined)?.categoryId || "",
+    tags: ((meta as { tags?: string[] } | undefined)?.tags) || [],
+    duration: meta?.durationSeconds || search.duration || 0,
+  };
+
+  const lastRecordedRef = useRef(0);
+
+  const recordIntentInteraction = useCallback(async (opts?: { force?: boolean; ended?: boolean }) => {
+    const s = intentSessionRef.current;
+    if (!s) return;
+    const eff = Math.round(effectiveSecondsRef.current);
+    if (!opts?.force && eff - lastRecordedRef.current < 15) return;
+    lastRecordedRef.current = eff;
+    const info = videoInfoRef.current;
+    await recordInteraction(s, {
+      videoId,
+      title: info.title,
+      description: info.description,
+      channel: info.channel,
+      category: info.category,
+      tags: info.tags,
+      searchQuery: search.q || null,
+      watchSeconds: watchSecondsRef.current,
+      effectiveSeconds: eff,
+      videoDurationSeconds: info.duration || null,
+      replayed: seekCountRef.current > 0 && eff > info.duration && info.duration > 0,
+      ended: opts?.ended ?? false,
+    }).catch(() => {});
+  }, [videoId, search.q]);
+
   const handleProgress = useCallback(
     (s: number) => {
       watchSecondsRef.current = s;
       resumePositionRef.current = s;
       if (Math.floor(s) % 5 === 0) updateLastWatchedPosition(videoId, s);
       void syncHistory();
+      void recordIntentInteraction();
     },
-    [syncHistory, videoId],
+    [syncHistory, recordIntentInteraction, videoId],
   );
 
   const handleSegment = useCallback((start: number, end: number) => {
@@ -228,7 +267,9 @@ function WatchPage() {
 
   const handleSeek = useCallback(() => {
     seekCountRef.current += 1;
-  }, []);
+    markActivity();
+  }, [markActivity]);
+
 
   useEffect(() => {
     return () => {
