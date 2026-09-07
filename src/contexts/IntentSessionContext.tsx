@@ -96,7 +96,7 @@ export function IntentSessionProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const handler = () => markActivity();
-    const events: Array<keyof WindowEventMap> = ["pointerdown", "keydown", "visibilitychange"];
+    const events: string[] = ["pointerdown", "keydown", "visibilitychange"];
     for (const e of events) window.addEventListener(e, handler, { passive: true });
     return () => { for (const e of events) window.removeEventListener(e, handler); };
   }, [markActivity]);

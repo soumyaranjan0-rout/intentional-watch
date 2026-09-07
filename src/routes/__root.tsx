@@ -4,6 +4,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { SessionStateProvider } from "@/contexts/SessionStateContext";
+import { IntentSessionProvider } from "@/contexts/IntentSessionContext";
+import { IntentGate, IntentSessionChip } from "@/components/IntentGate";
 import { AccountMenu } from "@/components/AccountMenu";
 import { ZenLogo } from "@/components/ZenLogo";
 import { NavSearch } from "@/components/NavSearch";
@@ -81,12 +83,15 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <SessionStateProvider>
-          <TooltipProvider delayDuration={150} skipDelayDuration={300}>
-            <AppShell>
-              <Outlet />
-            </AppShell>
-            <Toaster />
-          </TooltipProvider>
+          <IntentSessionProvider>
+            <TooltipProvider delayDuration={150} skipDelayDuration={300}>
+              <AppShell>
+                <Outlet />
+              </AppShell>
+              <IntentGate />
+              <Toaster />
+            </TooltipProvider>
+          </IntentSessionProvider>
         </SessionStateProvider>
       </AuthProvider>
     </QueryClientProvider>
@@ -114,6 +119,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
             <PrimaryNav />
             <div className="flex shrink-0 items-center gap-1">
+              <IntentSessionChip />
               <NowPlayingChip />
               <AccountMenu />
             </div>

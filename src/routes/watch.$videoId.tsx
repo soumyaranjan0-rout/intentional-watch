@@ -4,6 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSessionState } from "@/contexts/SessionStateContext";
+import { useIntentSession } from "@/contexts/IntentSessionContext";
+import { recordInteraction } from "@/lib/videoInteractions";
 import { formatDuration, formatCount, inferIntentFromVideo, resolveFinalIntent, MODES, type Mode } from "@/lib/intent";
 import { Player, type PlayerHandle } from "@/components/Player";
 import { NotesPanel } from "@/components/NotesPanel";
@@ -47,8 +49,11 @@ function WatchPage() {
   const { videoId } = Route.useParams();
   const search = Route.useSearch();
   const { user } = useAuth();
-  const { mode: sessionMode, bumpWatched, videosWatchedThisSession, sessionStartedAt } = useSessionState();
+  const { mode: sessionMode, query: sessionQuery, bumpWatched, videosWatchedThisSession, sessionStartedAt } = useSessionState();
   const navigate = useNavigate();
+  const { session: intentSession, markActivity } = useIntentSession();
+  const intentSessionRef = useRef(intentSession);
+  intentSessionRef.current = intentSession;
 
   const [ended, setEnded] = useState(false);
   const [showSessionPrompt, setShowSessionPrompt] = useState(false);
@@ -206,14 +211,55 @@ function WatchPage() {
     }
   }, [user, videoId, sessionMode, finalIntent, inferred, search.title, search.channel, search.thumbnail, search.duration, meta]);
 
+  // Snapshot of what we know about this video, for intent-relevance recording.
+  const videoInfoRef = useRef<{
+    title: string; description: string; channel: string; category: string; tags: string[]; duration: number;
+  }>({ title: "", description: "", channel: "", category: "", tags: [], duration: 0 });
+  videoInfoRef.current = {
+    title: meta?.title || search.title || "",
+    description: (meta as { description?: string } | undefined)?.description || "",
+    channel: meta?.channel || search.channel || "",
+    category: (meta as { categoryId?: string } | undefined)?.categoryId || "",
+    tags: ((meta as { tags?: string[] } | undefined)?.tags) || [],
+    duration: meta?.durationSeconds || search.duration || 0,
+  };
+
+  const sessionQueryRef = useRef(sessionQuery);
+  sessionQueryRef.current = sessionQuery;
+  const lastRecordedRef = useRef(0);
+
+  const recordIntentInteraction = useCallback(async (opts?: { force?: boolean; ended?: boolean }) => {
+    const s = intentSessionRef.current;
+    if (!s) return;
+    const eff = Math.round(effectiveSecondsRef.current);
+    if (!opts?.force && eff - lastRecordedRef.current < 15) return;
+    lastRecordedRef.current = eff;
+    const info = videoInfoRef.current;
+    await recordInteraction(s, {
+      videoId,
+      title: info.title,
+      description: info.description,
+      channel: info.channel,
+      category: info.category,
+      tags: info.tags,
+      searchQuery: sessionQueryRef.current || null,
+      watchSeconds: watchSecondsRef.current,
+      effectiveSeconds: eff,
+      videoDurationSeconds: info.duration || null,
+      replayed: seekCountRef.current > 0 && eff > info.duration && info.duration > 0,
+      ended: opts?.ended ?? false,
+    }).catch(() => {});
+  }, [videoId]);
+
   const handleProgress = useCallback(
     (s: number) => {
       watchSecondsRef.current = s;
       resumePositionRef.current = s;
       if (Math.floor(s) % 5 === 0) updateLastWatchedPosition(videoId, s);
       void syncHistory();
+      void recordIntentInteraction();
     },
-    [syncHistory, videoId],
+    [syncHistory, recordIntentInteraction, videoId],
   );
 
   const handleSegment = useCallback((start: number, end: number) => {
@@ -223,11 +269,14 @@ function WatchPage() {
 
   const handleSeek = useCallback(() => {
     seekCountRef.current += 1;
-  }, []);
+    markActivity();
+  }, [markActivity]);
+
 
   useEffect(() => {
     return () => {
       updateLastWatchedPosition(videoId, resumePositionRef.current);
+      void recordIntentInteraction({ force: true, ended: true });
       if (user && historyIdRef.current) {
         supabase
           .from("watch_history")
@@ -240,6 +289,7 @@ function WatchPage() {
           .then(() => {});
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, videoId]);
 
   const handleEnded = async () => {
@@ -248,6 +298,7 @@ function WatchPage() {
     if (!recordedFinalRef.current) {
       recordedFinalRef.current = true;
       await syncHistory();
+      await recordIntentInteraction({ force: true, ended: true });
     }
     if (videosWatchedThisSession + 1 >= 2) setShowSessionPrompt(true);
   };
