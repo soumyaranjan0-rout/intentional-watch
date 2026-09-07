@@ -10,7 +10,7 @@ import { AccountMenu } from "@/components/AccountMenu";
 import { ZenLogo } from "@/components/ZenLogo";
 import { NavSearch } from "@/components/NavSearch";
 import { NowPlayingChip } from "@/components/NowPlaying";
-import { LayoutDashboard, BookmarkIcon, StickyNote, Home as HomeIcon, User as UserIcon } from "lucide-react";
+import { LayoutDashboard, BookmarkIcon, StickyNote, Home as HomeIcon, User as UserIcon, Compass } from "lucide-react";
 
 import appCss from "../styles.css?url";
 
@@ -163,6 +163,9 @@ function MobileTabBar() {
       </Link>
       {user ? (
         <>
+          <Link to="/intent" className={tab(path.startsWith("/intent"))}>
+            <Compass className="h-5 w-5" /> Intent
+          </Link>
           <Link to="/dashboard" className={tab(path.startsWith("/dashboard"))}>
             <LayoutDashboard className="h-5 w-5" /> Insights
           </Link>
@@ -191,6 +194,9 @@ function PrimaryNav() {
   const activeCls = "bg-accent text-foreground";
   return (
     <nav className="hidden shrink-0 items-center gap-0.5 lg:flex">
+      <Link to="/intent" className={linkBase} activeProps={{ className: linkBase + " " + activeCls }}>
+        <Compass className="h-4 w-4" /> Intent
+      </Link>
       <Link to="/dashboard" className={linkBase} activeProps={{ className: linkBase + " " + activeCls }}>
         <LayoutDashboard className="h-4 w-4" /> Insights
       </Link>
