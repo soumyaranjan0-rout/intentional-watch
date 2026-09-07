@@ -104,7 +104,7 @@ function HomePage() {
               <SearchSuggestions id="home-search-suggestions" value={q} visible={suggestionsOpen} onPick={pickSuggestion} inputRef={inputRef} />
             </div>
             <p className="mt-5 text-sm text-muted-foreground">
-              We'll ask why you're here — then tune results to match.
+              Results come straight from YouTube — measured against the intention you set.
             </p>
           </form>
         </div>
