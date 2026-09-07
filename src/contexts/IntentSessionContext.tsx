@@ -49,9 +49,10 @@ export function IntentSessionProvider({ children }: { children: ReactNode }) {
           const resumed = await resumeSession(user.id);
           if (!cancelled) apply(resumed);
         } else {
-          const stored = readStoredSession();
-          if (!cancelled) apply(stored && !isIdle(stored) ? stored : null);
-          if (stored && isIdle(stored)) writeStoredSession(null);
+          // Signed out (or guest): intent sessions belong to an account, so
+          // drop any leftover local session — no chip, no gate.
+          writeStoredSession(null);
+          if (!cancelled) apply(null);
         }
       } catch {
         if (!cancelled) apply(null);
