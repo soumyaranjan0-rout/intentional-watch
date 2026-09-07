@@ -4,6 +4,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { SessionStateProvider } from "@/contexts/SessionStateContext";
+import { IntentSessionProvider } from "@/contexts/IntentSessionContext";
+import { IntentGate, IntentSessionChip } from "@/components/IntentGate";
 import { AccountMenu } from "@/components/AccountMenu";
 import { ZenLogo } from "@/components/ZenLogo";
 import { NavSearch } from "@/components/NavSearch";
