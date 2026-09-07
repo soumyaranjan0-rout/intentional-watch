@@ -304,56 +304,38 @@ export const searchVideos = createServerFn({ method: "POST" })
   .inputValidator((input: Input) => SearchInput.parse(input))
   .handler(async ({ data }) => {
     const apiKey = data.apiKey?.trim() || process.env.YOUTUBE_API_KEY;
+    const q = data.query.trim();
     if (!apiKey) {
       return {
         error: "YouTube API key is not configured.",
         results: [] as ResultVideo[],
         playlists: [] as ResultPlaylist[],
         channel: null as ResultChannel | null,
-        effectiveQuery: "",
+        effectiveQuery: q,
         hint: null as string | null,
         nextPageToken: null as string | null,
       };
     }
 
-    const { q, videoDuration, order, hint } = buildSearchQuery(data);
-    const limit = data.maxResults ?? (data.mode === "find" ? 5 : data.mode === "explore" ? 5 : 7);
-    const intentInfo = detectQueryIntent(data.query);
-
-    const buildSearchUrl = (ord: "relevance" | "viewCount" | "date", pageToken?: string) => {
-      const sp = new URLSearchParams({
-        part: "snippet", q, maxResults: "25", type: "video",
-        safeSearch: "moderate", order: ord, key: apiKey,
-      });
-      if (videoDuration && videoDuration !== "any") sp.set("videoDuration", videoDuration);
-      if (pageToken) sp.set("pageToken", pageToken);
-      return `${YT_BASE}/search?${sp.toString()}`;
-    };
+    // Mirror YouTube: send the query verbatim, relevance order, keep YouTube's
+    // own ranking untouched. No injected keywords, no re-sorting, no filters.
+    const limit = data.maxResults ?? 10;
 
     try {
-      const includePlaylists = (data.mode === "learn" || data.mode === "explore") && !data.pageToken;
-      const includeChannel = !data.pageToken && data.query.trim().split(/\s+/).length <= 5;
+      const sp = new URLSearchParams({
+        part: "snippet", q, maxResults: String(limit), type: "video",
+        safeSearch: "moderate", order: "relevance", key: apiKey,
+      });
+      if (data.pageToken) sp.set("pageToken", data.pageToken);
 
-      // For freshness queries, fetch BOTH relevance + date and merge — pure
-      // date order returns recently-uploaded noise that barely matches.
-      const dualFetch = intentInfo.freshness && !data.pageToken;
-      const primaryUrl = buildSearchUrl(order, data.pageToken);
-      const secondaryUrl = dualFetch ? buildSearchUrl("relevance") : null;
-
-      const [sRes, sRes2, playlists, channel] = await Promise.all([
-        fetch(primaryUrl),
-        secondaryUrl ? fetch(secondaryUrl) : Promise.resolve(null),
-        includePlaylists ? fetchPlaylists(apiKey, q) : Promise.resolve([]),
-        includeChannel ? fetchTopChannelMatch(apiKey, data.query) : Promise.resolve(null),
-      ]);
-
+      const sRes = await fetch(`${YT_BASE}/search?${sp.toString()}`);
       if (!sRes.ok) {
         const body = await sRes.text();
         console.error("YouTube search failed", sRes.status, body);
         return {
           error: `Search failed (${sRes.status})`,
           results: [] as ResultVideo[], playlists: [] as ResultPlaylist[], channel: null,
-          effectiveQuery: q, hint, nextPageToken: null,
+          effectiveQuery: q, hint: null, nextPageToken: null,
         };
       }
       type SearchJson = {
@@ -367,22 +349,12 @@ export const searchVideos = createServerFn({ method: "POST" })
         }>;
       };
       const sJson = (await sRes.json()) as SearchJson;
-      const sJson2: SearchJson = sRes2 && sRes2.ok ? ((await sRes2.json()) as SearchJson) : { items: [] };
-
-      // Merge unique items
-      const seen = new Set<string>();
-      const mergedItems: SearchJson["items"] = [];
-      for (const it of [...sJson.items, ...sJson2.items]) {
-        if (!it.id?.videoId || seen.has(it.id.videoId)) continue;
-        seen.add(it.id.videoId);
-        mergedItems.push(it);
-      }
-
-      const ids = mergedItems.map((i) => i.id.videoId);
+      const items = sJson.items.filter((i) => i.id?.videoId);
+      const ids = items.map((i) => i.id.videoId);
       if (ids.length === 0) {
         return {
-          error: null, results: [] as ResultVideo[], playlists, channel,
-          effectiveQuery: q, hint, nextPageToken: sJson.nextPageToken ?? null,
+          error: null, results: [] as ResultVideo[], playlists: [] as ResultPlaylist[], channel: null,
+          effectiveQuery: q, hint: null, nextPageToken: sJson.nextPageToken ?? null,
         };
       }
 
@@ -390,194 +362,49 @@ export const searchVideos = createServerFn({ method: "POST" })
         part: "contentDetails,statistics", id: ids.join(","), key: apiKey,
       });
       const dRes = await fetch(`${YT_BASE}/videos?${dParams.toString()}`);
-      if (!dRes.ok) {
-        const body = await dRes.text();
-        console.error("YouTube videos failed", dRes.status, body);
-        return {
-          error: `Details failed (${dRes.status})`,
-          results: [] as ResultVideo[], playlists, channel,
-          effectiveQuery: q, hint, nextPageToken: null,
-        };
-      }
-      const dJson = (await dRes.json()) as {
-        items: Array<{
-          id: string; contentDetails: { duration: string }; statistics: { viewCount?: string };
-        }>;
-      };
+      const dJson = dRes.ok
+        ? ((await dRes.json()) as {
+            items: Array<{ id: string; contentDetails: { duration: string }; statistics: { viewCount?: string } }>;
+          })
+        : { items: [] };
       const detailMap = new Map(dJson.items.map((it) => [it.id, it]));
 
-      // Tokens used for both filtering and ranking. Strip stopwords and short tokens.
-      const STOP = new Set(["the","and","for","with","video","videos","new","latest","best","top","you","your","this","that","from","into","what","how","why","2024","2025","2026","2027"]);
-      const normalize = (value: string) => value.toLowerCase().replace(/&amp;/g, "and").replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
-      const qNorm = normalize(data.query);
-      const allTokens = qNorm.split(/\s+/).filter((t) => t.length >= 2);
-      const coreTokens = allTokens.filter((t) => !STOP.has(t));
-      const refinementTokens = normalize([...(data.chips ?? []), data.freeform ?? ""].join(" ")).split(/\s+/).filter((t) => t.length >= 3 && !STOP.has(t));
-      const channelNameNorm = channel ? channel.title.toLowerCase() : null;
-      const nowMs = Date.now();
-      const familiarChannels = new Set((data.history?.channels ?? []).map((c) => normalize(c)));
-      const familiarTopics = (data.history?.topics ?? []).map((t) => normalize(t)).filter(Boolean);
-      const alreadyWatched = new Set(data.history?.watched ?? []);
-
-      let results: ResultVideo[] = mergedItems
-        .map((it) => {
-          const d = detailMap.get(it.id.videoId);
-          const durationSeconds = d ? parseISODuration(d.contentDetails.duration) : 0;
-          const viewCount = d ? parseInt(d.statistics.viewCount || "0", 10) : 0;
-          const v = {
-            videoId: it.id.videoId,
-            title: it.snippet.title,
-            channel: it.snippet.channelTitle,
-            channelId: it.snippet.channelId,
-            description: it.snippet.description,
-            thumbnail: it.snippet.thumbnails.high?.url || it.snippet.thumbnails.medium?.url || "",
-            publishedAt: it.snippet.publishedAt,
-            durationSeconds,
-            viewCount,
-            reason: "",
-          } as ResultVideo;
-          v.reason = reasonFor(data.mode, v);
-          return v;
-        })
-        .filter((v) => {
-          if (v.durationSeconds <= 65) return false;
-          if (/#shorts?\b/i.test(v.title)) return false;
-          if (data.mode === "learn" && v.durationSeconds < 90) return false;
-          if (v.durationSeconds <= 0) return false;
-          // Strict topic filter: when the query has 2+ meaningful tokens,
-          // require at least half of them to appear in title or description.
-          if (coreTokens.length >= 2) {
-            const hay = (v.title + " " + (v.description || "") + " " + v.channel).toLowerCase();
-            const matched = coreTokens.filter((t) => hay.includes(t)).length;
-            if (matched / coreTokens.length < 0.34) return false;
-          }
-          return true;
-        });
-
-      const bucket = videoDuration ?? "any";
-
-      // Smart ranking — combines popularity, title coverage, exact phrase,
-      // channel match and (for freshness queries) recency.
-      results.sort((a, b) => {
-        const score = (v: ResultVideo) => {
-          let s = fitScore(bucket, v.durationSeconds, v.viewCount);
-           const titleN = normalize(v.title);
-           const descN = normalize(v.description || "");
-           const chN = normalize(v.channel);
-          const matched = allTokens.filter((t) => titleN.includes(t)).length;
-          const coreMatched = coreTokens.filter((t) => titleN.includes(t)).length;
-          const coreCoverage = coreTokens.length ? coreMatched / coreTokens.length : 1;
-          const descCoreMatched = coreTokens.filter((t) => descN.includes(t)).length;
-          const descCoverage = coreTokens.length ? descCoreMatched / coreTokens.length : 0;
-          s += matched * 8 + coreMatched * 6;
-          // Description confirms the topic — meaningful, but weaker than title.
-          s += descCoverage * 12;
-          if (coreTokens.length >= 2 && coreCoverage < 0.5) s -= 35;
-          if (coreTokens.length >= 1 && coreMatched === 0) {
-            const descMatched = coreTokens.filter((t) => descN.includes(t)).length;
-            if (descMatched < 1) s -= 30;
-          }
-          if (channelNameNorm && chN === channelNameNorm) s += 60;
-          else if (channelNameNorm && chN.includes(channelNameNorm)) s += 28;
-          if (qNorm.length >= 4 && titleN.includes(qNorm)) s += 18;
-          if (qNorm.length >= 4 && titleN.startsWith(qNorm)) s += 10;
-           const refinementCoverage = refinementTokens.length
-             ? refinementTokens.filter((t) => titleN.includes(t) || descN.includes(t)).length / refinementTokens.length
-             : 0;
-           s += refinementCoverage * 18;
-           if (/official|verified/.test(data.chips?.join(" ").toLowerCase() ?? "") && /official/.test(titleN)) s += 24;
-           if (/tutorial|course|lesson|explained|guide|lecture/.test(titleN) && data.mode === "learn") s += 16;
-           if (/ambient|relax|chill|lofi|music|comedy/.test(titleN) && data.mode === "relax") s += 14;
-           if (/compilation|reaction|shorts?|#short/i.test(titleN) && data.mode !== "relax") s -= 28;
-           if (/you won.t believe|must watch|shocking|insane/i.test(titleN)) s -= 12;
-           // Popularity is a trust signal, not the goal: cap it so relevance wins.
-           s += Math.min(8, Math.log10(Math.max(v.viewCount, 1)));
-
-           // --- Watch-history signals (deliberately gentle) ----------------
-           // Familiar channel: a small trust nudge, capped so it can never
-           // outrank actual topical relevance.
-           if (familiarChannels.size && familiarChannels.has(chN)) s += 12;
-           // Familiar topics: tiny boost, capped, so interests stay broad.
-           if (familiarTopics.length) {
-             const hay = `${titleN} ${descN}`;
-             const overlap = familiarTopics.filter((t) => hay.includes(t)).length;
-             s += Math.min(8, overlap * 3);
-           }
-           // Non-addictive: never re-serve something already watched.
-           if (alreadyWatched.has(v.videoId)) s -= 60;
-          // Recency boost for freshness queries (decays over ~60 days)
-          if (intentInfo.freshness && v.publishedAt) {
-            const ageDays = (nowMs - +new Date(v.publishedAt)) / 86_400_000;
-            if (ageDays >= 0) s += Math.max(0, 25 - ageDays * 0.4);
-          }
-          return s;
-        };
-        return score(b) - score(a);
+      // Preserve YouTube's exact ordering.
+      const results: ResultVideo[] = items.map((it) => {
+        const d = detailMap.get(it.id.videoId);
+        const durationSeconds = d ? parseISODuration(d.contentDetails.duration) : 0;
+        const viewCount = d ? parseInt(d.statistics.viewCount || "0", 10) : 0;
+        const v = {
+          videoId: it.id.videoId,
+          title: it.snippet.title,
+          channel: it.snippet.channelTitle,
+          channelId: it.snippet.channelId,
+          description: it.snippet.description,
+          thumbnail: it.snippet.thumbnails.high?.url || it.snippet.thumbnails.medium?.url || "",
+          publishedAt: it.snippet.publishedAt,
+          durationSeconds,
+          viewCount,
+          reason: "",
+        } as ResultVideo;
+        v.reason = reasonFor(data.mode, v);
+        return v;
       });
 
-      // If we found a strong channel match, surface its videos first
-      if (channel && !data.pageToken) {
-        const fromChannel = results.filter((r) => r.channelId === channel.channelId);
-        const others = results.filter((r) => r.channelId !== channel.channelId);
-        fromChannel.sort((a, b) => +new Date(b.publishedAt) - +new Date(a.publishedAt));
-        results = [...fromChannel, ...others];
-      }
-
-      let trimmed = results.slice(0, limit);
-
-      // Fallback when strict filters wiped everything
-      if (trimmed.length === 0 && !data.pageToken) {
-        const fbParams = new URLSearchParams({
-          part: "snippet", q: data.query, maxResults: "15", type: "video",
-          safeSearch: "moderate", order: "relevance", key: apiKey,
-        });
-        const fbRes = await fetch(`${YT_BASE}/search?${fbParams.toString()}`);
-        if (fbRes.ok) {
-          const fbJson = (await fbRes.json()) as typeof sJson;
-          const fbIds = fbJson.items.map((i) => i.id.videoId).filter(Boolean);
-          if (fbIds.length) {
-            const fbDParams = new URLSearchParams({
-              part: "contentDetails,statistics", id: fbIds.join(","), key: apiKey,
-            });
-            const fbDRes = await fetch(`${YT_BASE}/videos?${fbDParams.toString()}`);
-            const fbDJson = fbDRes.ok ? ((await fbDRes.json()) as typeof dJson) : { items: [] };
-            const fbDetail = new Map(fbDJson.items.map((it) => [it.id, it]));
-            trimmed = fbJson.items
-              .map((it) => {
-                const d = fbDetail.get(it.id.videoId);
-                const durationSeconds = d ? parseISODuration(d.contentDetails.duration) : 0;
-                const viewCount = d ? parseInt(d.statistics.viewCount || "0", 10) : 0;
-                return {
-                  videoId: it.id.videoId,
-                  title: it.snippet.title,
-                  channel: it.snippet.channelTitle,
-                  channelId: it.snippet.channelId,
-                  description: it.snippet.description,
-                  thumbnail: it.snippet.thumbnails.high?.url || it.snippet.thumbnails.medium?.url || "",
-                  publishedAt: it.snippet.publishedAt,
-                  durationSeconds,
-                  viewCount,
-                  reason: "Closest match for your search",
-                } as ResultVideo;
-              })
-              .filter((v) => v.durationSeconds > 60 && !/#shorts?\b/i.test(v.title))
-              .slice(0, limit);
-          }
-        }
-      }
-
-      if (trimmed[0] && !data.pageToken) trimmed[0].primary = true;
-
       return {
-        error: null, results: trimmed, playlists, channel,
-        effectiveQuery: q, hint, nextPageToken: sJson.nextPageToken ?? null,
+        error: null,
+        results,
+        playlists: [] as ResultPlaylist[],
+        channel: null as ResultChannel | null,
+        effectiveQuery: q,
+        hint: null as string | null,
+        nextPageToken: sJson.nextPageToken ?? null,
       };
     } catch (err) {
       console.error("YouTube search error", err);
       return {
         error: "Could not reach YouTube right now.",
         results: [] as ResultVideo[], playlists: [] as ResultPlaylist[], channel: null,
-        effectiveQuery: q, hint, nextPageToken: null,
+        effectiveQuery: q, hint: null, nextPageToken: null,
       };
     }
   });
