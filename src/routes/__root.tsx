@@ -119,6 +119,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
             <PrimaryNav />
             <div className="flex shrink-0 items-center gap-1">
+              <IntentSessionChip />
               <NowPlayingChip />
               <AccountMenu />
             </div>
