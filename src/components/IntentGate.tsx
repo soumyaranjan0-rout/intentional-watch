@@ -40,6 +40,9 @@ export function IntentForm({
   const [category, setCategory] = useState<IntentCategory | null>(initialCategory ?? null);
   const [text, setText] = useState(initialIntent ?? "");
   const [touched, setTouched] = useState(false);
+  // True once the person types their own wording — until then, picking a new
+  // category should swap in that category's example sentence.
+  const [customText, setCustomText] = useState(Boolean(initialIntent?.trim()));
   const [busy, setBusy] = useState(false);
 
   const validation = useMemo(() => validateIntent(text, category), [text, category]);
@@ -68,7 +71,7 @@ export function IntentForm({
               type="button"
               onClick={() => {
                 setCategory(c.id);
-                if (!text.trim() && SUGGESTIONS[c.id]) setText(SUGGESTIONS[c.id] as string);
+                if (!customText) setText(SUGGESTIONS[c.id] ?? "");
               }}
               aria-pressed={active}
               className={
@@ -95,7 +98,10 @@ export function IntentForm({
       <textarea
         id="intent-text"
         value={text}
-        onChange={(e) => setText(e.target.value)}
+        onChange={(e) => {
+          setText(e.target.value);
+          setCustomText(true);
+        }}
         onBlur={() => setTouched(true)}
         rows={2}
         placeholder="e.g. Learn Power BI DAX basics with worked examples"

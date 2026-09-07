@@ -12,6 +12,25 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+/** Keys that hold account-specific state in the browser. */
+const LOCAL_USER_KEYS = [
+  "zentube.intentSession.v1",
+  "zentube.session.v2",
+  "zentube.lastWatched.v1",
+  "zentube.affinity.v1",
+  "zen:recentSearches",
+  "zen:postLoginPath",
+  "zen.sessionReminders",
+];
+
+function clearLocalUserState() {
+  if (typeof window === "undefined") return;
+  for (const key of LOCAL_USER_KEYS) {
+    try { localStorage.removeItem(key); } catch { /* private mode */ }
+    try { sessionStorage.removeItem(key); } catch { /* private mode */ }
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -60,7 +79,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } finally {
+      // Everything in ZenTube belongs to the signed-in account, so leaving
+      // wipes the local traces too: the declared intention, the resume chip,
+      // cached affinity, recent searches and the in-flight browsing session.
+      clearLocalUserState();
+      if (typeof window !== "undefined") window.location.replace("/");
+    }
   };
 
   return (
