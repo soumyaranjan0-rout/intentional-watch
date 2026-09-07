@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useAuth } from "@/contexts/AuthContext";
+import { consumePostLoginPath, signInWithGoogle } from "@/lib/auth";
 
 import { toast } from "sonner";
 import {
@@ -37,12 +38,34 @@ export function AccountMenu() {
   // "Sign in" link below the search bar). The dedicated login route
   // handles popup-vs-redirect fallbacks reliably; invoking OAuth from
   // a dropdown breaks inside preview iframes and some browser contexts.
-  const signInGoogle = () => {
-    setOpen(false);
+  // Start Google directly from the click so the browser treats it as a user
+  // gesture (pop-up blockers reject anything started after a route change).
+  // If anything goes wrong we fall back to the dedicated sign-in page.
+  const signInGoogle = async () => {
+    if (busy) return;
     const redirect = location.pathname + location.search || "/";
-    navigate({ to: "/login", search: { redirect } }).catch(() => {
-      window.location.assign(`/login?redirect=${encodeURIComponent(redirect)}`);
-    });
+    const goToLoginPage = () => {
+      navigate({ to: "/login", search: { redirect } }).catch(() => {
+        window.location.assign(`/login?redirect=${encodeURIComponent(redirect)}`);
+      });
+    };
+
+    setBusy(true);
+    try {
+      const result = await signInWithGoogle(redirect);
+      if (result.redirected) return;
+      if (result.ok) {
+        setOpen(false);
+        window.location.replace(consumePostLoginPath() ?? redirect);
+        return;
+      }
+      toast.error(result.error || "Google sign-in failed. Please try again.");
+      goToLoginPage();
+    } catch {
+      goToLoginPage();
+    } finally {
+      setBusy(false);
+    }
   };
 
   const switchAccount = async () => {
@@ -53,7 +76,6 @@ export function AccountMenu() {
       await signOut();
     } catch { /* ignore — we still want to re-auth */ }
     setBusy(false);
-    signInGoogle();
   };
 
 
@@ -147,7 +169,7 @@ export function AccountMenu() {
                   disabled={busy}
                   className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
                 >
-                  <GoogleIcon /> Continue with Google
+                  <GoogleIcon /> {busy ? "Opening Google…" : "Continue with Google"}
                 </button>
                 <p className="mt-3 text-center text-[11px] text-muted-foreground">
                   No password. No spam. Just Google.
