@@ -274,6 +274,7 @@ function WatchPage() {
   useEffect(() => {
     return () => {
       updateLastWatchedPosition(videoId, resumePositionRef.current);
+      void recordIntentInteraction({ force: true, ended: true });
       if (user && historyIdRef.current) {
         supabase
           .from("watch_history")
@@ -286,6 +287,7 @@ function WatchPage() {
           .then(() => {});
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, videoId]);
 
   const handleEnded = async () => {
@@ -294,6 +296,7 @@ function WatchPage() {
     if (!recordedFinalRef.current) {
       recordedFinalRef.current = true;
       await syncHistory();
+      await recordIntentInteraction({ force: true, ended: true });
     }
     if (videosWatchedThisSession + 1 >= 2) setShowSessionPrompt(true);
   };
