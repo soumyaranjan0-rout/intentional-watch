@@ -1,10 +1,9 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useRef, useState } from "react";
-import type { Mode } from "@/lib/intent";
+import { modeForCategory } from "@/lib/intent";
 import { useSessionState } from "@/contexts/SessionStateContext";
-import { useAuth } from "@/contexts/AuthContext";
+import { useIntentSession } from "@/contexts/IntentSessionContext";
 import { ZenLogo } from "@/components/ZenLogo";
-import { IntentSearchModal } from "@/components/IntentSearchModal";
 import { ResumeBanner } from "@/components/ResumeBanner";
 import { SearchSuggestions, rememberSearchSuggestion } from "@/components/SearchSuggestions";
 import { Search, ArrowRight } from "lucide-react";
@@ -24,36 +23,31 @@ export const Route = createFileRoute("/")({
 function HomePage() {
   const { setMode, setQuery } = useSessionState();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { session, markActivity } = useIntentSession();
   const [q, setQ] = useState("");
-  const [open, setOpen] = useState(false);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
+  /** Intent was already declared on the launch screen — never ask again. */
+  const runSearch = (value: string) => {
+    const v = value.trim();
+    if (!v) return;
+    rememberSearchSuggestion(v);
+    setSuggestionsOpen(false);
+    setMode(modeForCategory(session?.category));
+    setQuery(v);
+    markActivity();
+    navigate({ to: "/results" });
+  };
+
   const onSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!q.trim()) return;
-    rememberSearchSuggestion(q);
-    setSuggestionsOpen(false);
-    setOpen(true);
+    runSearch(q);
   };
 
   const pickSuggestion = (value: string) => {
     setQ(value);
-    rememberSearchSuggestion(value);
-    setSuggestionsOpen(false);
-    setOpen(true);
-  };
-
-  const onConfirm = (mode: Mode) => {
-    const v = q.trim();
-    if (!v) return;
-    setMode(mode);
-    setQuery(v);
-    rememberSearchSuggestion(v);
-    setOpen(false);
-    if (mode === "find") navigate({ to: "/results" });
-    else navigate({ to: "/refine/$mode", params: { mode } });
+    runSearch(value);
   };
 
   return (
@@ -107,7 +101,7 @@ function HomePage() {
                 </button>
               </div>
 
-              <SearchSuggestions id="home-search-suggestions" value={q} visible={suggestionsOpen && !open} onPick={pickSuggestion} inputRef={inputRef} />
+              <SearchSuggestions id="home-search-suggestions" value={q} visible={suggestionsOpen} onPick={pickSuggestion} inputRef={inputRef} />
             </div>
             <p className="mt-5 text-sm text-muted-foreground">
               We'll ask why you're here — then tune results to match.
@@ -117,22 +111,8 @@ function HomePage() {
 
         <ResumeBanner />
 
-        {!user && (
-          <div className="mx-auto mt-16 max-w-md text-center text-sm text-muted-foreground">
-            <Link to="/login" search={{ redirect: "/" }} className="text-primary hover:underline">Sign in</Link>{" "}
-            to save notes, history, and insights.
-          </div>
-        )}
       </div>
 
-      {open && (
-        <IntentSearchModal
-          query={q.trim()}
-          initial="learn"
-          onClose={() => setOpen(false)}
-          onConfirm={onConfirm}
-        />
-      )}
     </div>
   );
 }
