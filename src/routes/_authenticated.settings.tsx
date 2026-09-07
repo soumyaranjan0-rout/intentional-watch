@@ -2,11 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { MODES, type Mode } from "@/lib/intent";
 import { toast } from "sonner";
 import {
   User, Clock, Palette, Shield, LogOut, Trash2, Mail, Key, ExternalLink,
-  LifeBuoy, Sparkles, CheckCircle2, Bug, Compass, ChevronDown,
+  LifeBuoy, Sparkles, CheckCircle2, Bug, ChevronDown,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getStoredYouTubeApiKey, setStoredYouTubeApiKey } from "@/lib/youtubeApiKey";
