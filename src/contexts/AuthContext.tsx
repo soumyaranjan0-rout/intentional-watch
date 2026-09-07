@@ -12,6 +12,25 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+/** Keys that hold account-specific state in the browser. */
+const LOCAL_USER_KEYS = [
+  "zentube.intentSession.v1",
+  "zentube.session.v2",
+  "zentube.lastWatched.v1",
+  "zentube.affinity.v1",
+  "zen:recentSearches",
+  "zen:postLoginPath",
+  "zen.sessionReminders",
+];
+
+function clearLocalUserState() {
+  if (typeof window === "undefined") return;
+  for (const key of LOCAL_USER_KEYS) {
+    try { localStorage.removeItem(key); } catch { /* private mode */ }
+    try { sessionStorage.removeItem(key); } catch { /* private mode */ }
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
