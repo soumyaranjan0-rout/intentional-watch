@@ -49,7 +49,7 @@ function WatchPage() {
   const { videoId } = Route.useParams();
   const search = Route.useSearch();
   const { user } = useAuth();
-  const { mode: sessionMode, bumpWatched, videosWatchedThisSession, sessionStartedAt } = useSessionState();
+  const { mode: sessionMode, query: sessionQuery, bumpWatched, videosWatchedThisSession, sessionStartedAt } = useSessionState();
   const navigate = useNavigate();
   const { session: intentSession, markActivity } = useIntentSession();
   const intentSessionRef = useRef(intentSession);
@@ -224,6 +224,8 @@ function WatchPage() {
     duration: meta?.durationSeconds || search.duration || 0,
   };
 
+  const sessionQueryRef = useRef(sessionQuery);
+  sessionQueryRef.current = sessionQuery;
   const lastRecordedRef = useRef(0);
 
   const recordIntentInteraction = useCallback(async (opts?: { force?: boolean; ended?: boolean }) => {
@@ -240,14 +242,14 @@ function WatchPage() {
       channel: info.channel,
       category: info.category,
       tags: info.tags,
-      searchQuery: search.q || null,
+      searchQuery: sessionQueryRef.current || null,
       watchSeconds: watchSecondsRef.current,
       effectiveSeconds: eff,
       videoDurationSeconds: info.duration || null,
       replayed: seekCountRef.current > 0 && eff > info.duration && info.duration > 0,
       ended: opts?.ended ?? false,
     }).catch(() => {});
-  }, [videoId, search.q]);
+  }, [videoId]);
 
   const handleProgress = useCallback(
     (s: number) => {
