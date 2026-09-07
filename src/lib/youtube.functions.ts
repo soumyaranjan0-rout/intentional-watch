@@ -27,17 +27,6 @@ type Input = z.infer<typeof SearchInput>;
 
 const YT_BASE = "https://www.googleapis.com/youtube/v3";
 
-const VARIATION_SUFFIX = [
-  "",
-  "best",
-  "explained",
-  "complete",
-  "popular",
-  "recommended",
-  "in depth",
-  "top",
-];
-
 // --- Smart query intent detection ----------------------------------------
 const FRESHNESS_RX = /\b(new|latest|recent|today|just\s+uploaded|upload|this\s+week)\b/i;
 const CONTENT_TYPE_RX: Array<{ rx: RegExp; add: string }> = [
@@ -57,72 +46,16 @@ export function detectQueryIntent(raw: string): {
   const freshness = FRESHNESS_RX.test(q);
   let contentHint: string | null = null;
   for (const c of CONTENT_TYPE_RX) {
-    if (c.rx.test(q)) { contentHint = c.add; break; }
+    if (c.rx.test(q)) {
+      contentHint = c.add;
+      break;
+    }
   }
   const cleaned = q.replace(FRESHNESS_RX, "").replace(/\s+/g, " ").trim() || q;
   let hint: string | null = null;
   if (freshness) hint = `Sorted by recently uploaded`;
   else if (contentHint) hint = `Filtered for ${contentHint}`;
   return { cleaned, freshness, contentHint, hint };
-}
-
-function buildSearchQuery(input: Input): {
-  q: string;
-  videoDuration?: "short" | "medium" | "long" | "any";
-  order: "relevance" | "viewCount" | "date";
-  hint: string | null;
-} {
-  const { query, mode, freeform, chips = [], variation = 0 } = input;
-  const intent = detectQueryIntent(query);
-  const parts: string[] = [intent.cleaned];
-  if (intent.contentHint) parts.push(intent.contentHint);
-
-  let videoDuration: "short" | "medium" | "long" | "any" = "any";
-  let order: "relevance" | "viewCount" | "date" = intent.freshness ? "date" : "relevance";
-
-  const chipText = chips.join(" ").toLowerCase();
-  if (/under 15|\bshort\b|5 min/.test(chipText)) videoDuration = "short";
-  else if (/around 1 hour|\bmedium\b/.test(chipText)) videoDuration = "medium";
-  else if (/full course|\blong\b/.test(chipText)) videoDuration = "long";
-
-  if (mode === "learn") {
-    if (/beginner/.test(chipText)) parts.push("for beginners");
-    if (/advanced/.test(chipText)) parts.push("advanced");
-    if (/step-by-step|crash course/.test(chipText)) parts.push("tutorial");
-    if (/deep dive/.test(chipText)) parts.push("in depth");
-    if (/overview/.test(chipText)) parts.push("explained");
-    for (const c of chips) {
-      if (!/beginner|intermediate|advanced|step-by-step|overview|deep dive|crash course|under 15|around 1 hour|full course|short|medium|long/i.test(c)) {
-        parts.push(c);
-      }
-    }
-  } else if (mode === "relax") {
-    for (const c of chips) {
-      if (!/short|medium|long/i.test(c)) parts.push(c);
-    }
-  } else if (mode === "explore") {
-    if (/playlist/.test(chipText)) parts.push("series guide");
-    else if (!intent.freshness) parts.push("best");
-    for (const c of chips) {
-      if (!/intro|intermediate|expert|3 best picks|structured playlist|different angles/i.test(c)) {
-        parts.push(c);
-      }
-    }
-  } else if (mode === "find") {
-    if (/official/.test(chipText)) parts.push("official");
-    if (/latest/.test(chipText)) { parts.push("latest"); order = "date"; }
-  }
-
-  if (freeform && freeform.trim()) parts.push(freeform.trim());
-
-  const v = variation % VARIATION_SUFFIX.length;
-  if (v > 0 && !intent.freshness) {
-    parts.push(VARIATION_SUFFIX[v]);
-    if (v % 3 === 0) order = "viewCount";
-    else if (v % 3 === 2) order = "date";
-  }
-
-  return { q: parts.filter(Boolean).join(" "), videoDuration, order, hint: intent.hint };
 }
 
 function reasonFor(
@@ -149,20 +82,6 @@ function reasonFor(
   return `Curated from ${v.channel}`;
 }
 
-function fitScore(
-  durationBucket: "short" | "medium" | "long" | "any",
-  durationSeconds: number,
-  views: number,
-): number {
-  const viewScore = Math.log10(Math.max(views, 1)) * 2;
-  let durationFit = 1;
-  if (durationBucket === "short") durationFit = durationSeconds <= 15 * 60 ? 1.5 : 0.6;
-  else if (durationBucket === "medium")
-    durationFit = durationSeconds >= 5 * 60 && durationSeconds <= 70 * 60 ? 1.5 : 0.7;
-  else if (durationBucket === "long") durationFit = durationSeconds >= 30 * 60 ? 1.5 : 0.6;
-  return viewScore * durationFit;
-}
-
 export type ResultPlaylist = {
   playlistId: string;
   title: string;
@@ -183,177 +102,51 @@ export type ResultChannel = {
   videoCount: number;
 };
 
-async function fetchPlaylists(apiKey: string, q: string): Promise<ResultPlaylist[]> {
-  try {
-    const params = new URLSearchParams({
-      part: "snippet", q, maxResults: "5", type: "playlist",
-      safeSearch: "moderate", key: apiKey,
-    });
-    const res = await fetch(`${YT_BASE}/search?${params.toString()}`);
-    if (!res.ok) return [];
-    const json = (await res.json()) as {
-      items: Array<{
-        id: { playlistId: string };
-        snippet: {
-          title: string; channelTitle: string; channelId: string; description: string;
-          thumbnails: { medium?: { url: string }; high?: { url: string } };
-        };
-      }>;
-    };
-    const ids = json.items.map((i) => i.id.playlistId).filter(Boolean);
-    if (ids.length === 0) return [];
-
-    const dParams = new URLSearchParams({ part: "contentDetails", id: ids.join(","), key: apiKey });
-    const dRes = await fetch(`${YT_BASE}/playlists?${dParams.toString()}`);
-    const dJson = dRes.ok
-      ? ((await dRes.json()) as { items: Array<{ id: string; contentDetails: { itemCount: number } }> })
-      : { items: [] };
-    const countMap = new Map(dJson.items.map((d) => [d.id, d.contentDetails.itemCount]));
-
-    return json.items
-      .map((it) => ({
-        playlistId: it.id.playlistId,
-        title: it.snippet.title,
-        channel: it.snippet.channelTitle,
-        channelId: it.snippet.channelId,
-        description: it.snippet.description,
-        thumbnail: it.snippet.thumbnails.high?.url || it.snippet.thumbnails.medium?.url || "",
-        itemCount: countMap.get(it.id.playlistId) || 0,
-        reason: `Curated series · ${countMap.get(it.id.playlistId) || 0} videos`,
-      }))
-      .filter((p) => p.itemCount >= 3)
-      .slice(0, 3);
-  } catch {
-    return [];
-  }
-}
-
-/** Detect if a query strongly matches a channel name. Returns the channel
- *  if YouTube finds a confident match, else null. */
-async function fetchTopChannelMatch(apiKey: string, rawQuery: string): Promise<ResultChannel | null> {
-  try {
-    // Strip freshness/topic noise so "mr beast new video" becomes "mr beast"
-    const cleaned = rawQuery
-      .replace(FRESHNESS_RX, "")
-      .replace(/\b(video|videos|channel|youtube)\b/gi, "")
-      .replace(/\s+/g, " ")
-      .trim();
-    if (cleaned.length < 2) return null;
-
-    const params = new URLSearchParams({
-      part: "snippet", q: cleaned, maxResults: "3", type: "channel",
-      key: apiKey,
-    });
-    const res = await fetch(`${YT_BASE}/search?${params.toString()}`);
-    if (!res.ok) return null;
-    const json = (await res.json()) as {
-      items: Array<{
-        id: { channelId: string };
-        snippet: { title: string; description: string; thumbnails: { medium?: { url: string }; high?: { url: string } } };
-      }>;
-    };
-    if (!json.items.length) return null;
-
-    const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
-    const qn = norm(cleaned);
-    // Find the strongest name match
-    const scored = json.items
-      .map((it) => {
-        const tn = norm(it.snippet.title);
-        let score = 0;
-        if (tn === qn) score = 100;
-        else if (tn.startsWith(qn)) score = 80;
-        else if (qn.startsWith(tn) && tn.length >= 4) score = 70;
-        else if (tn.includes(qn) && qn.length >= 4) score = 60;
-        else if (qn.includes(tn) && tn.length >= 4) score = 50;
-        return { it, score };
-      })
-      .sort((a, b) => b.score - a.score);
-    const best = scored[0];
-    if (!best || best.score < 60) return null;
-
-    // Hydrate with stats
-    const cParams = new URLSearchParams({
-      part: "snippet,statistics", id: best.it.id.channelId, key: apiKey,
-    });
-    const cRes = await fetch(`${YT_BASE}/channels?${cParams.toString()}`);
-    if (!cRes.ok) return null;
-    const cJson = (await cRes.json()) as {
-      items: Array<{
-        id: string;
-        snippet: { title: string; description: string; thumbnails: { medium?: { url: string }; high?: { url: string } } };
-        statistics: { subscriberCount?: string; videoCount?: string };
-      }>;
-    };
-    const ch = cJson.items[0];
-    if (!ch) return null;
-    return {
-      channelId: ch.id,
-      title: ch.snippet.title,
-      description: ch.snippet.description,
-      thumbnail: ch.snippet.thumbnails.medium?.url || ch.snippet.thumbnails.high?.url || "",
-      subscriberCount: parseInt(ch.statistics.subscriberCount || "0", 10),
-      videoCount: parseInt(ch.statistics.videoCount || "0", 10),
-    };
-  } catch {
-    return null;
-  }
-}
-
 export const searchVideos = createServerFn({ method: "POST" })
   .inputValidator((input: Input) => SearchInput.parse(input))
   .handler(async ({ data }) => {
     const apiKey = data.apiKey?.trim() || process.env.YOUTUBE_API_KEY;
+    const q = data.query.trim();
     if (!apiKey) {
       return {
         error: "YouTube API key is not configured.",
         results: [] as ResultVideo[],
         playlists: [] as ResultPlaylist[],
         channel: null as ResultChannel | null,
-        effectiveQuery: "",
+        effectiveQuery: q,
         hint: null as string | null,
         nextPageToken: null as string | null,
       };
     }
 
-    const { q, videoDuration, order, hint } = buildSearchQuery(data);
-    const limit = data.maxResults ?? (data.mode === "find" ? 5 : data.mode === "explore" ? 5 : 7);
-    const intentInfo = detectQueryIntent(data.query);
-
-    const buildSearchUrl = (ord: "relevance" | "viewCount" | "date", pageToken?: string) => {
-      const sp = new URLSearchParams({
-        part: "snippet", q, maxResults: "25", type: "video",
-        safeSearch: "moderate", order: ord, key: apiKey,
-      });
-      if (videoDuration && videoDuration !== "any") sp.set("videoDuration", videoDuration);
-      if (pageToken) sp.set("pageToken", pageToken);
-      return `${YT_BASE}/search?${sp.toString()}`;
-    };
+    // Mirror YouTube: send the query verbatim, relevance order, keep YouTube's
+    // own ranking untouched. No injected keywords, no re-sorting, no filters.
+    const limit = data.maxResults ?? 10;
 
     try {
-      const includePlaylists = (data.mode === "learn" || data.mode === "explore") && !data.pageToken;
-      const includeChannel = !data.pageToken && data.query.trim().split(/\s+/).length <= 5;
+      const sp = new URLSearchParams({
+        part: "snippet",
+        q,
+        maxResults: String(limit),
+        type: "video",
+        safeSearch: "moderate",
+        order: "relevance",
+        key: apiKey,
+      });
+      if (data.pageToken) sp.set("pageToken", data.pageToken);
 
-      // For freshness queries, fetch BOTH relevance + date and merge — pure
-      // date order returns recently-uploaded noise that barely matches.
-      const dualFetch = intentInfo.freshness && !data.pageToken;
-      const primaryUrl = buildSearchUrl(order, data.pageToken);
-      const secondaryUrl = dualFetch ? buildSearchUrl("relevance") : null;
-
-      const [sRes, sRes2, playlists, channel] = await Promise.all([
-        fetch(primaryUrl),
-        secondaryUrl ? fetch(secondaryUrl) : Promise.resolve(null),
-        includePlaylists ? fetchPlaylists(apiKey, q) : Promise.resolve([]),
-        includeChannel ? fetchTopChannelMatch(apiKey, data.query) : Promise.resolve(null),
-      ]);
-
+      const sRes = await fetch(`${YT_BASE}/search?${sp.toString()}`);
       if (!sRes.ok) {
         const body = await sRes.text();
         console.error("YouTube search failed", sRes.status, body);
         return {
           error: `Search failed (${sRes.status})`,
-          results: [] as ResultVideo[], playlists: [] as ResultPlaylist[], channel: null,
-          effectiveQuery: q, hint, nextPageToken: null,
+          results: [] as ResultVideo[],
+          playlists: [] as ResultPlaylist[],
+          channel: null,
+          effectiveQuery: q,
+          hint: null,
+          nextPageToken: null,
         };
       }
       type SearchJson = {
@@ -361,259 +154,151 @@ export const searchVideos = createServerFn({ method: "POST" })
         items: Array<{
           id: { videoId: string };
           snippet: {
-            title: string; channelTitle: string; channelId: string; description: string;
-            publishedAt: string; thumbnails: { medium?: { url: string }; high?: { url: string } };
+            title: string;
+            channelTitle: string;
+            channelId: string;
+            description: string;
+            publishedAt: string;
+            thumbnails: { medium?: { url: string }; high?: { url: string } };
           };
         }>;
       };
       const sJson = (await sRes.json()) as SearchJson;
-      const sJson2: SearchJson = sRes2 && sRes2.ok ? ((await sRes2.json()) as SearchJson) : { items: [] };
-
-      // Merge unique items
-      const seen = new Set<string>();
-      const mergedItems: SearchJson["items"] = [];
-      for (const it of [...sJson.items, ...sJson2.items]) {
-        if (!it.id?.videoId || seen.has(it.id.videoId)) continue;
-        seen.add(it.id.videoId);
-        mergedItems.push(it);
-      }
-
-      const ids = mergedItems.map((i) => i.id.videoId);
+      const items = sJson.items.filter((i) => i.id?.videoId);
+      const ids = items.map((i) => i.id.videoId);
       if (ids.length === 0) {
         return {
-          error: null, results: [] as ResultVideo[], playlists, channel,
-          effectiveQuery: q, hint, nextPageToken: sJson.nextPageToken ?? null,
+          error: null,
+          results: [] as ResultVideo[],
+          playlists: [] as ResultPlaylist[],
+          channel: null,
+          effectiveQuery: q,
+          hint: null,
+          nextPageToken: sJson.nextPageToken ?? null,
         };
       }
 
       const dParams = new URLSearchParams({
-        part: "contentDetails,statistics", id: ids.join(","), key: apiKey,
+        part: "contentDetails,statistics",
+        id: ids.join(","),
+        key: apiKey,
       });
       const dRes = await fetch(`${YT_BASE}/videos?${dParams.toString()}`);
-      if (!dRes.ok) {
-        const body = await dRes.text();
-        console.error("YouTube videos failed", dRes.status, body);
-        return {
-          error: `Details failed (${dRes.status})`,
-          results: [] as ResultVideo[], playlists, channel,
-          effectiveQuery: q, hint, nextPageToken: null,
-        };
-      }
-      const dJson = (await dRes.json()) as {
-        items: Array<{
-          id: string; contentDetails: { duration: string }; statistics: { viewCount?: string };
-        }>;
-      };
+      const dJson = dRes.ok
+        ? ((await dRes.json()) as {
+            items: Array<{
+              id: string;
+              contentDetails: { duration: string };
+              statistics: { viewCount?: string };
+            }>;
+          })
+        : { items: [] };
       const detailMap = new Map(dJson.items.map((it) => [it.id, it]));
 
-      // Tokens used for both filtering and ranking. Strip stopwords and short tokens.
-      const STOP = new Set(["the","and","for","with","video","videos","new","latest","best","top","you","your","this","that","from","into","what","how","why","2024","2025","2026","2027"]);
-      const normalize = (value: string) => value.toLowerCase().replace(/&amp;/g, "and").replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
-      const qNorm = normalize(data.query);
-      const allTokens = qNorm.split(/\s+/).filter((t) => t.length >= 2);
-      const coreTokens = allTokens.filter((t) => !STOP.has(t));
-      const refinementTokens = normalize([...(data.chips ?? []), data.freeform ?? ""].join(" ")).split(/\s+/).filter((t) => t.length >= 3 && !STOP.has(t));
-      const channelNameNorm = channel ? channel.title.toLowerCase() : null;
-      const nowMs = Date.now();
-      const familiarChannels = new Set((data.history?.channels ?? []).map((c) => normalize(c)));
-      const familiarTopics = (data.history?.topics ?? []).map((t) => normalize(t)).filter(Boolean);
-      const alreadyWatched = new Set(data.history?.watched ?? []);
-
-      let results: ResultVideo[] = mergedItems
-        .map((it) => {
-          const d = detailMap.get(it.id.videoId);
-          const durationSeconds = d ? parseISODuration(d.contentDetails.duration) : 0;
-          const viewCount = d ? parseInt(d.statistics.viewCount || "0", 10) : 0;
-          const v = {
-            videoId: it.id.videoId,
-            title: it.snippet.title,
-            channel: it.snippet.channelTitle,
-            channelId: it.snippet.channelId,
-            description: it.snippet.description,
-            thumbnail: it.snippet.thumbnails.high?.url || it.snippet.thumbnails.medium?.url || "",
-            publishedAt: it.snippet.publishedAt,
-            durationSeconds,
-            viewCount,
-            reason: "",
-          } as ResultVideo;
-          v.reason = reasonFor(data.mode, v);
-          return v;
-        })
-        .filter((v) => {
-          if (v.durationSeconds <= 65) return false;
-          if (/#shorts?\b/i.test(v.title)) return false;
-          if (data.mode === "learn" && v.durationSeconds < 90) return false;
-          if (v.durationSeconds <= 0) return false;
-          // Strict topic filter: when the query has 2+ meaningful tokens,
-          // require at least half of them to appear in title or description.
-          if (coreTokens.length >= 2) {
-            const hay = (v.title + " " + (v.description || "") + " " + v.channel).toLowerCase();
-            const matched = coreTokens.filter((t) => hay.includes(t)).length;
-            if (matched / coreTokens.length < 0.34) return false;
-          }
-          return true;
-        });
-
-      const bucket = videoDuration ?? "any";
-
-      // Smart ranking — combines popularity, title coverage, exact phrase,
-      // channel match and (for freshness queries) recency.
-      results.sort((a, b) => {
-        const score = (v: ResultVideo) => {
-          let s = fitScore(bucket, v.durationSeconds, v.viewCount);
-           const titleN = normalize(v.title);
-           const descN = normalize(v.description || "");
-           const chN = normalize(v.channel);
-          const matched = allTokens.filter((t) => titleN.includes(t)).length;
-          const coreMatched = coreTokens.filter((t) => titleN.includes(t)).length;
-          const coreCoverage = coreTokens.length ? coreMatched / coreTokens.length : 1;
-          const descCoreMatched = coreTokens.filter((t) => descN.includes(t)).length;
-          const descCoverage = coreTokens.length ? descCoreMatched / coreTokens.length : 0;
-          s += matched * 8 + coreMatched * 6;
-          // Description confirms the topic — meaningful, but weaker than title.
-          s += descCoverage * 12;
-          if (coreTokens.length >= 2 && coreCoverage < 0.5) s -= 35;
-          if (coreTokens.length >= 1 && coreMatched === 0) {
-            const descMatched = coreTokens.filter((t) => descN.includes(t)).length;
-            if (descMatched < 1) s -= 30;
-          }
-          if (channelNameNorm && chN === channelNameNorm) s += 60;
-          else if (channelNameNorm && chN.includes(channelNameNorm)) s += 28;
-          if (qNorm.length >= 4 && titleN.includes(qNorm)) s += 18;
-          if (qNorm.length >= 4 && titleN.startsWith(qNorm)) s += 10;
-           const refinementCoverage = refinementTokens.length
-             ? refinementTokens.filter((t) => titleN.includes(t) || descN.includes(t)).length / refinementTokens.length
-             : 0;
-           s += refinementCoverage * 18;
-           if (/official|verified/.test(data.chips?.join(" ").toLowerCase() ?? "") && /official/.test(titleN)) s += 24;
-           if (/tutorial|course|lesson|explained|guide|lecture/.test(titleN) && data.mode === "learn") s += 16;
-           if (/ambient|relax|chill|lofi|music|comedy/.test(titleN) && data.mode === "relax") s += 14;
-           if (/compilation|reaction|shorts?|#short/i.test(titleN) && data.mode !== "relax") s -= 28;
-           if (/you won.t believe|must watch|shocking|insane/i.test(titleN)) s -= 12;
-           // Popularity is a trust signal, not the goal: cap it so relevance wins.
-           s += Math.min(8, Math.log10(Math.max(v.viewCount, 1)));
-
-           // --- Watch-history signals (deliberately gentle) ----------------
-           // Familiar channel: a small trust nudge, capped so it can never
-           // outrank actual topical relevance.
-           if (familiarChannels.size && familiarChannels.has(chN)) s += 12;
-           // Familiar topics: tiny boost, capped, so interests stay broad.
-           if (familiarTopics.length) {
-             const hay = `${titleN} ${descN}`;
-             const overlap = familiarTopics.filter((t) => hay.includes(t)).length;
-             s += Math.min(8, overlap * 3);
-           }
-           // Non-addictive: never re-serve something already watched.
-           if (alreadyWatched.has(v.videoId)) s -= 60;
-          // Recency boost for freshness queries (decays over ~60 days)
-          if (intentInfo.freshness && v.publishedAt) {
-            const ageDays = (nowMs - +new Date(v.publishedAt)) / 86_400_000;
-            if (ageDays >= 0) s += Math.max(0, 25 - ageDays * 0.4);
-          }
-          return s;
-        };
-        return score(b) - score(a);
+      // Preserve YouTube's exact ordering.
+      const results: ResultVideo[] = items.map((it) => {
+        const d = detailMap.get(it.id.videoId);
+        const durationSeconds = d ? parseISODuration(d.contentDetails.duration) : 0;
+        const viewCount = d ? parseInt(d.statistics.viewCount || "0", 10) : 0;
+        const v = {
+          videoId: it.id.videoId,
+          title: it.snippet.title,
+          channel: it.snippet.channelTitle,
+          channelId: it.snippet.channelId,
+          description: it.snippet.description,
+          thumbnail: it.snippet.thumbnails.high?.url || it.snippet.thumbnails.medium?.url || "",
+          publishedAt: it.snippet.publishedAt,
+          durationSeconds,
+          viewCount,
+          reason: "",
+        } as ResultVideo;
+        v.reason = reasonFor(data.mode, v);
+        return v;
       });
 
-      // If we found a strong channel match, surface its videos first
-      if (channel && !data.pageToken) {
-        const fromChannel = results.filter((r) => r.channelId === channel.channelId);
-        const others = results.filter((r) => r.channelId !== channel.channelId);
-        fromChannel.sort((a, b) => +new Date(b.publishedAt) - +new Date(a.publishedAt));
-        results = [...fromChannel, ...others];
-      }
-
-      let trimmed = results.slice(0, limit);
-
-      // Fallback when strict filters wiped everything
-      if (trimmed.length === 0 && !data.pageToken) {
-        const fbParams = new URLSearchParams({
-          part: "snippet", q: data.query, maxResults: "15", type: "video",
-          safeSearch: "moderate", order: "relevance", key: apiKey,
-        });
-        const fbRes = await fetch(`${YT_BASE}/search?${fbParams.toString()}`);
-        if (fbRes.ok) {
-          const fbJson = (await fbRes.json()) as typeof sJson;
-          const fbIds = fbJson.items.map((i) => i.id.videoId).filter(Boolean);
-          if (fbIds.length) {
-            const fbDParams = new URLSearchParams({
-              part: "contentDetails,statistics", id: fbIds.join(","), key: apiKey,
-            });
-            const fbDRes = await fetch(`${YT_BASE}/videos?${fbDParams.toString()}`);
-            const fbDJson = fbDRes.ok ? ((await fbDRes.json()) as typeof dJson) : { items: [] };
-            const fbDetail = new Map(fbDJson.items.map((it) => [it.id, it]));
-            trimmed = fbJson.items
-              .map((it) => {
-                const d = fbDetail.get(it.id.videoId);
-                const durationSeconds = d ? parseISODuration(d.contentDetails.duration) : 0;
-                const viewCount = d ? parseInt(d.statistics.viewCount || "0", 10) : 0;
-                return {
-                  videoId: it.id.videoId,
-                  title: it.snippet.title,
-                  channel: it.snippet.channelTitle,
-                  channelId: it.snippet.channelId,
-                  description: it.snippet.description,
-                  thumbnail: it.snippet.thumbnails.high?.url || it.snippet.thumbnails.medium?.url || "",
-                  publishedAt: it.snippet.publishedAt,
-                  durationSeconds,
-                  viewCount,
-                  reason: "Closest match for your search",
-                } as ResultVideo;
-              })
-              .filter((v) => v.durationSeconds > 60 && !/#shorts?\b/i.test(v.title))
-              .slice(0, limit);
-          }
-        }
-      }
-
-      if (trimmed[0] && !data.pageToken) trimmed[0].primary = true;
-
       return {
-        error: null, results: trimmed, playlists, channel,
-        effectiveQuery: q, hint, nextPageToken: sJson.nextPageToken ?? null,
+        error: null,
+        results,
+        playlists: [] as ResultPlaylist[],
+        channel: null as ResultChannel | null,
+        effectiveQuery: q,
+        hint: null as string | null,
+        nextPageToken: sJson.nextPageToken ?? null,
       };
     } catch (err) {
       console.error("YouTube search error", err);
       return {
         error: "Could not reach YouTube right now.",
-        results: [] as ResultVideo[], playlists: [] as ResultPlaylist[], channel: null,
-        effectiveQuery: q, hint, nextPageToken: null,
+        results: [] as ResultVideo[],
+        playlists: [] as ResultPlaylist[],
+        channel: null,
+        effectiveQuery: q,
+        hint: null,
+        nextPageToken: null,
       };
     }
   });
 
 // --- Playlist items ---------------------------------------------------------
 
-const PlaylistItemsInput = z.object({ playlistId: z.string().min(5).max(64), apiKey: z.string().max(200).optional() });
+const PlaylistItemsInput = z.object({
+  playlistId: z.string().min(5).max(64),
+  apiKey: z.string().max(200).optional(),
+});
 
 export const getPlaylistItems = createServerFn({ method: "POST" })
-  .inputValidator((input: { playlistId: string; apiKey?: string }) => PlaylistItemsInput.parse(input))
+  .inputValidator((input: { playlistId: string; apiKey?: string }) =>
+    PlaylistItemsInput.parse(input),
+  )
   .handler(async ({ data }) => {
     const apiKey = data.apiKey?.trim() || process.env.YOUTUBE_API_KEY;
-    if (!apiKey) return { items: [] as Array<{ videoId: string; title: string; channel: string; thumbnail: string; durationSeconds: number; position: number }>, error: "API key missing" };
+    if (!apiKey)
+      return {
+        items: [] as Array<{
+          videoId: string;
+          title: string;
+          channel: string;
+          thumbnail: string;
+          durationSeconds: number;
+          position: number;
+        }>,
+        error: "API key missing",
+      };
     try {
       const params = new URLSearchParams({
-        part: "snippet,contentDetails", playlistId: data.playlistId,
-        maxResults: "50", key: apiKey,
+        part: "snippet,contentDetails",
+        playlistId: data.playlistId,
+        maxResults: "50",
+        key: apiKey,
       });
       const res = await fetch(`${YT_BASE}/playlistItems?${params.toString()}`);
       if (!res.ok) return { items: [], error: `playlistItems ${res.status}` };
       const json = (await res.json()) as {
         items: Array<{
           snippet: {
-            title: string; videoOwnerChannelTitle?: string; position: number;
+            title: string;
+            videoOwnerChannelTitle?: string;
+            position: number;
             thumbnails: { medium?: { url: string }; high?: { url: string } };
             resourceId: { videoId: string };
           };
         }>;
       };
       const ids = json.items.map((i) => i.snippet.resourceId.videoId).filter(Boolean);
-      const dParams = new URLSearchParams({ part: "contentDetails", id: ids.join(","), key: apiKey });
+      const dParams = new URLSearchParams({
+        part: "contentDetails",
+        id: ids.join(","),
+        key: apiKey,
+      });
       const dRes = await fetch(`${YT_BASE}/videos?${dParams.toString()}`);
       const dJson = dRes.ok
-        ? ((await dRes.json()) as { items: Array<{ id: string; contentDetails: { duration: string } }> })
+        ? ((await dRes.json()) as {
+            items: Array<{ id: string; contentDetails: { duration: string } }>;
+          })
         : { items: [] };
-      const durMap = new Map(dJson.items.map((d) => [d.id, parseISODuration(d.contentDetails.duration)]));
+      const durMap = new Map(
+        dJson.items.map((d) => [d.id, parseISODuration(d.contentDetails.duration)]),
+      );
 
       const items = json.items
         .map((it) => ({
@@ -634,7 +319,10 @@ export const getPlaylistItems = createServerFn({ method: "POST" })
 
 // --- Video metadata --------------------------------------------------------
 
-const MetaInput = z.object({ videoId: z.string().min(5).max(20), apiKey: z.string().max(200).optional() });
+const MetaInput = z.object({
+  videoId: z.string().min(5).max(20),
+  apiKey: z.string().max(200).optional(),
+});
 
 export type VideoMeta = {
   videoId: string;
@@ -659,14 +347,23 @@ export const getVideoMeta = createServerFn({ method: "POST" })
 
     try {
       const vParams = new URLSearchParams({
-        part: "snippet,contentDetails,statistics", id: data.videoId, key: apiKey,
+        part: "snippet,contentDetails,statistics",
+        id: data.videoId,
+        key: apiKey,
       });
       const vRes = await fetch(`${YT_BASE}/videos?${vParams.toString()}`);
       if (!vRes.ok) return { meta: null, error: `videos ${vRes.status}` };
       const vJson = (await vRes.json()) as {
         items: Array<{
           id: string;
-          snippet: { title: string; channelTitle: string; channelId: string; description: string; publishedAt: string; categoryId?: string };
+          snippet: {
+            title: string;
+            channelTitle: string;
+            channelId: string;
+            description: string;
+            publishedAt: string;
+            categoryId?: string;
+          };
           contentDetails: { duration: string };
           statistics: { viewCount?: string; likeCount?: string };
         }>;
@@ -675,7 +372,9 @@ export const getVideoMeta = createServerFn({ method: "POST" })
       if (!v) return { meta: null, error: "Not found" };
 
       const cParams = new URLSearchParams({
-        part: "snippet,statistics", id: v.snippet.channelId, key: apiKey,
+        part: "snippet,statistics",
+        id: v.snippet.channelId,
+        key: apiKey,
       });
       const cRes = await fetch(`${YT_BASE}/channels?${cParams.toString()}`);
       const cJson = cRes.ok
@@ -693,7 +392,8 @@ export const getVideoMeta = createServerFn({ method: "POST" })
         title: v.snippet.title,
         channel: v.snippet.channelTitle,
         channelId: v.snippet.channelId,
-        channelThumbnail: ch?.snippet.thumbnails.medium?.url || ch?.snippet.thumbnails.default?.url || "",
+        channelThumbnail:
+          ch?.snippet.thumbnails.medium?.url || ch?.snippet.thumbnails.default?.url || "",
         subscriberCount: parseInt(ch?.statistics.subscriberCount || "0", 10),
         viewCount: parseInt(v.statistics.viewCount || "0", 10),
         likeCount: parseInt(v.statistics.likeCount || "0", 10),
@@ -711,7 +411,10 @@ export const getVideoMeta = createServerFn({ method: "POST" })
 
 // --- Channel detail + latest videos ----------------------------------------
 
-const ChannelInput = z.object({ channelId: z.string().min(5).max(64), apiKey: z.string().max(200).optional() });
+const ChannelInput = z.object({
+  channelId: z.string().min(5).max(64),
+  apiKey: z.string().max(200).optional(),
+});
 
 export type ChannelDetail = {
   channelId: string;
@@ -729,12 +432,17 @@ export const getChannelDetail = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const apiKey = data.apiKey?.trim() || process.env.YOUTUBE_API_KEY;
     if (!apiKey) {
-      return { channel: null as ChannelDetail | null, videos: [] as ResultVideo[], error: "API key missing" };
+      return {
+        channel: null as ChannelDetail | null,
+        videos: [] as ResultVideo[],
+        error: "API key missing",
+      };
     }
     try {
       const cParams = new URLSearchParams({
         part: "snippet,statistics,brandingSettings,contentDetails",
-        id: data.channelId, key: apiKey,
+        id: data.channelId,
+        key: apiKey,
       });
       const cRes = await fetch(`${YT_BASE}/channels?${cParams.toString()}`);
       if (!cRes.ok) return { channel: null, videos: [], error: `channels ${cRes.status}` };
@@ -742,7 +450,8 @@ export const getChannelDetail = createServerFn({ method: "POST" })
         items: Array<{
           id: string;
           snippet: {
-            title: string; description: string;
+            title: string;
+            description: string;
             thumbnails: { medium?: { url: string }; high?: { url: string } };
           };
           statistics: { subscriberCount?: string; videoCount?: string; viewCount?: string };
@@ -769,15 +478,21 @@ export const getChannelDetail = createServerFn({ method: "POST" })
       let videos: ResultVideo[] = [];
       if (uploadsId) {
         const pParams = new URLSearchParams({
-          part: "snippet,contentDetails", playlistId: uploadsId, maxResults: "24", key: apiKey,
+          part: "snippet,contentDetails",
+          playlistId: uploadsId,
+          maxResults: "24",
+          key: apiKey,
         });
         const pRes = await fetch(`${YT_BASE}/playlistItems?${pParams.toString()}`);
         if (pRes.ok) {
           const pJson = (await pRes.json()) as {
             items: Array<{
               snippet: {
-                title: string; channelTitle: string; channelId: string;
-                description: string; publishedAt: string;
+                title: string;
+                channelTitle: string;
+                channelId: string;
+                description: string;
+                publishedAt: string;
                 thumbnails: { medium?: { url: string }; high?: { url: string } };
                 resourceId: { videoId: string };
               };
@@ -786,11 +501,19 @@ export const getChannelDetail = createServerFn({ method: "POST" })
           const ids = pJson.items.map((i) => i.snippet.resourceId.videoId).filter(Boolean);
           if (ids.length) {
             const dParams = new URLSearchParams({
-              part: "contentDetails,statistics", id: ids.join(","), key: apiKey,
+              part: "contentDetails,statistics",
+              id: ids.join(","),
+              key: apiKey,
             });
             const dRes = await fetch(`${YT_BASE}/videos?${dParams.toString()}`);
             const dJson = dRes.ok
-              ? ((await dRes.json()) as { items: Array<{ id: string; contentDetails: { duration: string }; statistics: { viewCount?: string } }> })
+              ? ((await dRes.json()) as {
+                  items: Array<{
+                    id: string;
+                    contentDetails: { duration: string };
+                    statistics: { viewCount?: string };
+                  }>;
+                })
               : { items: [] };
             const dMap = new Map(dJson.items.map((d) => [d.id, d]));
             videos = pJson.items
@@ -804,7 +527,8 @@ export const getChannelDetail = createServerFn({ method: "POST" })
                   channel: it.snippet.channelTitle,
                   channelId: it.snippet.channelId,
                   description: it.snippet.description,
-                  thumbnail: it.snippet.thumbnails.high?.url || it.snippet.thumbnails.medium?.url || "",
+                  thumbnail:
+                    it.snippet.thumbnails.high?.url || it.snippet.thumbnails.medium?.url || "",
                   publishedAt: it.snippet.publishedAt,
                   durationSeconds,
                   viewCount,
@@ -819,7 +543,11 @@ export const getChannelDetail = createServerFn({ method: "POST" })
       return { channel, videos, error: null as string | null };
     } catch (err) {
       console.error("getChannelDetail error", err);
-      return { channel: null as ChannelDetail | null, videos: [] as ResultVideo[], error: "Failed to fetch" };
+      return {
+        channel: null as ChannelDetail | null,
+        videos: [] as ResultVideo[],
+        error: "Failed to fetch",
+      };
     }
   });
 
@@ -832,8 +560,10 @@ export const getChannelPlaylists = createServerFn({ method: "POST" })
     if (!apiKey) return { playlists: [] as ResultPlaylist[], error: "API key missing" };
     try {
       const params = new URLSearchParams({
-        part: "snippet,contentDetails", channelId: data.channelId,
-        maxResults: "25", key: apiKey,
+        part: "snippet,contentDetails",
+        channelId: data.channelId,
+        maxResults: "25",
+        key: apiKey,
       });
       const res = await fetch(`${YT_BASE}/playlists?${params.toString()}`);
       if (!res.ok) return { playlists: [], error: `playlists ${res.status}` };
@@ -841,7 +571,10 @@ export const getChannelPlaylists = createServerFn({ method: "POST" })
         items: Array<{
           id: string;
           snippet: {
-            title: string; channelTitle: string; channelId: string; description: string;
+            title: string;
+            channelTitle: string;
+            channelId: string;
+            description: string;
             thumbnails: { medium?: { url: string }; high?: { url: string } };
           };
           contentDetails: { itemCount: number };

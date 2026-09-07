@@ -9,6 +9,26 @@ export const MODES: Record<Mode, { label: string; emoji: string; tagline: string
   explore: { label: "Explore / Discover", emoji: "🌱", tagline: "A few high-quality picks, nothing more" },
 };
 
+/** Maps a declared launch-screen intention to the result lens. Lets us skip
+ *  asking for an intent again on every search. */
+export function modeForCategory(category: string | null | undefined): Mode {
+  switch (category) {
+    case "learning":
+    case "work":
+    case "skill":
+      return "learn";
+    case "music":
+    case "entertainment":
+    case "relaxation":
+    case "fitness":
+      return "relax";
+    case "specific":
+      return "find";
+    default:
+      return "explore";
+  }
+}
+
 export type Refinement = {
   mode: Mode;
   freeform: string;

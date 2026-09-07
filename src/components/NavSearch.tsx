@@ -2,18 +2,18 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { Search } from "lucide-react";
 import { useSessionState } from "@/contexts/SessionStateContext";
-import { IntentSearchModal } from "./IntentSearchModal";
 import { SearchSuggestions, rememberSearchSuggestion } from "./SearchSuggestions";
-import type { Mode } from "@/lib/intent";
+import { modeForCategory } from "@/lib/intent";
+import { useIntentSession } from "@/contexts/IntentSessionContext";
 
 /** Persistent search bar shown in the navbar on every page (except login & home).
  *  Uses the same intent-modal flow as the homepage search. */
 export function NavSearch() {
   const [q, setQ] = useState("");
-  const [open, setOpen] = useState(false);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const { mode: sessionMode, setMode, setQuery } = useSessionState();
+  const { setMode, setQuery } = useSessionState();
+  const { session, markActivity } = useIntentSession();
   const navigate = useNavigate();
   const { location } = useRouterState();
 
@@ -35,31 +35,27 @@ export function NavSearch() {
 
   if (hide) return null;
 
+  /** Intent is declared once at launch — searching never re-asks. */
+  const runSearch = (value: string) => {
+    const v = value.trim();
+    if (!v) return;
+    rememberSearchSuggestion(v);
+    setSuggestionsOpen(false);
+    setMode(modeForCategory(session?.category));
+    setQuery(v);
+    markActivity();
+    setQ("");
+    navigate({ to: "/results" });
+  };
+
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!q.trim()) return;
-    rememberSearchSuggestion(q);
-    setSuggestionsOpen(false);
-    setOpen(true);
+    runSearch(q);
   };
 
   const pickSuggestion = (value: string) => {
     setQ(value);
-    rememberSearchSuggestion(value);
-    setSuggestionsOpen(false);
-    setOpen(true);
-  };
-
-  const onConfirm = (mode: Mode) => {
-    const v = q.trim();
-    if (!v) return;
-    setMode(mode);
-    setQuery(v);
-    rememberSearchSuggestion(v);
-    setOpen(false);
-    setQ("");
-    if (mode === "find") navigate({ to: "/results" });
-    else navigate({ to: "/refine/$mode", params: { mode } });
+    runSearch(value);
   };
 
   return (
@@ -70,7 +66,10 @@ export function NavSearch() {
           <input
             ref={inputRef}
             value={q}
-            onChange={(e) => { setQ(e.target.value); setSuggestionsOpen(true); }}
+            onChange={(e) => {
+              setQ(e.target.value);
+              setSuggestionsOpen(true);
+            }}
             onFocus={() => setSuggestionsOpen(true)}
             onBlur={() => window.setTimeout(() => setSuggestionsOpen(false), 120)}
             placeholder="Search videos…"
@@ -81,7 +80,9 @@ export function NavSearch() {
             aria-autocomplete="list"
             aria-controls="nav-search-suggestions"
           />
-          <kbd className="hidden rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground sm:inline">⌘K</kbd>
+          <kbd className="hidden rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground sm:inline">
+            ⌘K
+          </kbd>
           <button
             type="submit"
             disabled={!q.trim()}
@@ -91,16 +92,14 @@ export function NavSearch() {
           </button>
         </div>
 
-        <SearchSuggestions id="nav-search-suggestions" value={q} visible={suggestionsOpen && !open} onPick={pickSuggestion} inputRef={inputRef} />
-      </form>
-      {open && (
-        <IntentSearchModal
-          query={q.trim()}
-          initial={(sessionMode as Mode) || "learn"}
-          onClose={() => setOpen(false)}
-          onConfirm={onConfirm}
+        <SearchSuggestions
+          id="nav-search-suggestions"
+          value={q}
+          visible={suggestionsOpen}
+          onPick={pickSuggestion}
+          inputRef={inputRef}
         />
-      )}
+      </form>
     </>
   );
 }

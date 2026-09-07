@@ -1,10 +1,9 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useRef, useState } from "react";
-import type { Mode } from "@/lib/intent";
+import { modeForCategory } from "@/lib/intent";
 import { useSessionState } from "@/contexts/SessionStateContext";
-import { useAuth } from "@/contexts/AuthContext";
+import { useIntentSession } from "@/contexts/IntentSessionContext";
 import { ZenLogo } from "@/components/ZenLogo";
-import { IntentSearchModal } from "@/components/IntentSearchModal";
 import { ResumeBanner } from "@/components/ResumeBanner";
 import { SearchSuggestions, rememberSearchSuggestion } from "@/components/SearchSuggestions";
 import { Search, ArrowRight } from "lucide-react";
@@ -13,9 +12,16 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "ZenTube — Search with intent, not distraction" },
-      { name: "description", content: "ZenTube is a calm, intent-driven way to use YouTube. No infinite scroll, no autoplay — just the videos you came for." },
+      {
+        name: "description",
+        content:
+          "ZenTube is a calm, intent-driven way to use YouTube. No infinite scroll, no autoplay — just the videos you came for.",
+      },
       { property: "og:title", content: "ZenTube — Search with intent, not distraction" },
-      { property: "og:description", content: "Search with intent, not distraction. A focus-first YouTube companion." },
+      {
+        property: "og:description",
+        content: "Search with intent, not distraction. A focus-first YouTube companion.",
+      },
     ],
   }),
   component: HomePage,
@@ -24,36 +30,31 @@ export const Route = createFileRoute("/")({
 function HomePage() {
   const { setMode, setQuery } = useSessionState();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { session, markActivity } = useIntentSession();
   const [q, setQ] = useState("");
-  const [open, setOpen] = useState(false);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
+  /** Intent was already declared on the launch screen — never ask again. */
+  const runSearch = (value: string) => {
+    const v = value.trim();
+    if (!v) return;
+    rememberSearchSuggestion(v);
+    setSuggestionsOpen(false);
+    setMode(modeForCategory(session?.category));
+    setQuery(v);
+    markActivity();
+    navigate({ to: "/results" });
+  };
+
   const onSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!q.trim()) return;
-    rememberSearchSuggestion(q);
-    setSuggestionsOpen(false);
-    setOpen(true);
+    runSearch(q);
   };
 
   const pickSuggestion = (value: string) => {
     setQ(value);
-    rememberSearchSuggestion(value);
-    setSuggestionsOpen(false);
-    setOpen(true);
-  };
-
-  const onConfirm = (mode: Mode) => {
-    const v = q.trim();
-    if (!v) return;
-    setMode(mode);
-    setQuery(v);
-    rememberSearchSuggestion(v);
-    setOpen(false);
-    if (mode === "find") navigate({ to: "/results" });
-    else navigate({ to: "/refine/$mode", params: { mode } });
+    runSearch(value);
   };
 
   return (
@@ -61,14 +62,16 @@ function HomePage() {
       <div
         aria-hidden
         className="pointer-events-none absolute left-1/2 top-[-10rem] h-[36rem] w-[36rem] -translate-x-1/2 rounded-full"
-        style={{ background: "radial-gradient(closest-side, color-mix(in oklab, var(--primary) 16%, transparent), transparent 70%)" }}
+        style={{
+          background:
+            "radial-gradient(closest-side, color-mix(in oklab, var(--primary) 16%, transparent), transparent 70%)",
+        }}
       />
 
       <div className="zen-container relative px-4 py-16 sm:py-24">
         <div className="mx-auto max-w-3xl text-center">
           <div className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-border/60 bg-surface/60 px-3 py-1 text-xs text-muted-foreground backdrop-blur">
-            <ZenLogo size={14} />
-            A calmer way to use YouTube
+            <ZenLogo size={14} />A calmer way to use YouTube
           </div>
 
           <h1 className="text-balance text-4xl font-semibold tracking-tight sm:text-6xl">
@@ -86,7 +89,10 @@ function HomePage() {
                 <input
                   ref={inputRef}
                   value={q}
-                  onChange={(e) => { setQ(e.target.value); setSuggestionsOpen(true); }}
+                  onChange={(e) => {
+                    setQ(e.target.value);
+                    setSuggestionsOpen(true);
+                  }}
                   onFocus={() => setSuggestionsOpen(true)}
                   onBlur={() => window.setTimeout(() => setSuggestionsOpen(false), 120)}
                   placeholder="What are you looking for?"
@@ -107,32 +113,22 @@ function HomePage() {
                 </button>
               </div>
 
-              <SearchSuggestions id="home-search-suggestions" value={q} visible={suggestionsOpen && !open} onPick={pickSuggestion} inputRef={inputRef} />
+              <SearchSuggestions
+                id="home-search-suggestions"
+                value={q}
+                visible={suggestionsOpen}
+                onPick={pickSuggestion}
+                inputRef={inputRef}
+              />
             </div>
             <p className="mt-5 text-sm text-muted-foreground">
-              We'll ask why you're here — then tune results to match.
+              Results come straight from YouTube — measured against the intention you set.
             </p>
           </form>
         </div>
 
         <ResumeBanner />
-
-        {!user && (
-          <div className="mx-auto mt-16 max-w-md text-center text-sm text-muted-foreground">
-            <Link to="/login" search={{ redirect: "/" }} className="text-primary hover:underline">Sign in</Link>{" "}
-            to save notes, history, and insights.
-          </div>
-        )}
       </div>
-
-      {open && (
-        <IntentSearchModal
-          query={q.trim()}
-          initial="learn"
-          onClose={() => setOpen(false)}
-          onConfirm={onConfirm}
-        />
-      )}
     </div>
   );
 }

@@ -2,11 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { MODES, type Mode } from "@/lib/intent";
 import { toast } from "sonner";
 import {
   User, Clock, Palette, Shield, LogOut, Trash2, Mail, Key, ExternalLink,
-  LifeBuoy, Sparkles, CheckCircle2, Bug, Compass, ChevronDown,
+  LifeBuoy, Sparkles, CheckCircle2, Bug, ChevronDown,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getStoredYouTubeApiKey, setStoredYouTubeApiKey } from "@/lib/youtubeApiKey";
@@ -33,7 +32,7 @@ type Prefs = {
   data_tracking: boolean;
 };
 
-type SectionKey = "profile" | "intent" | "focus" | "appearance" | "privacy" | "support";
+type SectionKey = "profile" | "focus" | "appearance" | "privacy" | "support";
 
 const SECTIONS: {
   key: SectionKey;
@@ -42,14 +41,13 @@ const SECTIONS: {
   icon: React.ComponentType<{ className?: string }>;
 }[] = [
   { key: "profile", label: "Profile", hint: "Who you are", icon: User },
-  { key: "intent", label: "Intent & discovery", hint: "How results are chosen", icon: Compass },
   { key: "focus", label: "Focus & wellbeing", hint: "Limits and reminders", icon: Clock },
   { key: "appearance", label: "Appearance & accessibility", hint: "Theme and comfort", icon: Palette },
   { key: "privacy", label: "Privacy & data", hint: "Tracking and history", icon: Shield },
   { key: "support", label: "Support", hint: "Help, API key, reports", icon: LifeBuoy },
 ];
 
-const SAVEABLE: SectionKey[] = ["profile", "intent", "focus", "appearance", "privacy"];
+const SAVEABLE: SectionKey[] = ["profile", "focus", "appearance", "privacy"];
 
 function SettingsPage() {
   const { user, signOut } = useAuth();
@@ -255,38 +253,6 @@ function SettingsPage() {
                   <LogOut className="h-4 w-4" /> Sign out
                 </button>
               </div>
-            </SectionGroup>
-          )}
-
-          {section === "intent" && (
-            <SectionGroup
-              icon={Compass}
-              title="Intent & discovery"
-              description="Intent decides what ZenTube surfaces before a single result loads."
-            >
-              <Field label="Default intent">
-                <div className="flex flex-wrap gap-2">
-                  <Chip
-                    active={prefs.default_mode === null}
-                    onClick={() => setPrefs({ ...prefs, default_mode: null })}
-                  >
-                    Always ask
-                  </Chip>
-                  {(Object.keys(MODES) as Mode[]).map((m) => (
-                    <Chip
-                      key={m}
-                      active={prefs.default_mode === m}
-                      onClick={() => setPrefs({ ...prefs, default_mode: m })}
-                    >
-                      {MODES[m].emoji} {MODES[m].label}
-                    </Chip>
-                  ))}
-                </div>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  "Always ask" keeps the intent prompt on every search — the calmest option.
-                  Picking a default skips the prompt and applies that lens instantly.
-                </p>
-              </Field>
             </SectionGroup>
           )}
 

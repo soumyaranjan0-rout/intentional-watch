@@ -1,4 +1,11 @@
-import { Outlet, Link, createRootRouteWithContext, HeadContent, Scripts, useRouterState } from "@tanstack/react-router";
+import {
+  Outlet,
+  Link,
+  createRootRouteWithContext,
+  HeadContent,
+  Scripts,
+  useRouterState,
+} from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,7 +17,14 @@ import { AccountMenu } from "@/components/AccountMenu";
 import { ZenLogo } from "@/components/ZenLogo";
 import { NavSearch } from "@/components/NavSearch";
 import { NowPlayingChip } from "@/components/NowPlaying";
-import { LayoutDashboard, BookmarkIcon, StickyNote, Home as HomeIcon, User as UserIcon } from "lucide-react";
+import {
+  LayoutDashboard,
+  BookmarkIcon,
+  StickyNote,
+  Home as HomeIcon,
+  User as UserIcon,
+  Compass,
+} from "lucide-react";
 
 import appCss from "../styles.css?url";
 
@@ -21,7 +35,10 @@ function NotFoundComponent() {
         <h1 className="text-7xl font-semibold text-foreground">404</h1>
         <p className="mt-3 text-sm text-muted-foreground">This page doesn't exist.</p>
         <div className="mt-6">
-          <Link to="/" className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90">
+          <Link
+            to="/"
+            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+          >
             Go home
           </Link>
         </div>
@@ -44,10 +61,17 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { name: "apple-mobile-web-app-title", content: "ZenTube" },
       { title: "ZenTube — Watch with intent" },
-      { name: "description", content: "A calm, intent-driven way to discover YouTube videos. No infinite scroll. No autoplay. Just what you came for." },
+      {
+        name: "description",
+        content:
+          "A calm, intent-driven way to discover YouTube videos. No infinite scroll. No autoplay. Just what you came for.",
+      },
       { name: "author", content: "ZenTube" },
       { property: "og:title", content: "ZenTube — Watch with intent" },
-      { property: "og:description", content: "A calm, intent-driven way to discover YouTube videos." },
+      {
+        property: "og:description",
+        content: "A calm, intent-driven way to discover YouTube videos.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -107,9 +131,14 @@ function AppShell({ children }: { children: React.ReactNode }) {
       {!onAuthPage && (
         <header className="sticky top-0 z-30 border-b border-border bg-background">
           <div className="zen-container-wide flex h-12 items-center gap-2 px-3 sm:gap-4 sm:px-6">
-            <Link to="/" className="flex shrink-0 items-center gap-2 text-foreground no-underline hover:no-underline">
+            <Link
+              to="/"
+              className="flex shrink-0 items-center gap-2 text-foreground no-underline hover:no-underline"
+            >
               <ZenLogo size={28} />
-              <span className="text-[15px] font-bold tracking-tight" style={{ color: "#cc181e" }}>ZenTube</span>
+              <span className="text-[15px] font-bold tracking-tight" style={{ color: "#cc181e" }}>
+                ZenTube
+              </span>
             </Link>
 
             {/* Centered search — sits exactly between the logo and the right-side nav */}
@@ -126,12 +155,12 @@ function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
       )}
-      <main>
-        {children}
-      </main>
+      <main>{children}</main>
       {!onAuthPage && (
         <div className="pointer-events-none fixed inset-x-0 bottom-[calc(3.25rem+env(safe-area-inset-bottom))] z-40 flex justify-center px-4 lg:hidden">
-          <div className="pointer-events-auto"><NowPlayingChip mobile /></div>
+          <div className="pointer-events-auto">
+            <NowPlayingChip mobile />
+          </div>
         </div>
       )}
       {!onAuthPage && <MobileTabBar />}
@@ -163,6 +192,9 @@ function MobileTabBar() {
       </Link>
       {user ? (
         <>
+          <Link to="/intent" className={tab(path.startsWith("/intent"))}>
+            <Compass className="h-5 w-5" /> Intent
+          </Link>
           <Link to="/dashboard" className={tab(path.startsWith("/dashboard"))}>
             <LayoutDashboard className="h-5 w-5" /> Insights
           </Link>
@@ -182,7 +214,6 @@ function MobileTabBar() {
   );
 }
 
-
 function PrimaryNav() {
   const { user } = useAuth();
   if (!user) return null;
@@ -191,13 +222,32 @@ function PrimaryNav() {
   const activeCls = "bg-accent text-foreground";
   return (
     <nav className="hidden shrink-0 items-center gap-0.5 lg:flex">
-      <Link to="/dashboard" className={linkBase} activeProps={{ className: linkBase + " " + activeCls }}>
+      <Link
+        to="/intent"
+        className={linkBase}
+        activeProps={{ className: linkBase + " " + activeCls }}
+      >
+        <Compass className="h-4 w-4" /> Intent
+      </Link>
+      <Link
+        to="/dashboard"
+        className={linkBase}
+        activeProps={{ className: linkBase + " " + activeCls }}
+      >
         <LayoutDashboard className="h-4 w-4" /> Insights
       </Link>
-      <Link to="/library" className={linkBase} activeProps={{ className: linkBase + " " + activeCls }}>
+      <Link
+        to="/library"
+        className={linkBase}
+        activeProps={{ className: linkBase + " " + activeCls }}
+      >
         <BookmarkIcon className="h-4 w-4" /> Library
       </Link>
-      <Link to="/notes" className={linkBase} activeProps={{ className: linkBase + " " + activeCls }}>
+      <Link
+        to="/notes"
+        className={linkBase}
+        activeProps={{ className: linkBase + " " + activeCls }}
+      >
         <StickyNote className="h-4 w-4" /> Notes
       </Link>
     </nav>

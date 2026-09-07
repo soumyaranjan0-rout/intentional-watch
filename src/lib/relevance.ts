@@ -38,6 +38,24 @@ export const INTENT_CATEGORIES: Array<{
   { id: "other", label: "Other", emoji: "✏️", hint: "Describe it yourself", lexicon: [] },
 ];
 
+const SHORT_LABELS: Record<IntentCategory, string> = {
+  learning: "Learning",
+  work: "Work",
+  skill: "Skill",
+  news: "News",
+  music: "Music",
+  entertainment: "Entertainment",
+  fitness: "Fitness",
+  relaxation: "Relaxation",
+  specific: "Specific",
+  other: "Other",
+};
+
+/** One-word label for compact UI (nav chip, tables). */
+export function categoryShortLabel(id: IntentCategory): string {
+  return SHORT_LABELS[id] ?? "Other";
+}
+
 export function categoryMeta(id: IntentCategory) {
   return INTENT_CATEGORIES.find((c) => c.id === id) ?? INTENT_CATEGORIES[INTENT_CATEGORIES.length - 1];
 }

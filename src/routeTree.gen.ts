@@ -20,6 +20,7 @@ import { Route as ChannelChannelIdRouteImport } from './routes/channel.$channelI
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated.settings'
 import { Route as AuthenticatedNotesRouteImport } from './routes/_authenticated.notes'
 import { Route as AuthenticatedLibraryRouteImport } from './routes/_authenticated.library'
+import { Route as AuthenticatedIntentRouteImport } from './routes/_authenticated.intent'
 import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated.history'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated.dashboard'
 import { Route as ApiPublicYtSuggestRouteImport } from './routes/api/public/yt-suggest'
@@ -79,6 +80,11 @@ const AuthenticatedLibraryRoute = AuthenticatedLibraryRouteImport.update({
   path: '/library',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedIntentRoute = AuthenticatedIntentRouteImport.update({
+  id: '/intent',
+  path: '/intent',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedHistoryRoute = AuthenticatedHistoryRouteImport.update({
   id: '/history',
   path: '/history',
@@ -107,6 +113,7 @@ export interface FileRoutesByFullPath {
   '/results': typeof ResultsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/history': typeof AuthenticatedHistoryRoute
+  '/intent': typeof AuthenticatedIntentRoute
   '/library': typeof AuthenticatedLibraryRoute
   '/notes': typeof AuthenticatedNotesRoute
   '/settings': typeof AuthenticatedSettingsRoute
@@ -123,6 +130,7 @@ export interface FileRoutesByTo {
   '/results': typeof ResultsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/history': typeof AuthenticatedHistoryRoute
+  '/intent': typeof AuthenticatedIntentRoute
   '/library': typeof AuthenticatedLibraryRoute
   '/notes': typeof AuthenticatedNotesRoute
   '/settings': typeof AuthenticatedSettingsRoute
@@ -141,6 +149,7 @@ export interface FileRoutesById {
   '/results': typeof ResultsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/history': typeof AuthenticatedHistoryRoute
+  '/_authenticated/intent': typeof AuthenticatedIntentRoute
   '/_authenticated/library': typeof AuthenticatedLibraryRoute
   '/_authenticated/notes': typeof AuthenticatedNotesRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
@@ -159,6 +168,7 @@ export interface FileRouteTypes {
     | '/results'
     | '/dashboard'
     | '/history'
+    | '/intent'
     | '/library'
     | '/notes'
     | '/settings'
@@ -175,6 +185,7 @@ export interface FileRouteTypes {
     | '/results'
     | '/dashboard'
     | '/history'
+    | '/intent'
     | '/library'
     | '/notes'
     | '/settings'
@@ -192,6 +203,7 @@ export interface FileRouteTypes {
     | '/results'
     | '/_authenticated/dashboard'
     | '/_authenticated/history'
+    | '/_authenticated/intent'
     | '/_authenticated/library'
     | '/_authenticated/notes'
     | '/_authenticated/settings'
@@ -294,6 +306,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLibraryRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/intent': {
+      id: '/_authenticated/intent'
+      path: '/intent'
+      fullPath: '/intent'
+      preLoaderRoute: typeof AuthenticatedIntentRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/history': {
       id: '/_authenticated/history'
       path: '/history'
@@ -328,6 +347,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
+  AuthenticatedIntentRoute: typeof AuthenticatedIntentRoute
   AuthenticatedLibraryRoute: typeof AuthenticatedLibraryRoute
   AuthenticatedNotesRoute: typeof AuthenticatedNotesRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
@@ -337,6 +357,7 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
+  AuthenticatedIntentRoute: AuthenticatedIntentRoute,
   AuthenticatedLibraryRoute: AuthenticatedLibraryRoute,
   AuthenticatedNotesRoute: AuthenticatedNotesRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
