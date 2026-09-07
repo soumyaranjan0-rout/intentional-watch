@@ -49,9 +49,10 @@ export function IntentSessionProvider({ children }: { children: ReactNode }) {
           const resumed = await resumeSession(user.id);
           if (!cancelled) apply(resumed);
         } else {
-          const stored = readStoredSession();
-          if (!cancelled) apply(stored && !isIdle(stored) ? stored : null);
-          if (stored && isIdle(stored)) writeStoredSession(null);
+          // Signed out (or guest): intent sessions belong to an account, so
+          // drop any leftover local session — no chip, no gate.
+          writeStoredSession(null);
+          if (!cancelled) apply(null);
         }
       } catch {
         if (!cancelled) apply(null);
@@ -96,9 +97,9 @@ export function IntentSessionProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const handler = () => markActivity();
-    const events: string[] = ["pointerdown", "keydown", "visibilitychange"];
-    for (const e of events) window.addEventListener(e, handler, { passive: true });
-    return () => { for (const e of events) window.removeEventListener(e, handler); };
+    const events = ["pointerdown", "keydown", "visibilitychange"] as const;
+    for (const e of events) window.addEventListener(e as keyof WindowEventMap, handler, { passive: true });
+    return () => { for (const e of events) window.removeEventListener(e as keyof WindowEventMap, handler); };
   }, [markActivity]);
 
   const declare = useCallback(async (category: IntentCategory, intent: string) => {

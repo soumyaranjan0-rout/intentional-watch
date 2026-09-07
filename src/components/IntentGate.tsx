@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouterState } from "@tanstack/react-router";
 import { Clock, Repeat, Sparkles, X, ArrowRight } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import { useIntentSession } from "@/contexts/IntentSessionContext";
 import {
   INTENT_CATEGORIES,
@@ -148,8 +149,10 @@ export function IntentForm({
 /** Mandatory launch screen: nothing else is usable until an intention exists. */
 export function IntentGate() {
   const { session, ready, declare, idleWarning } = useIntentSession();
+  const { user, loading: authLoading } = useAuth();
   const { location } = useRouterState();
-  const exempt = location.pathname.startsWith("/login");
+  // Guests browse freely; the intention gate only applies to signed-in users.
+  const exempt = location.pathname.startsWith("/login") || authLoading || !user;
 
   useEffect(() => {
     if (typeof document === "undefined") return;
