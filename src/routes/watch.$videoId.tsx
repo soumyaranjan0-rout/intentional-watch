@@ -51,6 +51,9 @@ function WatchPage() {
   const { user } = useAuth();
   const { mode: sessionMode, bumpWatched, videosWatchedThisSession, sessionStartedAt } = useSessionState();
   const navigate = useNavigate();
+  const { session: intentSession, markActivity } = useIntentSession();
+  const intentSessionRef = useRef(intentSession);
+  intentSessionRef.current = intentSession;
 
   const [ended, setEnded] = useState(false);
   const [showSessionPrompt, setShowSessionPrompt] = useState(false);
