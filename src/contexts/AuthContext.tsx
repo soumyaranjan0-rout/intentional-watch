@@ -60,7 +60,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } finally {
+      // Everything in ZenTube belongs to the signed-in account, so leaving
+      // wipes the local traces too: the declared intention, the resume chip,
+      // cached affinity, recent searches and the in-flight browsing session.
+      clearLocalUserState();
+      if (typeof window !== "undefined") window.location.replace("/");
+    }
   };
 
   return (
