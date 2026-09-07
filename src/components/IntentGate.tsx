@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouterState } from "@tanstack/react-router";
-import { Clock, Repeat, Sparkles, X } from "lucide-react";
+import { Clock, Repeat, Sparkles, X, ArrowRight } from "lucide-react";
 import { useIntentSession } from "@/contexts/IntentSessionContext";
-import { INTENT_CATEGORIES, validateIntent, type IntentCategory } from "@/lib/relevance";
+import {
+  INTENT_CATEGORIES, categoryMeta, categoryShortLabel, validateIntent, type IntentCategory,
+} from "@/lib/relevance";
 
 const SUGGESTIONS: Partial<Record<IntentCategory, string>> = {
   learning: "Learn Power BI DAX basics with worked examples",
@@ -48,7 +50,8 @@ export function IntentForm({
 
   return (
     <form onSubmit={submit} className="w-full">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+      {/* Compact pill picker — one calm row of choices instead of a wall of cards */}
+      <div className="zen-stagger flex flex-wrap gap-1.5">
         {INTENT_CATEGORIES.map((c) => {
           const active = category === c.id;
           return (
@@ -61,21 +64,22 @@ export function IntentForm({
               }}
               aria-pressed={active}
               className={
-                "zen-press rounded-xl border px-3 py-2.5 text-left transition-colors " +
+                "zen-press inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[13px] transition-all duration-200 " +
                 (active
-                  ? "border-primary/60 bg-primary/15 text-foreground ring-2 ring-primary/20"
-                  : "border-border bg-surface/50 text-foreground hover:border-primary/35 hover:bg-accent")
+                  ? "border-primary/60 bg-primary/15 text-foreground shadow-[0_0_0_3px_color-mix(in_oklab,var(--primary)_14%,transparent)]"
+                  : "border-border/70 bg-surface/40 text-muted-foreground hover:-translate-y-px hover:border-primary/35 hover:text-foreground")
               }
             >
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <span aria-hidden>{c.emoji}</span>
-                <span className="truncate">{c.label}</span>
-              </div>
-              <div className="mt-0.5 truncate text-[11px] text-muted-foreground">{c.hint}</div>
+              <span aria-hidden>{c.emoji}</span>
+              <span>{categoryShortLabel(c.id)}</span>
             </button>
           );
         })}
       </div>
+
+      <p className="zen-fade-in mt-2 min-h-[1.1rem] text-xs text-muted-foreground">
+        {category ? categoryMeta(category).hint : "Pick the closest fit — you can switch any time."}
+      </p>
 
       <label htmlFor="intent-text" className="mt-5 block text-sm font-medium text-foreground">
         In one sentence, what do you want out of this visit?
@@ -85,9 +89,9 @@ export function IntentForm({
         value={text}
         onChange={(e) => setText(e.target.value)}
         onBlur={() => setTouched(true)}
-        rows={3}
+        rows={2}
         placeholder="e.g. Learn Power BI DAX basics with worked examples"
-        className="mt-2 w-full resize-none rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-primary/60"
+        className="mt-2 w-full resize-none rounded-2xl border border-border bg-background/70 px-4 py-3 text-sm outline-none transition-[border-color,box-shadow] duration-200 focus:border-primary/60 focus:shadow-[0_0_0_4px_color-mix(in_oklab,var(--primary)_10%,transparent)]"
       />
 
       <div className="mt-2 min-h-[1.25rem] text-xs" aria-live="polite">
@@ -115,9 +119,10 @@ export function IntentForm({
         <button
           type="submit"
           disabled={busy || !validation.ok}
-          className="zen-press rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
+          className="zen-press inline-flex items-center justify-center gap-1.5 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
         >
-          {mode === "start" ? "Start this session" : "Switch intention"}
+          {mode === "start" ? "Begin" : "Switch intention"}
+          <ArrowRight className="h-4 w-4" aria-hidden />
         </button>
       </div>
     </form>
@@ -140,19 +145,24 @@ export function IntentGate() {
   if (!ready || session || exempt) return null;
 
   return (
-    <div className="fixed inset-0 z-[70] overflow-y-auto bg-background/95 p-4 backdrop-blur-sm">
-      <div className="zen-card zen-fade-in mx-auto my-8 w-full max-w-2xl p-6 sm:p-8">
+    <div className="fixed inset-0 z-[70] overflow-y-auto bg-background/90 p-4 backdrop-blur-md">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-[-8rem] h-[30rem] w-[30rem] -translate-x-1/2 rounded-full"
+        style={{ background: "radial-gradient(closest-side, color-mix(in oklab, var(--primary) 18%, transparent), transparent 70%)" }}
+      />
+      <div className="zen-card zen-fade-in relative mx-auto my-10 w-full max-w-xl overflow-hidden p-6 sm:p-8">
         <div className="flex items-center gap-2 text-primary">
           <Sparkles className="h-4 w-4" />
-          <span className="text-[11px] font-semibold uppercase tracking-[0.14em]">Before you start</span>
+          <span className="text-[11px] font-semibold uppercase tracking-[0.16em]">Before you start</span>
         </div>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-[28px]">
           Why are you opening ZenTube?
         </h1>
-        <p className="mt-1.5 text-sm text-muted-foreground">
+        <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
           {idleWarning
             ? "Your last session timed out after 15 quiet minutes. Set a fresh intention to continue."
-            : "Everything you watch from here is measured against this answer — honestly, and without judgement."}
+            : "One line is enough. Everything you watch is measured against it — honestly, no judgement."}
         </p>
 
         <div className="mt-6">
@@ -163,24 +173,26 @@ export function IntentGate() {
   );
 }
 
-/** Small always-visible chip: current intention, elapsed time, change / end. */
+/** Small always-visible chip: current intention category, elapsed time, change / end. */
 export function IntentSessionChip() {
   const { session, elapsedSeconds, changeIntent, finish } = useIntentSession();
   const [open, setOpen] = useState(false);
   if (!session) return null;
 
   const mins = Math.floor(elapsedSeconds / 60);
+  const meta = categoryMeta(session.category);
 
   return (
     <>
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="hidden max-w-[16rem] items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs text-primary transition-colors hover:bg-primary/20 lg:inline-flex"
+        className="hidden items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1.5 text-xs text-primary transition-colors hover:bg-primary/20 lg:inline-flex"
         title={session.intent}
+        aria-label={`Current intention: ${session.intent}`}
       >
         <Clock className="h-3.5 w-3.5 shrink-0" />
-        <span className="truncate">{session.intent}</span>
+        <span className="font-medium">{categoryShortLabel(session.category)}</span>
         <span className="shrink-0 tabular-nums text-primary/70">{mins}m</span>
       </button>
 
@@ -196,7 +208,9 @@ export function IntentSessionChip() {
             </button>
             <div className="flex items-center gap-2 text-primary">
               <Repeat className="h-4 w-4" />
-              <span className="text-[11px] font-semibold uppercase tracking-[0.14em]">Current session</span>
+              <span className="text-[11px] font-semibold uppercase tracking-[0.14em]">
+                Current session · {meta.emoji} {categoryShortLabel(session.category)}
+              </span>
             </div>
             <h2 className="mt-2 text-xl font-semibold tracking-tight">{session.intent}</h2>
             <p className="mt-1 text-sm text-muted-foreground">
