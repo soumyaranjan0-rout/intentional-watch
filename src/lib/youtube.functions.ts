@@ -46,7 +46,10 @@ export function detectQueryIntent(raw: string): {
   const freshness = FRESHNESS_RX.test(q);
   let contentHint: string | null = null;
   for (const c of CONTENT_TYPE_RX) {
-    if (c.rx.test(q)) { contentHint = c.add; break; }
+    if (c.rx.test(q)) {
+      contentHint = c.add;
+      break;
+    }
   }
   const cleaned = q.replace(FRESHNESS_RX, "").replace(/\s+/g, " ").trim() || q;
   let hint: string | null = null;
@@ -122,8 +125,13 @@ export const searchVideos = createServerFn({ method: "POST" })
 
     try {
       const sp = new URLSearchParams({
-        part: "snippet", q, maxResults: String(limit), type: "video",
-        safeSearch: "moderate", order: "relevance", key: apiKey,
+        part: "snippet",
+        q,
+        maxResults: String(limit),
+        type: "video",
+        safeSearch: "moderate",
+        order: "relevance",
+        key: apiKey,
       });
       if (data.pageToken) sp.set("pageToken", data.pageToken);
 
@@ -133,8 +141,12 @@ export const searchVideos = createServerFn({ method: "POST" })
         console.error("YouTube search failed", sRes.status, body);
         return {
           error: `Search failed (${sRes.status})`,
-          results: [] as ResultVideo[], playlists: [] as ResultPlaylist[], channel: null,
-          effectiveQuery: q, hint: null, nextPageToken: null,
+          results: [] as ResultVideo[],
+          playlists: [] as ResultPlaylist[],
+          channel: null,
+          effectiveQuery: q,
+          hint: null,
+          nextPageToken: null,
         };
       }
       type SearchJson = {
@@ -142,8 +154,12 @@ export const searchVideos = createServerFn({ method: "POST" })
         items: Array<{
           id: { videoId: string };
           snippet: {
-            title: string; channelTitle: string; channelId: string; description: string;
-            publishedAt: string; thumbnails: { medium?: { url: string }; high?: { url: string } };
+            title: string;
+            channelTitle: string;
+            channelId: string;
+            description: string;
+            publishedAt: string;
+            thumbnails: { medium?: { url: string }; high?: { url: string } };
           };
         }>;
       };
@@ -152,18 +168,29 @@ export const searchVideos = createServerFn({ method: "POST" })
       const ids = items.map((i) => i.id.videoId);
       if (ids.length === 0) {
         return {
-          error: null, results: [] as ResultVideo[], playlists: [] as ResultPlaylist[], channel: null,
-          effectiveQuery: q, hint: null, nextPageToken: sJson.nextPageToken ?? null,
+          error: null,
+          results: [] as ResultVideo[],
+          playlists: [] as ResultPlaylist[],
+          channel: null,
+          effectiveQuery: q,
+          hint: null,
+          nextPageToken: sJson.nextPageToken ?? null,
         };
       }
 
       const dParams = new URLSearchParams({
-        part: "contentDetails,statistics", id: ids.join(","), key: apiKey,
+        part: "contentDetails,statistics",
+        id: ids.join(","),
+        key: apiKey,
       });
       const dRes = await fetch(`${YT_BASE}/videos?${dParams.toString()}`);
       const dJson = dRes.ok
         ? ((await dRes.json()) as {
-            items: Array<{ id: string; contentDetails: { duration: string }; statistics: { viewCount?: string } }>;
+            items: Array<{
+              id: string;
+              contentDetails: { duration: string };
+              statistics: { viewCount?: string };
+            }>;
           })
         : { items: [] };
       const detailMap = new Map(dJson.items.map((it) => [it.id, it]));
@@ -202,44 +229,76 @@ export const searchVideos = createServerFn({ method: "POST" })
       console.error("YouTube search error", err);
       return {
         error: "Could not reach YouTube right now.",
-        results: [] as ResultVideo[], playlists: [] as ResultPlaylist[], channel: null,
-        effectiveQuery: q, hint: null, nextPageToken: null,
+        results: [] as ResultVideo[],
+        playlists: [] as ResultPlaylist[],
+        channel: null,
+        effectiveQuery: q,
+        hint: null,
+        nextPageToken: null,
       };
     }
   });
 
 // --- Playlist items ---------------------------------------------------------
 
-const PlaylistItemsInput = z.object({ playlistId: z.string().min(5).max(64), apiKey: z.string().max(200).optional() });
+const PlaylistItemsInput = z.object({
+  playlistId: z.string().min(5).max(64),
+  apiKey: z.string().max(200).optional(),
+});
 
 export const getPlaylistItems = createServerFn({ method: "POST" })
-  .inputValidator((input: { playlistId: string; apiKey?: string }) => PlaylistItemsInput.parse(input))
+  .inputValidator((input: { playlistId: string; apiKey?: string }) =>
+    PlaylistItemsInput.parse(input),
+  )
   .handler(async ({ data }) => {
     const apiKey = data.apiKey?.trim() || process.env.YOUTUBE_API_KEY;
-    if (!apiKey) return { items: [] as Array<{ videoId: string; title: string; channel: string; thumbnail: string; durationSeconds: number; position: number }>, error: "API key missing" };
+    if (!apiKey)
+      return {
+        items: [] as Array<{
+          videoId: string;
+          title: string;
+          channel: string;
+          thumbnail: string;
+          durationSeconds: number;
+          position: number;
+        }>,
+        error: "API key missing",
+      };
     try {
       const params = new URLSearchParams({
-        part: "snippet,contentDetails", playlistId: data.playlistId,
-        maxResults: "50", key: apiKey,
+        part: "snippet,contentDetails",
+        playlistId: data.playlistId,
+        maxResults: "50",
+        key: apiKey,
       });
       const res = await fetch(`${YT_BASE}/playlistItems?${params.toString()}`);
       if (!res.ok) return { items: [], error: `playlistItems ${res.status}` };
       const json = (await res.json()) as {
         items: Array<{
           snippet: {
-            title: string; videoOwnerChannelTitle?: string; position: number;
+            title: string;
+            videoOwnerChannelTitle?: string;
+            position: number;
             thumbnails: { medium?: { url: string }; high?: { url: string } };
             resourceId: { videoId: string };
           };
         }>;
       };
       const ids = json.items.map((i) => i.snippet.resourceId.videoId).filter(Boolean);
-      const dParams = new URLSearchParams({ part: "contentDetails", id: ids.join(","), key: apiKey });
+      const dParams = new URLSearchParams({
+        part: "contentDetails",
+        id: ids.join(","),
+        key: apiKey,
+      });
       const dRes = await fetch(`${YT_BASE}/videos?${dParams.toString()}`);
       const dJson = dRes.ok
-        ? ((await dRes.json()) as { items: Array<{ id: string; contentDetails: { duration: string } }> })
+        ? ((await dRes.json()) as {
+            items: Array<{ id: string; contentDetails: { duration: string } }>;
+          })
         : { items: [] };
-      const durMap = new Map(dJson.items.map((d) => [d.id, parseISODuration(d.contentDetails.duration)]));
+      const durMap = new Map(
+        dJson.items.map((d) => [d.id, parseISODuration(d.contentDetails.duration)]),
+      );
 
       const items = json.items
         .map((it) => ({
@@ -260,7 +319,10 @@ export const getPlaylistItems = createServerFn({ method: "POST" })
 
 // --- Video metadata --------------------------------------------------------
 
-const MetaInput = z.object({ videoId: z.string().min(5).max(20), apiKey: z.string().max(200).optional() });
+const MetaInput = z.object({
+  videoId: z.string().min(5).max(20),
+  apiKey: z.string().max(200).optional(),
+});
 
 export type VideoMeta = {
   videoId: string;
@@ -285,14 +347,23 @@ export const getVideoMeta = createServerFn({ method: "POST" })
 
     try {
       const vParams = new URLSearchParams({
-        part: "snippet,contentDetails,statistics", id: data.videoId, key: apiKey,
+        part: "snippet,contentDetails,statistics",
+        id: data.videoId,
+        key: apiKey,
       });
       const vRes = await fetch(`${YT_BASE}/videos?${vParams.toString()}`);
       if (!vRes.ok) return { meta: null, error: `videos ${vRes.status}` };
       const vJson = (await vRes.json()) as {
         items: Array<{
           id: string;
-          snippet: { title: string; channelTitle: string; channelId: string; description: string; publishedAt: string; categoryId?: string };
+          snippet: {
+            title: string;
+            channelTitle: string;
+            channelId: string;
+            description: string;
+            publishedAt: string;
+            categoryId?: string;
+          };
           contentDetails: { duration: string };
           statistics: { viewCount?: string; likeCount?: string };
         }>;
@@ -301,7 +372,9 @@ export const getVideoMeta = createServerFn({ method: "POST" })
       if (!v) return { meta: null, error: "Not found" };
 
       const cParams = new URLSearchParams({
-        part: "snippet,statistics", id: v.snippet.channelId, key: apiKey,
+        part: "snippet,statistics",
+        id: v.snippet.channelId,
+        key: apiKey,
       });
       const cRes = await fetch(`${YT_BASE}/channels?${cParams.toString()}`);
       const cJson = cRes.ok
@@ -319,7 +392,8 @@ export const getVideoMeta = createServerFn({ method: "POST" })
         title: v.snippet.title,
         channel: v.snippet.channelTitle,
         channelId: v.snippet.channelId,
-        channelThumbnail: ch?.snippet.thumbnails.medium?.url || ch?.snippet.thumbnails.default?.url || "",
+        channelThumbnail:
+          ch?.snippet.thumbnails.medium?.url || ch?.snippet.thumbnails.default?.url || "",
         subscriberCount: parseInt(ch?.statistics.subscriberCount || "0", 10),
         viewCount: parseInt(v.statistics.viewCount || "0", 10),
         likeCount: parseInt(v.statistics.likeCount || "0", 10),
@@ -337,7 +411,10 @@ export const getVideoMeta = createServerFn({ method: "POST" })
 
 // --- Channel detail + latest videos ----------------------------------------
 
-const ChannelInput = z.object({ channelId: z.string().min(5).max(64), apiKey: z.string().max(200).optional() });
+const ChannelInput = z.object({
+  channelId: z.string().min(5).max(64),
+  apiKey: z.string().max(200).optional(),
+});
 
 export type ChannelDetail = {
   channelId: string;
@@ -355,12 +432,17 @@ export const getChannelDetail = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const apiKey = data.apiKey?.trim() || process.env.YOUTUBE_API_KEY;
     if (!apiKey) {
-      return { channel: null as ChannelDetail | null, videos: [] as ResultVideo[], error: "API key missing" };
+      return {
+        channel: null as ChannelDetail | null,
+        videos: [] as ResultVideo[],
+        error: "API key missing",
+      };
     }
     try {
       const cParams = new URLSearchParams({
         part: "snippet,statistics,brandingSettings,contentDetails",
-        id: data.channelId, key: apiKey,
+        id: data.channelId,
+        key: apiKey,
       });
       const cRes = await fetch(`${YT_BASE}/channels?${cParams.toString()}`);
       if (!cRes.ok) return { channel: null, videos: [], error: `channels ${cRes.status}` };
@@ -368,7 +450,8 @@ export const getChannelDetail = createServerFn({ method: "POST" })
         items: Array<{
           id: string;
           snippet: {
-            title: string; description: string;
+            title: string;
+            description: string;
             thumbnails: { medium?: { url: string }; high?: { url: string } };
           };
           statistics: { subscriberCount?: string; videoCount?: string; viewCount?: string };
@@ -395,15 +478,21 @@ export const getChannelDetail = createServerFn({ method: "POST" })
       let videos: ResultVideo[] = [];
       if (uploadsId) {
         const pParams = new URLSearchParams({
-          part: "snippet,contentDetails", playlistId: uploadsId, maxResults: "24", key: apiKey,
+          part: "snippet,contentDetails",
+          playlistId: uploadsId,
+          maxResults: "24",
+          key: apiKey,
         });
         const pRes = await fetch(`${YT_BASE}/playlistItems?${pParams.toString()}`);
         if (pRes.ok) {
           const pJson = (await pRes.json()) as {
             items: Array<{
               snippet: {
-                title: string; channelTitle: string; channelId: string;
-                description: string; publishedAt: string;
+                title: string;
+                channelTitle: string;
+                channelId: string;
+                description: string;
+                publishedAt: string;
                 thumbnails: { medium?: { url: string }; high?: { url: string } };
                 resourceId: { videoId: string };
               };
@@ -412,11 +501,19 @@ export const getChannelDetail = createServerFn({ method: "POST" })
           const ids = pJson.items.map((i) => i.snippet.resourceId.videoId).filter(Boolean);
           if (ids.length) {
             const dParams = new URLSearchParams({
-              part: "contentDetails,statistics", id: ids.join(","), key: apiKey,
+              part: "contentDetails,statistics",
+              id: ids.join(","),
+              key: apiKey,
             });
             const dRes = await fetch(`${YT_BASE}/videos?${dParams.toString()}`);
             const dJson = dRes.ok
-              ? ((await dRes.json()) as { items: Array<{ id: string; contentDetails: { duration: string }; statistics: { viewCount?: string } }> })
+              ? ((await dRes.json()) as {
+                  items: Array<{
+                    id: string;
+                    contentDetails: { duration: string };
+                    statistics: { viewCount?: string };
+                  }>;
+                })
               : { items: [] };
             const dMap = new Map(dJson.items.map((d) => [d.id, d]));
             videos = pJson.items
@@ -430,7 +527,8 @@ export const getChannelDetail = createServerFn({ method: "POST" })
                   channel: it.snippet.channelTitle,
                   channelId: it.snippet.channelId,
                   description: it.snippet.description,
-                  thumbnail: it.snippet.thumbnails.high?.url || it.snippet.thumbnails.medium?.url || "",
+                  thumbnail:
+                    it.snippet.thumbnails.high?.url || it.snippet.thumbnails.medium?.url || "",
                   publishedAt: it.snippet.publishedAt,
                   durationSeconds,
                   viewCount,
@@ -445,7 +543,11 @@ export const getChannelDetail = createServerFn({ method: "POST" })
       return { channel, videos, error: null as string | null };
     } catch (err) {
       console.error("getChannelDetail error", err);
-      return { channel: null as ChannelDetail | null, videos: [] as ResultVideo[], error: "Failed to fetch" };
+      return {
+        channel: null as ChannelDetail | null,
+        videos: [] as ResultVideo[],
+        error: "Failed to fetch",
+      };
     }
   });
 
@@ -458,8 +560,10 @@ export const getChannelPlaylists = createServerFn({ method: "POST" })
     if (!apiKey) return { playlists: [] as ResultPlaylist[], error: "API key missing" };
     try {
       const params = new URLSearchParams({
-        part: "snippet,contentDetails", channelId: data.channelId,
-        maxResults: "25", key: apiKey,
+        part: "snippet,contentDetails",
+        channelId: data.channelId,
+        maxResults: "25",
+        key: apiKey,
       });
       const res = await fetch(`${YT_BASE}/playlists?${params.toString()}`);
       if (!res.ok) return { playlists: [], error: `playlists ${res.status}` };
@@ -467,7 +571,10 @@ export const getChannelPlaylists = createServerFn({ method: "POST" })
         items: Array<{
           id: string;
           snippet: {
-            title: string; channelTitle: string; channelId: string; description: string;
+            title: string;
+            channelTitle: string;
+            channelId: string;
+            description: string;
             thumbnails: { medium?: { url: string }; high?: { url: string } };
           };
           contentDetails: { itemCount: number };

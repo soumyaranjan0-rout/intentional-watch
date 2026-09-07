@@ -12,9 +12,16 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "ZenTube — Search with intent, not distraction" },
-      { name: "description", content: "ZenTube is a calm, intent-driven way to use YouTube. No infinite scroll, no autoplay — just the videos you came for." },
+      {
+        name: "description",
+        content:
+          "ZenTube is a calm, intent-driven way to use YouTube. No infinite scroll, no autoplay — just the videos you came for.",
+      },
       { property: "og:title", content: "ZenTube — Search with intent, not distraction" },
-      { property: "og:description", content: "Search with intent, not distraction. A focus-first YouTube companion." },
+      {
+        property: "og:description",
+        content: "Search with intent, not distraction. A focus-first YouTube companion.",
+      },
     ],
   }),
   component: HomePage,
@@ -55,14 +62,16 @@ function HomePage() {
       <div
         aria-hidden
         className="pointer-events-none absolute left-1/2 top-[-10rem] h-[36rem] w-[36rem] -translate-x-1/2 rounded-full"
-        style={{ background: "radial-gradient(closest-side, color-mix(in oklab, var(--primary) 16%, transparent), transparent 70%)" }}
+        style={{
+          background:
+            "radial-gradient(closest-side, color-mix(in oklab, var(--primary) 16%, transparent), transparent 70%)",
+        }}
       />
 
       <div className="zen-container relative px-4 py-16 sm:py-24">
         <div className="mx-auto max-w-3xl text-center">
           <div className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-border/60 bg-surface/60 px-3 py-1 text-xs text-muted-foreground backdrop-blur">
-            <ZenLogo size={14} />
-            A calmer way to use YouTube
+            <ZenLogo size={14} />A calmer way to use YouTube
           </div>
 
           <h1 className="text-balance text-4xl font-semibold tracking-tight sm:text-6xl">
@@ -80,7 +89,10 @@ function HomePage() {
                 <input
                   ref={inputRef}
                   value={q}
-                  onChange={(e) => { setQ(e.target.value); setSuggestionsOpen(true); }}
+                  onChange={(e) => {
+                    setQ(e.target.value);
+                    setSuggestionsOpen(true);
+                  }}
                   onFocus={() => setSuggestionsOpen(true)}
                   onBlur={() => window.setTimeout(() => setSuggestionsOpen(false), 120)}
                   placeholder="What are you looking for?"
@@ -101,7 +113,13 @@ function HomePage() {
                 </button>
               </div>
 
-              <SearchSuggestions id="home-search-suggestions" value={q} visible={suggestionsOpen} onPick={pickSuggestion} inputRef={inputRef} />
+              <SearchSuggestions
+                id="home-search-suggestions"
+                value={q}
+                visible={suggestionsOpen}
+                onPick={pickSuggestion}
+                inputRef={inputRef}
+              />
             </div>
             <p className="mt-5 text-sm text-muted-foreground">
               Results come straight from YouTube — measured against the intention you set.
@@ -110,9 +128,7 @@ function HomePage() {
         </div>
 
         <ResumeBanner />
-
       </div>
-
     </div>
   );
 }

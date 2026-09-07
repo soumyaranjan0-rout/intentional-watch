@@ -3,7 +3,11 @@ import { useRouterState } from "@tanstack/react-router";
 import { Clock, Repeat, Sparkles, X, ArrowRight } from "lucide-react";
 import { useIntentSession } from "@/contexts/IntentSessionContext";
 import {
-  INTENT_CATEGORIES, categoryMeta, categoryShortLabel, validateIntent, type IntentCategory,
+  INTENT_CATEGORIES,
+  categoryMeta,
+  categoryShortLabel,
+  validateIntent,
+  type IntentCategory,
 } from "@/lib/relevance";
 
 const SUGGESTIONS: Partial<Record<IntentCategory, string>> = {
@@ -21,7 +25,11 @@ const SUGGESTIONS: Partial<Record<IntentCategory, string>> = {
 
 /** The declaration form — used both for the launch screen and "Change intent". */
 export function IntentForm({
-  mode, initialCategory, initialIntent, onSubmit, onCancel,
+  mode,
+  initialCategory,
+  initialIntent,
+  onSubmit,
+  onCancel,
 }: {
   mode: "start" | "change";
   initialCategory?: IntentCategory | null;
@@ -102,7 +110,9 @@ export function IntentForm({
             Tracking against: {validation.keywords.slice(0, 6).join(", ")}
           </span>
         ) : (
-          <span className="text-muted-foreground">Be specific — vague intentions can't be measured.</span>
+          <span className="text-muted-foreground">
+            Be specific — vague intentions can't be measured.
+          </span>
         )}
       </div>
 
@@ -139,7 +149,9 @@ export function IntentGate() {
     if (typeof document === "undefined") return;
     const block = ready && !session && !exempt;
     document.body.style.overflow = block ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [ready, session, exempt]);
 
   if (!ready || session || exempt) return null;
@@ -149,12 +161,17 @@ export function IntentGate() {
       <div
         aria-hidden
         className="pointer-events-none absolute left-1/2 top-[-8rem] h-[30rem] w-[30rem] -translate-x-1/2 rounded-full"
-        style={{ background: "radial-gradient(closest-side, color-mix(in oklab, var(--primary) 18%, transparent), transparent 70%)" }}
+        style={{
+          background:
+            "radial-gradient(closest-side, color-mix(in oklab, var(--primary) 18%, transparent), transparent 70%)",
+        }}
       />
       <div className="zen-card zen-fade-in relative mx-auto my-10 w-full max-w-xl overflow-hidden p-6 sm:p-8">
         <div className="flex items-center gap-2 text-primary">
           <Sparkles className="h-4 w-4" />
-          <span className="text-[11px] font-semibold uppercase tracking-[0.16em]">Before you start</span>
+          <span className="text-[11px] font-semibold uppercase tracking-[0.16em]">
+            Before you start
+          </span>
         </div>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-[28px]">
           Why are you opening ZenTube?
@@ -221,12 +238,18 @@ export function IntentSessionChip() {
               <IntentForm
                 mode="change"
                 initialCategory={session.category}
-                onSubmit={async (c, t) => { await changeIntent(c, t); setOpen(false); }}
+                onSubmit={async (c, t) => {
+                  await changeIntent(c, t);
+                  setOpen(false);
+                }}
                 onCancel={() => setOpen(false)}
               />
             </div>
             <button
-              onClick={async () => { setOpen(false); await finish(); }}
+              onClick={async () => {
+                setOpen(false);
+                await finish();
+              }}
               className="mt-4 text-xs text-muted-foreground underline hover:text-foreground"
             >
               End this session

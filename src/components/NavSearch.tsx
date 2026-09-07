@@ -66,7 +66,10 @@ export function NavSearch() {
           <input
             ref={inputRef}
             value={q}
-            onChange={(e) => { setQ(e.target.value); setSuggestionsOpen(true); }}
+            onChange={(e) => {
+              setQ(e.target.value);
+              setSuggestionsOpen(true);
+            }}
             onFocus={() => setSuggestionsOpen(true)}
             onBlur={() => window.setTimeout(() => setSuggestionsOpen(false), 120)}
             placeholder="Search videos…"
@@ -77,7 +80,9 @@ export function NavSearch() {
             aria-autocomplete="list"
             aria-controls="nav-search-suggestions"
           />
-          <kbd className="hidden rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground sm:inline">⌘K</kbd>
+          <kbd className="hidden rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground sm:inline">
+            ⌘K
+          </kbd>
           <button
             type="submit"
             disabled={!q.trim()}
@@ -87,7 +92,13 @@ export function NavSearch() {
           </button>
         </div>
 
-        <SearchSuggestions id="nav-search-suggestions" value={q} visible={suggestionsOpen} onPick={pickSuggestion} inputRef={inputRef} />
+        <SearchSuggestions
+          id="nav-search-suggestions"
+          value={q}
+          visible={suggestionsOpen}
+          onPick={pickSuggestion}
+          inputRef={inputRef}
+        />
       </form>
     </>
   );
