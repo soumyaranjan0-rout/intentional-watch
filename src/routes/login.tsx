@@ -7,10 +7,13 @@ import { ZenLogo } from "@/components/ZenLogo";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/login")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    redirect: (search.redirect as string) || "/",
-    direct: search.direct === "1" || search.direct === 1 || search.direct === true ? "1" : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): { redirect: string; direct?: "1" } => {
+    const out: { redirect: string; direct?: "1" } = {
+      redirect: (search.redirect as string) || "/",
+    };
+    if (search.direct === "1" || search.direct === 1 || search.direct === true) out.direct = "1";
+    return out;
+  },
   head: () => ({ meta: [{ title: "Sign in — ZenTube" }] }),
   component: LoginPage,
 });
