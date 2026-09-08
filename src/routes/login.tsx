@@ -19,7 +19,6 @@ function LoginPage() {
   const { user, loading } = useAuth();
   const search = Route.useSearch();
   const [busy, setBusy] = useState(false);
-  const [blocked, setBlocked] = useState(false);
   const [errorText, setErrorText] = useState<string | null>(null);
   const autoStarted = useRef(false);
 
@@ -64,7 +63,6 @@ function LoginPage() {
       if (!result.ok) {
         const message = result.error || "Google sign-in failed. Please try again.";
         setErrorText(message);
-        setBlocked(Boolean(result.blocked));
         toast.error(message);
         setBusy(false);
         return;
@@ -75,7 +73,6 @@ function LoginPage() {
     } catch (err) {
       const message = err instanceof Error ? err.message : "Google sign-in failed";
       setErrorText(message);
-      setBlocked(true);
       toast.error(message);
       setBusy(false);
     }
