@@ -27,6 +27,25 @@ function rememberRedirect(path?: string) {
   try { localStorage.setItem(KEY, target); } catch { /* private mode */ }
 }
 
+/** True when the app is running inside another site's frame (Lovable preview). */
+export function isInIframe() {
+  if (typeof window === "undefined") return false;
+  try { return window.self !== window.top; } catch { return true; }
+}
+
+/**
+ * Last-resort sign-in path: opens the app at top level in a new tab, where the
+ * OAuth helper performs a normal full-page redirect (no pop-up involved).
+ * Must be called directly from a click so the browser allows the new tab.
+ */
+export function openTopLevelSignIn(redirectPath?: string) {
+  if (typeof window === "undefined") return false;
+  const target = isSafePath(redirectPath) ? redirectPath : "/";
+  const url = `${window.location.origin}/login?direct=1&redirect=${encodeURIComponent(target)}`;
+  const win = window.open(url, "_blank", "noopener");
+  return Boolean(win);
+}
+
 /** Resolves once a Supabase session exists (or times out). */
 export async function waitForSession(timeoutMs = 8000): Promise<boolean> {
   const started = Date.now();
@@ -39,6 +58,7 @@ export async function waitForSession(timeoutMs = 8000): Promise<boolean> {
   }
   return false;
 }
+
 
 export async function signInWithGoogle(
   redirectPath?: string,
