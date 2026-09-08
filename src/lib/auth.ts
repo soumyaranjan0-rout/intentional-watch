@@ -62,7 +62,7 @@ export async function waitForSession(timeoutMs = 8000): Promise<boolean> {
 
 export async function signInWithGoogle(
   redirectPath?: string,
-): Promise<{ ok: boolean; redirected: boolean; error?: string }> {
+): Promise<{ ok: boolean; redirected: boolean; blocked?: boolean; error?: string }> {
   rememberRedirect(redirectPath);
 
   if (typeof window === "undefined") {
@@ -79,6 +79,7 @@ export async function signInWithGoogle(
     return {
       ok: false,
       redirected: false,
+      blocked: isInIframe(),
       error: err instanceof Error ? err.message : "Google sign-in failed. Please try again.",
     };
   }
@@ -87,14 +88,17 @@ export async function signInWithGoogle(
 
   if (result?.error) {
     const msg = result.error.message || "";
+    const blocked = /popup|blocked|closed|cancel|not supported|preview/i.test(msg);
     return {
       ok: false,
       redirected: false,
-      error: /popup|blocked|closed/i.test(msg)
-        ? "The Google window was blocked or closed. Allow pop-ups and try again."
+      blocked,
+      error: blocked
+        ? "The Google window didn't open here. Continue in a new tab."
         : msg || "Google sign-in failed. Please try again.",
     };
   }
+
 
   // Tokens were set on the client — make sure the session is actually readable
   // before the caller navigates, otherwise guarded routes bounce back.
