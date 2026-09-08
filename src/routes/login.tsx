@@ -1,13 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { consumePostLoginPath, isSafePath, signInWithGoogle } from "@/lib/auth";
+import { consumePostLoginPath, isSafePath, openTopLevelSignIn, signInWithGoogle } from "@/lib/auth";
 import { Loader2 } from "lucide-react";
 import { ZenLogo } from "@/components/ZenLogo";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/login")({
-  validateSearch: (search) => ({ redirect: (search.redirect as string) || "/" }),
+  validateSearch: (search: Record<string, unknown>) => ({
+    redirect: (search.redirect as string) || "/",
+    direct: search.direct === "1" || search.direct === 1 || search.direct === true ? "1" : undefined,
+  }),
   head: () => ({ meta: [{ title: "Sign in — ZenTube" }] }),
   component: LoginPage,
 });
@@ -16,6 +19,9 @@ function LoginPage() {
   const { user, loading } = useAuth();
   const search = Route.useSearch();
   const [busy, setBusy] = useState(false);
+  const [blocked, setBlocked] = useState(false);
+  const [errorText, setErrorText] = useState<string | null>(null);
+  const autoStarted = useRef(false);
 
   const safeRedirect = isSafePath(search.redirect) ? search.redirect : "/";
 
@@ -46,6 +52,7 @@ function LoginPage() {
   const onGoogle = async () => {
     if (busy) return;
     setBusy(true);
+    setErrorText(null);
     try {
       const result = await signInWithGoogle(safeRedirect);
 
@@ -55,7 +62,10 @@ function LoginPage() {
       if (result.redirected) return;
 
       if (!result.ok) {
-        toast.error(result.error || "Google sign-in failed. Please try again.");
+        const message = result.error || "Google sign-in failed. Please try again.";
+        setErrorText(message);
+        setBlocked(Boolean(result.blocked));
+        toast.error(message);
         setBusy(false);
         return;
       }
@@ -63,10 +73,23 @@ function LoginPage() {
       // Session confirmed readable — hard navigate so guarded routes see it.
       window.location.replace(consumePostLoginPath() ?? safeRedirect);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Google sign-in failed");
+      const message = err instanceof Error ? err.message : "Google sign-in failed";
+      setErrorText(message);
+      setBlocked(true);
+      toast.error(message);
       setBusy(false);
     }
   };
+
+  // Opened from the "new tab" fallback: this window is top level, so the
+  // OAuth helper does a plain full-page redirect that no pop-up blocker sees.
+  useEffect(() => {
+    if (loading || user || autoStarted.current) return;
+    if (search.direct !== "1") return;
+    autoStarted.current = true;
+    void onGoogle();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, user, search.direct]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-6">
@@ -99,6 +122,22 @@ function LoginPage() {
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleIcon />}
             {busy ? "Opening Google…" : "Continue with Google"}
           </button>
+
+          {errorText && (
+            <div className="mt-4 rounded-xl border border-border/70 bg-surface/60 p-3 text-center">
+              <p className="text-xs text-muted-foreground">{errorText}</p>
+              <button
+                type="button"
+                onClick={() => {
+                  const opened = openTopLevelSignIn(safeRedirect);
+                  if (!opened) toast.error("Allow pop-ups for this site, then try again.");
+                }}
+                className="mt-2 inline-flex items-center gap-2 rounded-full border border-border bg-background/70 px-4 py-2 text-xs font-medium text-foreground hover:border-primary/50"
+              >
+                Continue with Google in a new tab
+              </button>
+            </div>
+          )}
 
           <p className="mt-4 text-center text-xs text-muted-foreground">
             By continuing you agree to use ZenTube mindfully.
