@@ -69,7 +69,7 @@ type Props = {
  * YouTube UI so behavior is identical to youtube.com.
  */
 export const Player = forwardRef<PlayerHandle, Props>(function Player(
-  { videoId, onProgress, onEnded, onSegmentPlayed, onSeek, onReady },
+  { videoId, onProgress, onEnded, onSegmentPlayed, onSeek, onReady, onUnavailable },
   ref,
 ) {
   const mountRef = useRef<HTMLDivElement | null>(null);
