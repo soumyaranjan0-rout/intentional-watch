@@ -57,6 +57,7 @@ type Props = {
   onSegmentPlayed?: (start: number, end: number) => void;
   onSeek?: () => void;
   onReady?: () => void;
+  onUnavailable?: (code: number) => void;
 };
 
 /**
