@@ -69,6 +69,15 @@ export async function signInWithGoogle(
     return { ok: false, redirected: false, error: "Sign-in is unavailable here." };
   }
 
+  // Inside the preview iframe the helper's pop-up is often blocked or sized
+  // off-screen (desktop preview), which made clicks appear dead. Go straight
+  // to a top-level new tab — the /login?direct=1 page there does a plain
+  // full-page redirect to Google. If the tab itself is blocked, fall through
+  // to the pop-up attempt so the caller can show its inline fallback.
+  if (isInIframe() && openTopLevelSignIn(redirectPath)) {
+    return { ok: false, redirected: true };
+  }
+
   let result: AuthResult;
   try {
     result = await lovable.auth.signInWithOAuth("google", {
