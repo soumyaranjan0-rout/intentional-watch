@@ -164,10 +164,11 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
             }
           },
           onError: (e) => {
-            const code = e.data;
+            const code = e.data ?? 0;
             if (code === 101 || code === 150 || code === 100 || code === 5 || code === 2) {
               setUnavailable(true);
               setReady(true);
+              onUnavailable?.(code);
             }
           },
         },
