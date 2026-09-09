@@ -42,8 +42,10 @@ export function openTopLevelSignIn(redirectPath?: string) {
   if (typeof window === "undefined") return false;
   const target = isSafePath(redirectPath) ? redirectPath : "/";
   const url = `${window.location.origin}/login?direct=1&redirect=${encodeURIComponent(target)}`;
-  const win = window.open(url, "_blank", "noopener");
-  return Boolean(win);
+  // Note: with "noopener" window.open returns null even on success, so we
+  // can't use the return value to detect a blocked tab — assume it opened.
+  window.open(url, "_blank", "noopener");
+  return true;
 }
 
 /** Resolves once a Supabase session exists (or times out). */
