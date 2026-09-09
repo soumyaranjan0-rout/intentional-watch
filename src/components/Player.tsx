@@ -57,6 +57,7 @@ type Props = {
   onSegmentPlayed?: (start: number, end: number) => void;
   onSeek?: () => void;
   onReady?: () => void;
+  onUnavailable?: (code: number) => void;
 };
 
 /**
@@ -68,7 +69,7 @@ type Props = {
  * YouTube UI so behavior is identical to youtube.com.
  */
 export const Player = forwardRef<PlayerHandle, Props>(function Player(
-  { videoId, onProgress, onEnded, onSegmentPlayed, onSeek, onReady },
+  { videoId, onProgress, onEnded, onSegmentPlayed, onSeek, onReady, onUnavailable },
   ref,
 ) {
   const mountRef = useRef<HTMLDivElement | null>(null);
@@ -163,10 +164,11 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
             }
           },
           onError: (e) => {
-            const code = e.data;
+            const code = e.data ?? 0;
             if (code === 101 || code === 150 || code === 100 || code === 5 || code === 2) {
               setUnavailable(true);
               setReady(true);
+              onUnavailable?.(code);
             }
           },
         },

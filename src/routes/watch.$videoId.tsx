@@ -64,6 +64,7 @@ function WatchPage() {
   const [watchLater, setWatchLater] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
+  const [unavailable, setUnavailable] = useState(false);
 
   // Intent: explicit override (from URL or user-set), inferred (from meta), session fallback.
   const [override, setOverride] = useState<Mode | null>(
@@ -361,6 +362,7 @@ function WatchPage() {
               onEnded={handleEnded}
               onSegmentPlayed={handleSegment}
               onSeek={handleSeek}
+              onUnavailable={() => setUnavailable(true)}
               onReady={() => {
                 if (!initialSeekRef.current && search.t && search.t > 0) {
                   initialSeekRef.current = true;
@@ -369,6 +371,47 @@ function WatchPage() {
               }}
             />
           </div>
+
+          {unavailable && (
+            <div className="mt-4 rounded-xl border border-border bg-surface/60 p-4">
+              <div className="text-sm font-medium text-foreground">
+                This video can’t be played inside ZenTube
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Some creators turn off playback outside YouTube, and a few videos are private,
+                removed or blocked in your region. Nothing is broken on your side — you can open it
+                on YouTube, or pick another video for the same intent.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <a
+                  href={`https://www.youtube.com/watch?v=${videoId}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+                >
+                  Watch on YouTube
+                </a>
+                <button
+                  type="button"
+                  onClick={() =>
+                    sessionQuery ? navigate({ to: "/results" }) : navigate({ to: "/" })
+                  }
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-accent"
+                >
+                  <SearchIcon className="h-4 w-4" /> Find another video
+                </button>
+                {channelId && (
+                  <Link
+                    to="/channel/$channelId"
+                    params={{ channelId }}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-accent"
+                  >
+                    Browse this channel
+                  </Link>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Title */}
           <h1 className="mt-4 text-xl font-semibold leading-snug text-foreground sm:text-2xl">
