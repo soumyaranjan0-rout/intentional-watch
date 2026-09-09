@@ -42,8 +42,10 @@ export function openTopLevelSignIn(redirectPath?: string) {
   if (typeof window === "undefined") return false;
   const target = isSafePath(redirectPath) ? redirectPath : "/";
   const url = `${window.location.origin}/login?direct=1&redirect=${encodeURIComponent(target)}`;
-  const win = window.open(url, "_blank", "noopener");
-  return Boolean(win);
+  // Note: with "noopener" window.open returns null even on success, so we
+  // can't use the return value to detect a blocked tab — assume it opened.
+  window.open(url, "_blank", "noopener");
+  return true;
 }
 
 /** Resolves once a Supabase session exists (or times out). */
@@ -67,6 +69,15 @@ export async function signInWithGoogle(
 
   if (typeof window === "undefined") {
     return { ok: false, redirected: false, error: "Sign-in is unavailable here." };
+  }
+
+  // Inside the preview iframe the helper's pop-up is often blocked or sized
+  // off-screen (desktop preview), which made clicks appear dead. Go straight
+  // to a top-level new tab — the /login?direct=1 page there does a plain
+  // full-page redirect to Google. If the tab itself is blocked, fall through
+  // to the pop-up attempt so the caller can show its inline fallback.
+  if (isInIframe() && openTopLevelSignIn(redirectPath)) {
+    return { ok: false, redirected: true };
   }
 
   let result: AuthResult;
