@@ -64,6 +64,7 @@ function WatchPage() {
   const [watchLater, setWatchLater] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
+  const [unavailable, setUnavailable] = useState(false);
 
   // Intent: explicit override (from URL or user-set), inferred (from meta), session fallback.
   const [override, setOverride] = useState<Mode | null>(
