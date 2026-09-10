@@ -425,7 +425,7 @@ function WatchPage() {
               <Link
                 to="/channel/$channelId"
                 params={{ channelId }}
-                className="-mx-2 inline-flex items-center gap-3 rounded-xl px-2 py-1.5 transition-colors hover:bg-accent"
+                className="-mx-2 inline-flex w-fit max-w-full items-center gap-3 self-start rounded-xl px-2 py-1.5 transition-colors hover:bg-accent"
               >
                 {meta?.channelThumbnail ? (
                   <img src={meta.channelThumbnail} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" loading="lazy" />
