@@ -10,6 +10,9 @@ import {
   type IntentCategory,
 } from "@/lib/relevance";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { WeeklyIntentReport } from "@/components/WeeklyIntentReport";
+import { buildWeeklyReport, demoWeeklyReport } from "@/lib/weeklyIntentReport";
 import {
   Activity,
   CalendarDays,
@@ -19,6 +22,8 @@ import {
   Play,
   Target,
   TrendingUp,
+  ListTree,
+  ChartNoAxesCombined,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/intent")({
@@ -108,7 +113,8 @@ function relTone(cls: string) {
 
 function IntentUsagePage() {
   const { user } = useAuth();
-  const [range, setRange] = useState<RangeKey>("today");
+  const [range, setRange] = useState<RangeKey>("7");
+  const [view, setView] = useState<"report" | "timeline">("report");
 
   const since = useMemo(() => rangeStart(range).toISOString(), [range]);
 
@@ -145,6 +151,10 @@ function IntentUsagePage() {
   const sessions = data?.sessions ?? [];
   const segments = data?.segments ?? [];
   const interactions = data?.interactions ?? [];
+  const weeklyReport = useMemo(() => {
+    const real = buildWeeklyReport(sessions, interactions);
+    return real.totals.watched >= 300 ? real : demoWeeklyReport();
+  }, [sessions, interactions]);
 
   const totals = useMemo(() => {
     const watched = interactions.reduce((n, i) => n + (i.effective_seconds || 0), 0);
@@ -178,55 +188,37 @@ function IntentUsagePage() {
 
   return (
     <div className="zen-container px-4 py-6 sm:py-10">
-      {/* Hero */}
-      <header className="ins-hero zen-fade-in relative overflow-hidden rounded-3xl border border-border/60 p-6 sm:p-8">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute right-[-6rem] top-[-6rem] h-64 w-64 rounded-full"
-          style={{
-            background:
-              "radial-gradient(closest-side, color-mix(in oklab, var(--primary) 22%, transparent), transparent 70%)",
-          }}
-        />
-        <div className="relative">
+      <header className="zen-fade-in mb-5 flex flex-col gap-5 border-b border-border/60 pb-6 sm:flex-row sm:items-end sm:justify-between">
+        <div className="max-w-2xl">
           <div className="inline-flex items-center gap-2 text-primary">
             <Compass className="h-4 w-4" />
-            <span className="text-[11px] font-semibold uppercase tracking-[0.16em]">
-              My intent &amp; usage
-            </span>
+            <span className="text-[11px] font-semibold uppercase tracking-[0.16em]">Intent compass</span>
           </div>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
-            What you came for — and what you actually watched
-          </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            Every visit begins with a stated intention. This is the honest record: when you opened
-            ZenTube, what you said you wanted, and how each video measured up.
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Did your time serve your purpose?</h1>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            A practical record of what held your attention, where it drifted, and which intentions worked best.
           </p>
-
-          <div className="mt-5 inline-flex rounded-full border border-border/70 bg-background/60 p-1">
-            {(
-              [
-                ["today", "Today"],
-                ["7", "Last 7 days"],
-                ["30", "Last 30 days"],
-              ] as const
-            ).map(([key, label]) => (
-              <button
-                key={key}
-                onClick={() => setRange(key)}
-                className={
-                  "zen-press rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors " +
-                  (range === key
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground")
-                }
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+        </div>
+        <div className="inline-flex self-start rounded-lg border border-border/70 bg-muted/30 p-1" aria-label="Intent view">
+          <Button size="sm" variant={view === "report" ? "default" : "ghost"} onClick={() => { setView("report"); setRange("7"); }}>
+            <ChartNoAxesCombined /> Weekly report
+          </Button>
+          <Button size="sm" variant={view === "timeline" ? "default" : "ghost"} onClick={() => setView("timeline")}>
+            <ListTree /> Session history
+          </Button>
         </div>
       </header>
+
+      {view === "report" ? (
+        isLoading ? <Skeleton className="h-[34rem] w-full rounded-2xl" /> : <WeeklyIntentReport report={weeklyReport} />
+      ) : <>
+      <div className="mb-5 flex max-w-full gap-1 overflow-x-auto rounded-lg border border-border/70 bg-muted/30 p-1 sm:w-fit">
+        {([['today', 'Today'], ['7', 'Last 7 days'], ['30', 'Last 30 days']] as const).map(([key, label]) => (
+          <Button key={key} size="sm" variant={range === key ? "secondary" : "ghost"} onClick={() => setRange(key)} className="shrink-0">
+            {label}
+          </Button>
+        ))}
+      </div>
 
       {/* KPIs */}
       <div className="zen-stagger mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -308,6 +300,7 @@ function IntentUsagePage() {
           </div>
         )}
       </div>
+      </>}
     </div>
   );
 }

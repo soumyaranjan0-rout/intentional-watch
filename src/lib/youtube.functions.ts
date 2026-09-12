@@ -119,15 +119,15 @@ export const searchVideos = createServerFn({ method: "POST" })
       };
     }
 
-    // Mirror YouTube: send the query verbatim, relevance order, keep YouTube's
-    // own ranking untouched. No injected keywords, no re-sorting, no filters.
+    // Request extra candidates because Shorts are removed after duration data
+    // arrives. ZenTube deliberately serves only deliberate, long-form viewing.
     const limit = data.maxResults ?? 10;
 
     try {
       const sp = new URLSearchParams({
         part: "snippet",
         q,
-        maxResults: String(limit),
+        maxResults: String(Math.min(50, Math.max(limit * 4, 20))),
         type: "video",
         safeSearch: "moderate",
         order: "relevance",
@@ -195,7 +195,9 @@ export const searchVideos = createServerFn({ method: "POST" })
         : { items: [] };
       const detailMap = new Map(dJson.items.map((it) => [it.id, it]));
 
-      // Preserve YouTube's exact ordering.
+      // Preserve YouTube's ordering, but never surface Shorts. YouTube does not
+      // expose a reliable Shorts flag, so duration plus explicit metadata is
+      // the safest strict boundary for a non-addictive product.
       const results: ResultVideo[] = items.map((it) => {
         const d = detailMap.get(it.id.videoId);
         const durationSeconds = d ? parseISODuration(d.contentDetails.duration) : 0;
@@ -214,7 +216,10 @@ export const searchVideos = createServerFn({ method: "POST" })
         } as ResultVideo;
         v.reason = reasonFor(data.mode, v);
         return v;
-      });
+      }).filter((v) =>
+        v.durationSeconds > 180 &&
+        !/(?:#|\b)shorts?\b/i.test(`${v.title} ${v.description}`),
+      ).slice(0, limit);
 
       return {
         error: null,
