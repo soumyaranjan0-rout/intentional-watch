@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useImperativeHandle, useRef, useState, forwardRef } from "react";
-import { AlertTriangle, ExternalLink } from "lucide-react";
+import { AlertTriangle, Check, ExternalLink, Gauge, Settings, SlidersHorizontal } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 declare global {
   interface Window {
@@ -27,6 +29,12 @@ type YTPlayer = {
   destroy: () => void;
   getPlayerState: () => number;
   getIframe: () => HTMLIFrameElement;
+  getPlaybackRate: () => number;
+  getAvailablePlaybackRates: () => number[];
+  setPlaybackRate: (rate: number) => void;
+  getPlaybackQuality: () => string;
+  getAvailableQualityLevels: () => string[];
+  setPlaybackQuality: (quality: string) => void;
 };
 
 let ytApiPromise: Promise<void> | null = null;
@@ -83,6 +91,22 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
   const [ready, setReady] = useState(false);
   const [ended, setEnded] = useState(false);
   const [hasPlayed, setHasPlayed] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [quality, setQuality] = useState("auto");
+  const [rates, setRates] = useState<number[]>([0.5, 0.75, 1, 1.25, 1.5, 2]);
+  const [qualities, setQualities] = useState<string[]>([]);
+
+  const openSettings = () => {
+    const player = playerRef.current;
+    if (player) {
+      try { setPlaybackRate(player.getPlaybackRate()); } catch {}
+      try { setRates(player.getAvailablePlaybackRates()); } catch {}
+      try { setQuality(player.getPlaybackQuality() || "auto"); } catch {}
+      try { setQualities(player.getAvailableQualityLevels()); } catch {}
+    }
+    setSettingsOpen(true);
+  };
 
   useImperativeHandle(ref, () => ({
     seekTo: (sec: number) => {
@@ -245,6 +269,18 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
           />
         </>
       )}
+      {ready && !unavailable && (
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          onClick={openSettings}
+          aria-label="Playback settings"
+          className="absolute bottom-1.5 right-11 z-30 h-9 w-9 rounded-full bg-background/80 text-foreground md:hidden"
+        >
+          <Settings className="h-5 w-5" />
+        </Button>
+      )}
       {/* End-screen "More videos" cards + share grid — mask the entire video
           area but leave the bottom control bar (incl. progress bar) exposed. */}
       {ready && !unavailable && ended && (
@@ -273,6 +309,39 @@ export const Player = forwardRef<PlayerHandle, Props>(function Player(
           </a>
         </div>
       )}
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent className="!bottom-0 !left-0 !right-0 !top-auto !w-full !max-w-none !translate-x-0 !translate-y-0 gap-0 rounded-t-3xl border-x-0 border-b-0 p-0 md:max-w-lg md:rounded-2xl">
+          <div className="mx-auto mt-3 h-1 w-10 rounded-full bg-muted-foreground/30" aria-hidden />
+          <DialogHeader className="border-b border-border/60 px-5 pb-4 pt-3 text-left">
+            <DialogTitle className="flex items-center gap-2"><SlidersHorizontal className="h-5 w-5" /> Playback settings</DialogTitle>
+            <DialogDescription>Changes apply to this video.</DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[68vh] overflow-y-auto px-5 py-4">
+            <div className="flex items-center gap-2 text-sm font-semibold"><Gauge className="h-4 w-4 text-primary" /> Speed</div>
+            <div className="mt-3 grid grid-cols-4 gap-2">
+              {rates.map((rate) => (
+                <Button key={rate} size="sm" variant={playbackRate === rate ? "default" : "outline"} onClick={() => {
+                  try { playerRef.current?.setPlaybackRate(rate); setPlaybackRate(rate); } catch {}
+                }} className="relative">
+                  {rate === 1 ? "Normal" : `${rate}×`}{playbackRate === rate && <Check className="absolute right-1 top-1 h-3 w-3" />}
+                </Button>
+              ))}
+            </div>
+            {qualities.length > 0 && <>
+              <div className="mt-6 flex items-center gap-2 text-sm font-semibold"><Settings className="h-4 w-4 text-primary" /> Quality</div>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                {["auto", ...qualities].map((level) => (
+                  <Button key={level} size="sm" variant={quality === level ? "default" : "outline"} onClick={() => {
+                    try { playerRef.current?.setPlaybackQuality(level); setQuality(level); } catch {}
+                  }}>
+                    {level === "auto" ? "Auto" : level.replace("hd", "").replace("tiny", "144").replace("small", "240").replace("medium", "360").replace("large", "480") + "p"}
+                  </Button>
+                ))}
+              </div>
+            </>}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 });
