@@ -400,7 +400,19 @@ function TimelineVideo({ entry }: { entry: TimelineEntry }) {
           </div>
         )}
         <div className="grid gap-4 p-4 sm:grid-cols-[10rem_minmax(0,1fr)]">
-          <Link to="/watch/$videoId" params={{ videoId: row.video_id }} className="group relative block overflow-hidden rounded-xl bg-muted sm:self-start">
+          <Link
+            to="/watch/$videoId"
+            params={{ videoId: row.video_id }}
+            search={{
+              title: row.title || "",
+              channel: row.channel || "",
+              duration: 0,
+              thumbnail: `https://i.ytimg.com/vi/${row.video_id}/mqdefault.jpg`,
+              t: 0,
+              intent: "",
+            }}
+            className="group relative block overflow-hidden rounded-xl bg-muted sm:self-start"
+          >
             <img
               src={`https://i.ytimg.com/vi/${row.video_id}/mqdefault.jpg`}
               alt=""
@@ -420,7 +432,19 @@ function TimelineVideo({ entry }: { entry: TimelineEntry }) {
               </span>
               <span>{row.channel || "Unknown channel"}</span>
             </div>
-            <Link to="/watch/$videoId" params={{ videoId: row.video_id }} className="mt-1.5 block text-sm font-semibold leading-snug hover:text-primary">
+            <Link
+              to="/watch/$videoId"
+              params={{ videoId: row.video_id }}
+              search={{
+                title: row.title || "",
+                channel: row.channel || "",
+                duration: 0,
+                thumbnail: `https://i.ytimg.com/vi/${row.video_id}/mqdefault.jpg`,
+                t: 0,
+                intent: "",
+              }}
+              className="mt-1.5 block text-sm font-semibold leading-snug hover:text-primary"
+            >
               {row.title || row.video_id}
             </Link>
 
