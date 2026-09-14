@@ -3,3 +3,5 @@
 - [x] Exclude Shorts from all search results
 - [x] Move mobile player settings to a YouTube-style bottom sheet
 - [x] Verify desktop and mobile behavior
+
+- [x] Rebuild the player with YouTube-familiar controls and mobile gestures
